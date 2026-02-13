@@ -43,43 +43,58 @@ class CausalStandardizedConv1D(hk.Module):
   def __call__(
       self, x: Float[Array, 'B S D']
   ) -> Float[Array, 'B S {self._num_channels}']:
-    input_channels = x.shape[-1]
-    fan_in = self._width * input_channels
-    kernel_shape = (self._width, input_channels, self._num_channels)
-    # Use VarianceScaling initialization instead of zeros for better training
-    w_init = hk.initializers.VarianceScaling(1.0, "fan_in", "truncated_normal")
-    w = hk.get_parameter('w', shape=kernel_shape, dtype=x.dtype, init=w_init)
+    """Causal 1D conv implemented via shifts + matmul to avoid XLA conv backward bugs."""
+    B, S, Din = x.shape
+    Dout = self._num_channels
+    W = self._width
 
-    # Weight standardization (same as AlphaGenome)
-    w -= jnp.mean(w, axis=(0, 1), keepdims=True)
-    var_w = jnp.var(w, axis=(0, 1), keepdims=True)
+    fan_in = W * Din
+    kernel_shape = (W, Din, Dout)
+
+    # Keep parameters in fp32 for stability; cast for compute as needed
+    w_init = hk.initializers.VarianceScaling(1.0, "fan_in", "truncated_normal")
+    w = hk.get_parameter('w', shape=kernel_shape, dtype=jnp.float32, init=w_init)
+
+    # Weight standardization (fp32)
+    w_centered = w - jnp.mean(w, axis=(0, 1), keepdims=True)
+    var_w = jnp.var(w_centered, axis=(0, 1), keepdims=True)
+
     scale = hk.get_parameter(
         'scale',
-        shape=[1, 1, self._num_channels],
+        shape=[1, 1, Dout],
         init=jnp.ones,
-        dtype=w.dtype,
+        dtype=jnp.float32,
     )
     scale = scale * jax.lax.rsqrt(jnp.maximum(fan_in * var_w, 1e-4))
-    w_standardized = w * scale
+    w_standardized = w_centered * scale  # [W, Din, Dout], fp32
 
-    # Causal padding: pad (width-1) on the left, 0 on the right
-    padding = [(0, 0), (self._width - 1, 0), (0, 0)]
-    x_padded = jnp.pad(x, padding, mode='constant', constant_values=0)
+    # Compute in fp32 for accumulation, then cast back to x.dtype
+    y = jnp.zeros((B, S, Dout), dtype=jnp.float32)
 
-    out = jax.lax.conv_general_dilated(
-        lhs=x_padded,
-        rhs=w_standardized,
-        window_strides=[1],
-        padding='VALID',
-        dimension_numbers=jax.lax.ConvDimensionNumbers(
-            lhs_spec=(0, 2, 1), rhs_spec=(2, 1, 0), out_spec=(0, 2, 1)
-        ),
-    )
-    bias = hk.get_parameter(
-        'bias', shape=(self._num_channels,), dtype=x.dtype, init=jnp.zeros
-    )
-    bias = jnp.broadcast_to(bias, out.shape)
-    return out + bias
+    # Causal conv: y[t] = sum_{k=0..W-1} x[t-k] @ w[k]
+    # Implement by shifting x to the right (left padding with zeros)
+    for k in range(W):
+      if k == 0:
+        xk = x
+      else:
+        zeros = jnp.zeros((B, k, Din), dtype=x.dtype)
+        xk = jnp.concatenate([zeros, x[:, : S - k, :]], axis=1)
+
+      # (B,S,Din) @ (Din,Dout) -> (B,S,Dout)
+      y = y + jnp.einsum(
+          'bsd,do->bso',
+          xk.astype(jnp.float32),
+          w_standardized[k],
+          precision=jax.lax.Precision.DEFAULT,
+      )
+
+    bias = hk.get_parameter('bias', shape=(Dout,), dtype=jnp.float32, init=jnp.zeros)
+    y = y + bias[None, None, :]
+
+    return y.astype(x.dtype)
+
+
+
 
 
 class CausalConvBlock(hk.Module):

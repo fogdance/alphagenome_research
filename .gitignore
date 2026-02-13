@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 .idea/
+alphatrade_ds_jm/
+runs/
+tmux.md
+train.sh
+*.csv
 # Distribution / packaging
 .Python
 build/
