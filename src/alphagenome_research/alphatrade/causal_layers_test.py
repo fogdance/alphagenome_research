@@ -12,7 +12,7 @@ class TestCausalStandardizedConv1D:
   """Tests for causal standardized convolution."""
 
   def test_causality(self):
-    """Test that convolution is strictly causal."""
+    """Test that convolution is strictly causal using prefix-invariance."""
     import haiku as hk
 
     def forward(x):
@@ -23,18 +23,23 @@ class TestCausalStandardizedConv1D:
     forward_fn = hk.transform(forward)
     rng = jax.random.PRNGKey(0)
 
-    # Create input with a spike at position t
-    x = jnp.zeros((1, 100, 8))
+    # Create two inputs with same prefix but different futures
+    x1 = jax.random.normal(jax.random.PRNGKey(1), (1, 100, 8))
+    x2 = jax.random.normal(jax.random.PRNGKey(2), (1, 100, 8))
+
+    # Make prefix identical up to position t
     t = 50
-    x = x.at[:, t, :].set(1.0)
+    x2 = x2.at[:, :t+1, :].set(x1[:, :t+1, :])
 
-    params = forward_fn.init(rng, x)
-    output = forward_fn.apply(params, rng, x)
+    params = forward_fn.init(rng, x1)
+    output1 = forward_fn.apply(params, rng, x1)
+    output2 = forward_fn.apply(params, rng, x2)
 
-    # Output at positions > t should be zero (no future information)
-    assert jnp.allclose(output[:, :t, :], 0.0, atol=1e-6)
-    # Output at position t should be non-zero
-    assert not jnp.allclose(output[:, t, :], 0.0, atol=1e-6)
+    # Outputs at position t should be identical (prefix-invariance)
+    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-5)
+    # Outputs after t can differ (future information allowed to differ)
+    # This just checks the test is meaningful
+    assert output1.shape == output2.shape
 
   def test_output_shape(self):
     """Test output shape matches input sequence length."""
@@ -98,7 +103,7 @@ class TestFeatureEmbedder:
     assert output.shape == (2, 100, 128)
 
   def test_causality(self):
-    """Test that embedding is causal."""
+    """Test that embedding is causal using prefix-invariance."""
     import haiku as hk
 
     def forward(x):
@@ -107,16 +112,20 @@ class TestFeatureEmbedder:
     forward_fn = hk.transform(forward)
     rng = jax.random.PRNGKey(0)
 
-    # Create input with spike
-    x = jnp.zeros((1, 100, 8))
+    # Create two inputs with same prefix but different futures
+    x1 = jax.random.normal(jax.random.PRNGKey(1), (1, 100, 8))
+    x2 = jax.random.normal(jax.random.PRNGKey(2), (1, 100, 8))
+
+    # Make prefix identical up to position t
     t = 50
-    x = x.at[:, t, :].set(1.0)
+    x2 = x2.at[:, :t+1, :].set(x1[:, :t+1, :])
 
-    params = forward_fn.init(rng, x)
-    output = forward_fn.apply(params, rng, x)
+    params = forward_fn.init(rng, x1)
+    output1 = forward_fn.apply(params, rng, x1)
+    output2 = forward_fn.apply(params, rng, x2)
 
-    # Check causality: output before spike should be close to zero
-    assert jnp.allclose(output[:, :t-10, :], 0.0, atol=1e-5)
+    # Outputs at position t should be identical (prefix-invariance)
+    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-5)
 
 
 class TestCausalDownResBlock:

@@ -29,7 +29,7 @@ class AlphaTradeConfig:
 
   # Architecture configuration
   stem_channels: int = 128  # C0
-  num_encoder_stages: int = 6  # Downsample to /128
+  num_encoder_stages: int = 6  # Downsample to /64 (2^6)
   channel_increment: int = 64  # Channel growth per stage
 
   # Transformer configuration

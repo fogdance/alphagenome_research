@@ -99,12 +99,15 @@ class AlphaTradeService:
     if features.shape[2] != 8:
       raise ValueError(f'Expected 8 features, got {features.shape[2]}')
 
+    # Validate raw features before normalization
+    preprocessing.validate_features(jnp.array(features[0]), normalized=False)
+
     # Normalize features if scaler is available
     if self.scaler is not None:
       features = self.scaler.transform(features)
 
-    # Validate features
-    preprocessing.validate_features(jnp.array(features[0]))
+    # Validate normalized features (skip range checks)
+    preprocessing.validate_features(jnp.array(features[0]), normalized=True)
 
     # Convert to JAX array
     features_jax = jnp.array(features)
@@ -115,6 +118,23 @@ class AlphaTradeService:
     # Extract quantiles for requested horizons
     horizons = request.horizons or self.config.horizons
     quantiles = request.quantiles or self.config.quantiles
+
+    # Validate that requested horizons/quantiles match model config
+    if request.horizons is not None:
+      unsupported_horizons = set(request.horizons) - set(self.config.horizons)
+      if unsupported_horizons:
+        raise ValueError(
+            f'Unsupported horizons: {unsupported_horizons}. '
+            f'Model only supports: {self.config.horizons}'
+        )
+
+    if request.quantiles is not None:
+      if request.quantiles != self.config.quantiles:
+        raise ValueError(
+            f'Model does not support dynamic quantiles. '
+            f'Requested: {request.quantiles}, '
+            f'Model config: {self.config.quantiles}'
+        )
 
     log_return_quantiles = {}
     for horizon in horizons:

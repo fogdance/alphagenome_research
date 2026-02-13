@@ -46,7 +46,9 @@ class CausalStandardizedConv1D(hk.Module):
     input_channels = x.shape[-1]
     fan_in = self._width * input_channels
     kernel_shape = (self._width, input_channels, self._num_channels)
-    w = hk.get_parameter('w', shape=kernel_shape, dtype=x.dtype, init=jnp.zeros)
+    # Use VarianceScaling initialization instead of zeros for better training
+    w_init = hk.initializers.VarianceScaling(1.0, "fan_in", "truncated_normal")
+    w = hk.get_parameter('w', shape=kernel_shape, dtype=x.dtype, init=w_init)
 
     # Weight standardization (same as AlphaGenome)
     w -= jnp.mean(w, axis=(0, 1), keepdims=True)

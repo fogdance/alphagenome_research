@@ -100,7 +100,8 @@ def multi_horizon_quantile_loss(
     # Default weights from spec
     horizon_weights = {1: 1.0, 5: 1.0, 20: 0.8, 60: 0.6}
 
-  total_loss = 0.0
+  # Use JAX array for loss accumulation to avoid tracer issues
+  total_loss = jnp.zeros((), dtype=jnp.float32)
   loss_dict = {}
 
   # Compute pinball loss for each horizon
@@ -179,7 +180,8 @@ def combined_loss(
         'regime_weight': 0.2,
     }
 
-  total_loss = 0.0
+  # Use JAX array for loss accumulation to avoid tracer issues
+  total_loss = jnp.zeros((), dtype=jnp.float32)
   loss_dict = {}
 
   # Main return quantile loss

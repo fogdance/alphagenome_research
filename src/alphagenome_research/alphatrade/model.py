@@ -41,7 +41,7 @@ class TemporalEncoder(hk.Module):
   @typing.jaxtyped
   def __call__(
       self, x: Float[Array, 'B S D']
-  ) -> tuple[Float[Array, 'B S//128 D_out'], dict[str, Array]]:
+  ) -> tuple[Float[Array, 'B S//64 D_out'], dict[str, Array]]:
     """Encodes temporal features with multi-scale downsampling.
 
     Args:
@@ -50,6 +50,9 @@ class TemporalEncoder(hk.Module):
     Returns:
       Tuple of (encoded_features, intermediates) where intermediates
       contains skip connections for each scale.
+
+    Note:
+      With num_stages=6, downsampling is 2^6 = 64x (not 128x).
     """
     intermediates = {}
     intermediates['scale_1'] = x
@@ -99,12 +102,14 @@ class TemporalDecoder(hk.Module):
       Decoded features at original resolution.
     """
     # Upsample through stages in reverse order
+    # Start at coarsest (scale = 2^num_stages), then upsample to the next finer
+    # scale each step: 2^(N-1) -> ... -> 2^0 (=1).
     for stage_idx in range(self._num_stages - 1, -1, -1):
-      scale = 2 ** (stage_idx + 1)
-      skip = intermediates[f'scale_{scale}']
+      target_scale = 2 ** stage_idx  # Target scale after upsampling
+      skip = intermediates[f'scale_{target_scale}']
 
       x = causal_layers.CausalUpResBlock(
-          name=f'upres_stage_{stage_idx}'
+          name=f'upres_to_scale_{target_scale}'
       )(x, skip)
 
     return x
@@ -203,7 +208,7 @@ class AlphaTrade(hk.Module):
 
   Architecture:
     1. Stem: Feature embedding
-    2. Encoder: Multi-scale causal downsampling (6 stages -> /128)
+    2. Encoder: Multi-scale causal downsampling (6 stages -> /64)
     3. Transformer: Causal attention at coarse resolution
     4. Decoder: Multi-scale causal upsampling
     5. Readout: Extract final timestep embedding

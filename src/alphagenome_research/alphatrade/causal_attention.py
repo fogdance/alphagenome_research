@@ -27,20 +27,41 @@ def apply_rope(
     x: Float[Array, 'B S H C'],
     positions: Int[Array, 'B S'] | None,
     max_position: int,
+    base: float = 10000.0,
 ) -> Float[Array, 'B S H C']:
-  """Applies Rotary Position Embeddings (RoPE) to the input tensor."""
+  """Applies Rotary Position Embeddings (RoPE) to the input tensor.
+
+  Uses standard RoPE formulation from "RoFormer: Enhanced Transformer with
+  Rotary Position Embedding" (Su et al., 2021).
+
+  Args:
+    x: Input tensor [batch, seq, heads, channels]
+    positions: Optional position indices [batch, seq]. If None, uses 0..seq-1
+    max_position: Maximum position (used for base scaling if needed)
+    base: Base for frequency computation (default 10000)
+
+  Returns:
+    Tensor with RoPE applied, same shape as input.
+  """
   if positions is None:
     positions = jnp.arange(x.shape[1]).astype(x.dtype).reshape(1, x.shape[1])
-  num_freq = x.shape[-1] // 2
-  inv_freq = 1.0 / (
-      jnp.arange(num_freq)
-      + jnp.geomspace(1, max_position - num_freq + 1, num_freq)
-  ).astype(x.dtype)
+
+  # Standard RoPE frequency computation
+  d = x.shape[-1]
+  inv_freq = 1.0 / (base ** (jnp.arange(0, d, 2).astype(x.dtype) / d))
+
+  # Compute angles: [batch, seq, d/2]
   theta = jnp.einsum('bs,f->bsf', positions, inv_freq)
-  theta = jnp.repeat(theta, 2, axis=-1)[..., None, :]  # [b, s, 1, c]
+
+  # Repeat to match full dimension: [batch, seq, 1, d]
+  theta = jnp.repeat(theta, 2, axis=-1)[..., None, :]
+
+  # Rotate: stack [-x_odd, x_even] for 90-degree rotation
   x_rotated = jnp.stack([-x[..., 1::2], x[..., ::2]], axis=-1).reshape(
       x.shape
   )
+
+  # Apply rotation: x * cos(theta) + x_rotated * sin(theta)
   return x * jnp.cos(theta) + x_rotated * jnp.sin(theta)
 
 
