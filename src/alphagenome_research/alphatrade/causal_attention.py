@@ -48,6 +48,9 @@ def apply_rope(
 
   # Standard RoPE frequency computation
   d = x.shape[-1]
+  if d % 2 != 0:
+    raise ValueError(f"RoPE requires even head_dim, got {d}")
+
   inv_freq = 1.0 / (base ** (jnp.arange(0, d, 2).astype(x.dtype) / d))
 
   # Compute angles: [batch, seq, d/2]
@@ -67,7 +70,7 @@ def apply_rope(
 
 def create_causal_mask(seq_len: int) -> Float[Array, 'S S']:
   """Creates a causal mask for attention: position i can only attend to j <= i."""
-  mask = jnp.tril(jnp.ones((seq_len, seq_len)))
+  mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=bool))
   # Convert to attention bias: 0 for allowed, -inf for masked
   return jnp.where(mask, 0.0, -1e10)
 

@@ -109,13 +109,18 @@ def causal_pool(
   """Causal max pooling: only looks at past values.
 
   For each output position i, pools from input positions [i*by, (i+1)*by).
+
+  If seq_len is not divisible by `by`, we **left-pad** with -inf to make it
+  divisible. Left-padding keeps the most recent timesteps aligned (i.e., the
+  tail of the sequence is preserved without shifting relative to output bins).
   """
   batch_size, seq_len, channels = x.shape
+
   # Ensure sequence length is divisible by pooling factor
   if seq_len % by != 0:
-    # Pad on the left to make it divisible
     pad_len = by - (seq_len % by)
-    x = jnp.pad(x, [(0, 0), (pad_len, 0), (0, 0)], constant_values=-jnp.inf)
+    neg_inf = jnp.array(-jnp.inf, dtype=x.dtype)
+    x = jnp.pad(x, [(0, 0), (pad_len, 0), (0, 0)], constant_values=neg_inf)
     seq_len = x.shape[1]
 
   # Reshape to [B, S//by, by, D] and take max over the pooling dimension
