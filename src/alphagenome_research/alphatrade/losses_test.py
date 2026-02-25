@@ -37,16 +37,18 @@ class TestQuantilePinballLoss:
   def test_asymmetric_penalty(self):
     """Test that loss is asymmetric for different quantiles."""
     y_true = jnp.array([0.0])
-    y_pred_low = jnp.array([[1.0]])  # Underestimate
-    y_pred_high = jnp.array([[-1.0]])  # Overestimate
+    y_pred_low = jnp.array([[-1.0]])  # Predict -1.0 when true is 0.0 (underestimate)
+    y_pred_high = jnp.array([[1.0]])  # Predict 1.0 when true is 0.0 (overestimate)
 
-    # For q=0.9, underestimating should be more costly
+    # For q=0.9, underestimating (predicting too low) should be more costly
+    # error = y_true - y_pred = 0 - (-1) = 1 (positive error = underestimate)
     quantiles_high = jnp.array([0.9])
     loss_under = losses.quantile_pinball_loss(y_true, y_pred_low, quantiles_high)
     loss_over = losses.quantile_pinball_loss(y_true, y_pred_high, quantiles_high)
     assert loss_under > loss_over
 
-    # For q=0.1, overestimating should be more costly
+    # For q=0.1, overestimating (predicting too high) should be more costly
+    # error = y_true - y_pred = 0 - 1 = -1 (negative error = overestimate)
     quantiles_low = jnp.array([0.1])
     loss_under = losses.quantile_pinball_loss(y_true, y_pred_low, quantiles_low)
     loss_over = losses.quantile_pinball_loss(y_true, y_pred_high, quantiles_low)

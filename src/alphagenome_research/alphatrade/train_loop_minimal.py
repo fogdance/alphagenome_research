@@ -460,21 +460,48 @@ def parse_args():
   # Misc stability
   ap.add_argument("--grad_clip", type=float, default=1.0, help="Global norm clip (0 to disable).")
 
-  # Early stopping (by eval count)
+  # --- Production checkpoint policy ---
+  ap.add_argument(
+      "--keep_last_ckpts",
+      type=int,
+      default=3,
+      help=("Keep last K periodic ckpt_*.pkl files. "
+            "0 means keep none (only latest + best). "
+            "-1 means keep all (no pruning)."),
+  )
+  ap.add_argument(
+      "--save_ckpt_every_eval",
+      action="store_true",
+      help="Also save periodic/latest right after each eval (in addition to ckpt_every).",
+  )
+
+  # --- Early stopping (based on eval_loss) ---
+  ap.add_argument(
+      "--early_stop",
+      action="store_true",
+      help="Enable early stopping based on eval_loss improvements.",
+  )
   ap.add_argument(
       "--early_stop_patience",
       type=int,
-      default=0,
-      help="0 disables early stop. Otherwise stop after this many evals without improvement.",
+      default=10,
+      help="Number of evals with no improvement before stopping.",
   )
   ap.add_argument(
       "--early_stop_min_delta",
       type=float,
       default=0.0,
-      help="Minimum eval_loss decrease to count as improvement.",
+      help="Require improvement by at least this delta to reset patience.",
+  )
+  ap.add_argument(
+      "--early_stop_warmup_evals",
+      type=int,
+      default=2,
+      help="Ignore early stopping for first N evals (still track best).",
   )
 
   return ap.parse_args()
+
 
 def main():
   args = parse_args()
@@ -483,11 +510,74 @@ def main():
 
   print(f"[{_now()}] Tip env: export XLA_PYTHON_CLIENT_PREALLOCATE=false ; export TF_GPU_ALLOCATOR=cuda_malloc_async")
 
+  # -----------------------------
+  # Helpers: ckpt pruning + saving
+  # -----------------------------
+  def _prune_old_ckpts(keep_last: int):
+    """Prune ckpt_*.pkl, keeping the last K (by filename order)."""
+    if keep_last < 0:
+      return  # keep all
+    ckpts = sorted(workdir.glob("ckpt_*.pkl"))
+    if keep_last == 0:
+      for p in ckpts:
+        try:
+          p.unlink()
+        except OSError:
+          pass
+      return
+    if len(ckpts) <= keep_last:
+      return
+    for p in ckpts[:-keep_last]:
+      try:
+        p.unlink()
+      except OSError:
+        pass
+
+  def _make_ckpt_payload(step: int, best_eval_loss: float, best_step: int):
+    return {
+        "step": step,
+        "time": _now(),
+        "params": jax.device_get(params),
+        "state": jax.device_get(state),
+        "opt_state": jax.device_get(opt_state),
+        "config": dataclasses.asdict(config),
+        "scaler": {"medians": med.tolist(), "iqrs": iqr.tolist()},
+        "best": {"best_eval_loss": best_eval_loss, "best_step": best_step},
+    }
+
+  def save_periodic_ckpt(step: int, best_eval_loss: float, best_step: int, reason: str):
+    """Always write latest.pkl; optionally write ckpt_XXXXXX.pkl and prune."""
+    payload = _make_ckpt_payload(step, best_eval_loss, best_step)
+
+    atomic_pickle_dump(workdir / "latest.pkl", payload)
+
+    if int(args.keep_last_ckpts) != 0:
+      ckpt_path = workdir / f"ckpt_{step:06d}.pkl"
+      atomic_pickle_dump(ckpt_path, payload)
+      _prune_old_ckpts(int(args.keep_last_ckpts))
+      print(f"[{_now()}] [ckpt] ({reason}) saved {ckpt_path.name} + latest.pkl (keep_last_ckpts={args.keep_last_ckpts})")
+    else:
+      _prune_old_ckpts(0)  # ensure no old ckpt_*.pkl remain
+      print(f"[{_now()}] [ckpt] ({reason}) saved latest.pkl (no ckpt_*.pkl kept)")
+
+  def save_best_ckpt(step: int, best_eval_loss: float, best_step: int):
+    """Only called when eval improves."""
+    payload = _make_ckpt_payload(step, best_eval_loss, best_step)
+    atomic_pickle_dump(workdir / "best.pkl", payload)
+    print(f"[{_now()}] [best] saved best.pkl (best_eval_loss={best_eval_loss:.6f} at step={best_step})")
+
+  # If user wants "keep none", proactively clean old ckpts.
+  _prune_old_ckpts(int(args.keep_last_ckpts))
+
+  # -----------------------------
   # Parse quantiles/horizons
+  # -----------------------------
   quantiles = [float(x) for x in args.quantiles.split(",") if x.strip()]
   horizons_arg = [int(x) for x in args.horizons.split(",") if x.strip()] if args.horizons.strip() else None
 
+  # -----------------------------
   # Load data
+  # -----------------------------
   X_train, y_train = load_dataset(args.train_npz, horizons_arg)
   X_val, y_val = load_dataset(args.val_npz, horizons_arg)
 
@@ -502,7 +592,9 @@ def main():
 
   print(f"[data] train: {X_train.shape} val: {X_val.shape} horizons={horizons} quantiles={quantiles}")
 
+  # -----------------------------
   # Effective batch + accumulation
+  # -----------------------------
   if args.accum_steps and args.accum_steps > 0:
     accum_steps = int(args.accum_steps)
     micro_batch = int(args.micro_batch)
@@ -519,13 +611,15 @@ def main():
 
   print(f"[batch] effective batch_size={batch_size} (micro_batch={micro_batch} accum_steps={accum_steps})")
 
-  # Fit (approx) robust scaler on sampled points
+  # -----------------------------
+  # Robust scaler
+  # -----------------------------
   scaler_path = workdir / "scaler_params.json"
   if scaler_path.exists():
     sp = json.loads(scaler_path.read_text(encoding="utf-8"))
     med = np.array(sp["medians"], dtype=np.float32)
     iqr = np.array(sp["iqrs"], dtype=np.float32)
-    print(f"[scaler] loaded existing scaler_params.json")
+    print("[scaler] loaded existing scaler_params.json")
   else:
     med, iqr = fit_robust_scaler_from_samples(
         X_train,
@@ -540,7 +634,9 @@ def main():
     })
     print(f"[scaler] fitted (sample={args.scaler_fit_samples}) and saved scaler_params.json")
 
+  # -----------------------------
   # bf16 settings
+  # -----------------------------
   bf16_inputs = False
   if args.bf16:
     ok = enable_bf16_mixed_precision_if_possible()
@@ -551,7 +647,9 @@ def main():
       print("[bf16] mixed_precision not available; fallback to casting inputs to bf16.")
       bf16_inputs = True
 
+  # -----------------------------
   # Build config
+  # -----------------------------
   config = schemas.AlphaTradeConfig(
       lookback_length=int(L),
       num_features=8,
@@ -569,19 +667,21 @@ def main():
       quantiles=list(quantiles),
   )
 
-  # Transforms
+  # -----------------------------
+  # Transforms + init
+  # -----------------------------
   loss_t, pred_t = build_transforms(config)
 
-  # Init params/state
   rng = jax.random.PRNGKey(args.seed)
   rng, init_rng = jax.random.split(rng)
 
   dummy_x = jnp.zeros((1, L, 8), dtype=jnp.float32)
   dummy_y = {h: jnp.zeros((1,), dtype=jnp.float32) for h in horizons}
-
   params, state = loss_t.init(init_rng, dummy_x, dummy_y)
 
+  # -----------------------------
   # Optimizer
+  # -----------------------------
   lr = float(args.lr)
   tx_chain = []
   if args.grad_clip and args.grad_clip > 0:
@@ -596,7 +696,9 @@ def main():
   # Eval
   eval_full = make_eval_fns(loss_t, pred_t, quantiles)
 
+  # -----------------------------
   # Sampler
+  # -----------------------------
   rng_np = np.random.default_rng(args.seed + 999)
   N_train = X_train.shape[0]
 
@@ -607,47 +709,19 @@ def main():
     yb = {h: y_train[h][idx].astype(np.float32) for h in horizons}
     return xb, yb
 
-  # Checkpoint helper (periodic/latest)
-  def save_periodic_ckpt(step: int):
-    ckpt = {
-        "step": step,
-        "time": _now(),
-        "params": jax.device_get(params),
-        "state": jax.device_get(state),
-        "opt_state": jax.device_get(opt_state),
-        "config": dataclasses.asdict(config),
-        "scaler": {"medians": med.tolist(), "iqrs": iqr.tolist()},
-        "best": {"best_eval_loss": best_eval_loss, "best_step": best_step},
-    }
-    ckpt_path = workdir / f"ckpt_{step:06d}.pkl"
-    atomic_pickle_dump(ckpt_path, ckpt)
-    atomic_pickle_dump(workdir / "latest.pkl", ckpt)
-    print(f"[{_now()}] [ckpt] saved {ckpt_path.name} (and latest.pkl)")
-
-  # Checkpoint helper (best)
-  def save_best_ckpt(step: int, eval_loss: float):
-    best_ckpt = {
-        "step": step,
-        "time": _now(),
-        "eval_loss": float(eval_loss),
-        "params": jax.device_get(params),
-        "state": jax.device_get(state),
-        "opt_state": jax.device_get(opt_state),
-        "config": dataclasses.asdict(config),
-        "scaler": {"medians": med.tolist(), "iqrs": iqr.tolist()},
-        "best": {"best_eval_loss": best_eval_loss, "best_step": best_step},
-    }
-    atomic_pickle_dump(workdir / "best.pkl", best_ckpt)
-    print(f"[{_now()}] [ckpt] saved best.pkl")
-
-  # Logging
-  print(f"[{_now()}] start training: steps={args.steps} eval_every={args.eval_every} ckpt_every={args.ckpt_every}")
-  t0 = time.time()
-
-  # Best / early stop tracking
+  # -----------------------------
+  # Early stopping state
+  # -----------------------------
   best_eval_loss = float("inf")
   best_step = -1
-  bad_evals = 0  # number of consecutive evals without improvement
+  num_evals = 0
+  bad_evals = 0  # evals since last improvement
+
+  # -----------------------------
+  # Train loop
+  # -----------------------------
+  print(f"[{_now()}] start training: steps={args.steps} eval_every={args.eval_every} ckpt_every={args.ckpt_every}")
+  t0 = time.time()
 
   for step in range(1, args.steps + 1):
     xb_np, yb_np = sample_global_batch()
@@ -666,9 +740,13 @@ def main():
       gn_v = float(jax.device_get(tr_metrics["grad_norm"]))
       print(f"[{_now()}] step={step:6d} loss={loss_v:.6f} grad_norm={gn_v:.6f} ({it_s:.2f} it/s)")
 
+    # -----------------------------
     # Eval
+    # -----------------------------
     if step % args.eval_every == 0:
+      num_evals += 1
       rng, ev_rng = jax.random.split(rng)
+
       ev_metrics, calib_by_h = eval_full(
           params=params,
           state=state,
@@ -684,7 +762,6 @@ def main():
       eval_loss = float(ev_metrics["eval_loss"])
       print(f"[{_now()}] [eval] step={step:6d} eval_loss={eval_loss:.6f}")
 
-      # Print compact calibration
       for h in horizons:
         ece = calib_by_h[h]["ece"]
         cov_str = ", ".join([
@@ -693,12 +770,8 @@ def main():
         ])
         print(f"         [calib] h={h:>3d} ece={ece:.4f}  {cov_str}")
 
-      # Save eval artifacts
-      save_json(workdir / f"eval_step{step:06d}.json", {
-          "step": step,
-          "time": _now(),
-          **ev_metrics,
-      })
+      # Save eval artifacts (small)
+      save_json(workdir / f"eval_step{step:06d}.json", {"step": step, "time": _now(), **ev_metrics})
       save_json(workdir / f"calibration_step{step:06d}.json", {
           "step": step,
           "time": _now(),
@@ -706,49 +779,41 @@ def main():
           "by_horizon": {str(h): calib_by_h[h] for h in horizons},
       })
 
-      # Best + early stopping bookkeeping
-      improved = False
-      if np.isfinite(eval_loss):
-        improved = (eval_loss < (best_eval_loss - float(args.early_stop_min_delta)))
-
+      # best: save ONLY if improved
+      improved = (eval_loss < (best_eval_loss - float(args.early_stop_min_delta)))
       if improved:
         best_eval_loss = eval_loss
         best_step = step
         bad_evals = 0
-        print(f"[{_now()}] [best] new best eval_loss={best_eval_loss:.6f} at step={best_step}")
-        save_best_ckpt(step, eval_loss)
+        save_best_ckpt(step, best_eval_loss, best_step)
       else:
         bad_evals += 1
 
-      # Early stop check (patience is in #evals)
-      if args.early_stop_patience and args.early_stop_patience > 0:
-        if bad_evals >= int(args.early_stop_patience):
-          print(f"[{_now()}] [early_stop] stop at step={step}, "
-                f"best_step={best_step}, best_eval_loss={best_eval_loss:.6f}, "
-                f"bad_evals={bad_evals}/{args.early_stop_patience}")
-          # make sure we can resume from the stopping point
-          save_periodic_ckpt(step)
-          break
+      # optional: also save periodic/latest after eval
+      if args.save_ckpt_every_eval:
+        save_periodic_ckpt(step, best_eval_loss, best_step, reason="eval")
 
-    # Periodic checkpoint (always for resume)
+      # early stopping decision
+      if args.early_stop:
+        if num_evals <= int(args.early_stop_warmup_evals):
+          pass
+        else:
+          if bad_evals >= int(args.early_stop_patience):
+            print(f"[{_now()}] [early_stop] stop at step={step} "
+                  f"(no improvement for {bad_evals} evals; best={best_eval_loss:.6f} at step={best_step})")
+            # Always save a final latest/periodic snapshot on stop
+            save_periodic_ckpt(step, best_eval_loss, best_step, reason="early_stop_final")
+            break
+
+    # -----------------------------
+    # Periodic/latest ckpt for resume
+    # -----------------------------
     if step % args.ckpt_every == 0:
-      save_periodic_ckpt(step)
+      save_periodic_ckpt(step, best_eval_loss, best_step, reason="periodic")
 
-  else:
-    # loop finished normally (no break)
-    pass
-
-  # Ensure final latest is saved (if loop ended without hitting ckpt_every)
-  # - only do this if we didn't just save at the same step
-  # Note: if early_stop triggered, we already saved periodic ckpt at that step.
-  if (args.steps % args.ckpt_every) != 0 and (best_step != -1):
-    # If training ended early via break, 'step' is still in scope in Python.
-    # We conservatively write latest at the last executed step.
-    try:
-      save_periodic_ckpt(step)
-    except Exception:
-      # don't crash at shutdown path
-      pass
+    # End-of-run safety snapshot
+    if step == args.steps:
+      save_periodic_ckpt(step, best_eval_loss, best_step, reason="final")
 
   print(f"[{_now()}] done. best_eval_loss={best_eval_loss:.6f} at step={best_step}")
 

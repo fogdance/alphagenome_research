@@ -139,6 +139,10 @@ class CausalMHABlock(hk.Module):
 
     # Compute attention logits
     logits_dtype = jnp.float32
+    # Note: Uses BF16 for attention computation (lhs/rhs bf16, accum f32)
+    # for better speed and stability. This is standard practice in modern
+    # transformers (GPT-3/4, PaLM, Gemini). For strict fp32 debugging,
+    # change precision to jax.lax.Precision.DEFAULT.
     attention_logits = jnp.einsum(
         'bshc,bShc->bhsS',
         q,
@@ -148,14 +152,20 @@ class CausalMHABlock(hk.Module):
     )
     attention_logits = attention_logits / math.sqrt(self._head_dim)
 
-    # Apply causal mask
-    causal_mask = create_causal_mask(seq_len)
-    attention_logits = attention_logits + causal_mask[None, None, :, :]
-
-    # Apply logits soft-cap (AlphaGenome style)
+    # Apply logits soft-cap (AlphaGenome style) BEFORE causal mask
+    # This prevents the mask from being affected by the soft-cap
     attention_logits = (
         jnp.tanh(attention_logits / self._logits_soft_cap)
         * self._logits_soft_cap
+    )
+
+    # Apply causal mask AFTER soft-cap to ensure strict causality
+    # Using -inf ensures future positions get exactly zero attention weight
+    causal_mask = create_causal_mask(seq_len)
+    attention_logits = jnp.where(
+        causal_mask[None, None, :, :] == 0.0,
+        attention_logits,
+        -jnp.inf,
     )
 
     # Softmax and apply to values

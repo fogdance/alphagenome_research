@@ -101,13 +101,9 @@ class TestCausalMHABlock:
   def test_causality(self):
     """Test that attention is causal using prefix-invariance.
 
-    Note: The current implementation uses LayerNorm on Q/K/V which normalizes
-    over the entire sequence dimension. This breaks strict prefix-invariance
-    because changing future values affects the normalization statistics.
-
-    This test verifies that outputs are *approximately* the same (within 2%)
-    when prefixes match, which is acceptable for practical causality.
-    For strict causality, LayerNorm should normalize over features only.
+    LayerNorm(rms_norm=True) normalizes over the last dimension (features)
+    only, so it does NOT break prefix-invariance. Any small differences
+    are due to floating-point accumulation in softmax/RoPE.
     """
     import haiku as hk
 
@@ -131,18 +127,8 @@ class TestCausalMHABlock:
     output1 = forward_fn.apply(params, rng, x1)
     output2 = forward_fn.apply(params, rng, x2)
 
-    # Outputs at position t should be approximately the same
-    # (within 2% relative error due to LayerNorm over sequence)
-    diff = jnp.abs(output1[:, t, :] - output2[:, t, :])
-    max_diff = jnp.max(diff)
-    mean_diff = jnp.mean(diff)
-
-    # Check that difference is small (< 3% of typical output magnitude)
-    # Note: Slightly relaxed from 2% to 3% after RoPE standardization
-    output_scale = jnp.mean(jnp.abs(output1[:, t, :]))
-    relative_error = max_diff / (output_scale + 1e-8)
-
-    assert relative_error < 0.03, f"Relative error {relative_error:.4f} exceeds 3%"
+    # Outputs at position t should be nearly identical (strict prefix-invariance)
+    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-4)
 
     # Verify outputs after t can differ significantly (test is meaningful)
     diff_after = jnp.max(jnp.abs(output1[:, t+1, :] - output2[:, t+1, :]))
@@ -266,9 +252,9 @@ class TestCausalTransformerTower:
   def test_causality_preserved(self):
     """Test that causality is preserved through tower using prefix-invariance.
 
-    Note: Similar to CausalMHABlock, LayerNorm over sequence dimension causes
-    small deviations from strict prefix-invariance. We verify approximate
-    causality with relative error tolerance.
+    LayerNorm(rms_norm=True) normalizes over features only, so strict
+    prefix-invariance holds. Small differences come from floating-point
+    accumulation across 3 layers.
     """
     import haiku as hk
 
@@ -292,16 +278,9 @@ class TestCausalTransformerTower:
     output1 = forward_fn.apply(params, rng, x1)
     output2 = forward_fn.apply(params, rng, x2)
 
-    # Outputs at position t should be approximately the same
-    diff = jnp.abs(output1[:, t, :] - output2[:, t, :])
-    max_diff = jnp.max(diff)
-
-    # Check that difference is small (< 10% of typical output magnitude)
-    # Note: With 3 layers, the LayerNorm effect compounds, so we use 10% tolerance
-    output_scale = jnp.mean(jnp.abs(output1[:, t, :]))
-    relative_error = max_diff / (output_scale + 1e-8)
-
-    assert relative_error < 0.10, f"Relative error {relative_error:.4f} exceeds 10%"
+    # Outputs at position t should be nearly identical
+    # With 3 layers, floating-point error accumulates slightly more
+    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-3)
 
     # Verify outputs after t can differ significantly
     diff_after = jnp.max(jnp.abs(output1[:, t+1, :] - output2[:, t+1, :]))

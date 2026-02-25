@@ -55,6 +55,53 @@ class AlphaTradeConfig:
   predict_regime: bool = False
   num_regime_classes: int = 3  # {up, down, range}
 
+  def __post_init__(self):
+    """Validate configuration after initialization."""
+    # Validate quantiles
+    if len(self.quantiles) == 0:
+      raise ValueError("quantiles cannot be empty")
+
+    # Check strictly increasing
+    for i in range(len(self.quantiles) - 1):
+      if self.quantiles[i] >= self.quantiles[i + 1]:
+        raise ValueError(
+            f"quantiles must be strictly increasing, got {self.quantiles}"
+        )
+
+    # Check all values in (0, 1)
+    for q in self.quantiles:
+      if not (0 < q < 1):
+        raise ValueError(f"quantiles must be in (0, 1), got {q}")
+
+    # Check contains 0.5 (required by QuantileHead implementation)
+    if 0.5 not in self.quantiles:
+      raise ValueError(
+          "quantiles must contain 0.5 (median) for QuantileHead to work"
+      )
+
+    # Check odd number (required by QuantileHead median+deltas approach)
+    if len(self.quantiles) % 2 == 0:
+      raise ValueError(
+          f"quantiles must have odd length for QuantileHead, "
+          f"got {len(self.quantiles)}"
+      )
+
+    # Check 0.5 is in the middle
+    median_idx = len(self.quantiles) // 2
+    if self.quantiles[median_idx] != 0.5:
+      raise ValueError(
+          f"quantiles[{median_idx}] must be 0.5 (median must be centered), "
+          f"got {self.quantiles[median_idx]}"
+      )
+
+    # Validate horizons
+    if len(self.horizons) == 0:
+      raise ValueError("horizons cannot be empty")
+
+    for h in self.horizons:
+      if h <= 0:
+        raise ValueError(f"horizons must be positive, got {h}")
+
 
 @dataclasses.dataclass
 class AlphaTradeInput:
