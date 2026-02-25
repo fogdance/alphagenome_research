@@ -1,0 +1,17 @@
+{
+  "d_model": 64,
+  "num_layers": 2,
+  "num_heads": 2,
+  "head_dim": 32,
+  "mlp_expansion": 4,
+  "lookback_length": 1024,
+  "num_features": 7,
+  "horizons": [1, 5, 20, 60],
+  "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+  "predict_range": false,
+  "predict_volume": false,
+  "predict_regime": false,
+  "num_regime_classes": 3,
+  "logits_soft_cap": 5.0,
+  "max_position": 8192
+}
