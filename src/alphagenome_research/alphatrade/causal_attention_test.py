@@ -45,16 +45,16 @@ class TestCreateCausalMask:
     """Test mask allows past and blocks future."""
     mask = causal_attention.create_causal_mask(5)
 
-    # Diagonal and below should be 0 (allowed)
-    assert mask[0, 0] == 0.0
-    assert mask[1, 0] == 0.0
-    assert mask[1, 1] == 0.0
-    assert mask[4, 2] == 0.0
+    # Diagonal and below should be True (allowed)
+    assert mask[0, 0] == True
+    assert mask[1, 0] == True
+    assert mask[1, 1] == True
+    assert mask[4, 2] == True
 
-    # Above diagonal should be -inf (blocked)
-    assert mask[0, 1] < -1e9
-    assert mask[1, 2] < -1e9
-    assert mask[2, 4] < -1e9
+    # Above diagonal should be False (blocked)
+    assert mask[0, 1] == False
+    assert mask[1, 2] == False
+    assert mask[2, 4] == False
 
 
 class TestCausalMLPBlock:
@@ -127,8 +127,10 @@ class TestCausalMHABlock:
     output1 = forward_fn.apply(params, rng, x1)
     output2 = forward_fn.apply(params, rng, x2)
 
-    # Outputs at position t should be nearly identical (strict prefix-invariance)
-    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-4)
+    # Strict prefix-invariance: ALL outputs up to t must match.
+    # If this fails with large atol, it may hide real future-leak bugs.
+    diff_prefix = jnp.max(jnp.abs(output1[:, :t+1, :] - output2[:, :t+1, :]))
+    assert diff_prefix < 1e-6, f"Prefix diff {diff_prefix:.2e} exceeds 1e-6"
 
     # Verify outputs after t can differ significantly (test is meaningful)
     diff_after = jnp.max(jnp.abs(output1[:, t+1, :] - output2[:, t+1, :]))
@@ -278,9 +280,9 @@ class TestCausalTransformerTower:
     output1 = forward_fn.apply(params, rng, x1)
     output2 = forward_fn.apply(params, rng, x2)
 
-    # Outputs at position t should be nearly identical
-    # With 3 layers, floating-point error accumulates slightly more
-    assert jnp.allclose(output1[:, t, :], output2[:, t, :], atol=1e-3)
+    # Strict prefix-invariance should still hold across layers.
+    diff_prefix = jnp.max(jnp.abs(output1[:, :t+1, :] - output2[:, :t+1, :]))
+    assert diff_prefix < 1e-6, f"Prefix diff {diff_prefix:.2e} exceeds 1e-6"
 
     # Verify outputs after t can differ significantly
     diff_after = jnp.max(jnp.abs(output1[:, t+1, :] - output2[:, t+1, :]))

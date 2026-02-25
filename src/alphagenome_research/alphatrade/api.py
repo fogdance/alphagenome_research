@@ -15,12 +15,14 @@
 """API service for AlphaTrade predictions."""
 
 import time
+import pickle
 from typing import Any, Dict, List, Optional
 import json
 
 from alphagenome_research.alphatrade import model as model_lib
 from alphagenome_research.alphatrade import preprocessing
 from alphagenome_research.alphatrade import schemas
+import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -289,18 +291,170 @@ def create_service_from_checkpoint(
   """Creates a service from a saved checkpoint.
 
   Args:
-    checkpoint_path: Path to saved model checkpoint
+    checkpoint_path: Path to saved model checkpoint (pickle format)
     config: Optional model configuration (if not saved in checkpoint)
-    scaler_path: Optional path to saved scaler parameters
+    scaler_path: Optional path to saved scaler parameters (JSON format)
 
   Returns:
     AlphaTradeService instance ready for inference.
+
+  Note:
+    Pickle is unsafe with untrusted inputs. Only load checkpoints you created.
   """
-  # TODO: Implement checkpoint loading using orbax or similar
-  # This is a placeholder for the actual implementation
-  raise NotImplementedError(
-      'Checkpoint loading not yet implemented. '
-      'Use create_service_from_train_state for now.'
+  # Load checkpoint
+  with open(checkpoint_path, "rb") as f:
+    ckpt = pickle.load(f)
+
+  if not isinstance(ckpt, dict):
+    raise ValueError(f"Checkpoint must be a dict, got {type(ckpt)}")
+
+  # ---- Config ----
+  if config is None:
+    if "config" not in ckpt:
+      raise ValueError(
+          "Checkpoint missing 'config' and no config override provided."
+      )
+    cfg_obj = ckpt["config"]
+    if isinstance(cfg_obj, schemas.AlphaTradeConfig):
+      config = cfg_obj
+    elif isinstance(cfg_obj, dict):
+      config = schemas.AlphaTradeConfig(**cfg_obj)
+    else:
+      raise ValueError(f"Unsupported checkpoint config type: {type(cfg_obj)}")
+
+  # ---- Forward transform ----
+  def _forward_fn(features: jax.Array) -> schemas.AlphaTradeOutput:
+    model = model_lib.AlphaTrade(config)
+    return model(features)
+
+  forward = hk.transform_with_state(lambda x: _forward_fn(x))
+
+  # ---- Params/state ----
+  if "params" not in ckpt or "state" not in ckpt:
+    raise ValueError(
+        "Checkpoint missing required keys: 'params' and/or 'state'."
+    )
+
+  # Convert to JAX arrays (handle numpy/list/device arrays)
+  params = jax.tree_util.tree_map(jnp.asarray, ckpt["params"])
+  state = jax.tree_util.tree_map(jnp.asarray, ckpt["state"])
+
+  # Validate params structure matches expected forward transform
+  # This catches mismatches early with a clear error message
+  try:
+    dummy_input = jnp.zeros((1, config.lookback_length, config.num_features))
+    expected_params, _ = forward.init(jax.random.PRNGKey(0), dummy_input)
+
+    # Check top-level keys match
+    expected_keys = set(jax.tree_util.tree_leaves(
+        jax.tree_util.tree_map(lambda _: None, expected_params, is_leaf=lambda x: isinstance(x, dict))
+    ))
+    actual_keys = set(jax.tree_util.tree_leaves(
+        jax.tree_util.tree_map(lambda _: None, params, is_leaf=lambda x: isinstance(x, dict))
+    ))
+
+    # Simple structure check: compare flattened key paths
+    expected_flat = jax.tree_util.tree_flatten(expected_params)[0]
+    actual_flat = jax.tree_util.tree_flatten(params)[0]
+
+    if len(expected_flat) != len(actual_flat):
+      raise ValueError(
+          f"Checkpoint params structure mismatch: "
+          f"expected {len(expected_flat)} parameters, got {len(actual_flat)}. "
+          f"This usually means the checkpoint was saved with a different model architecture."
+      )
+  except Exception as e:
+    if "structure mismatch" in str(e).lower():
+      raise
+    # If validation fails for other reasons, warn but continue
+    import warnings
+    warnings.warn(
+        f"Could not validate checkpoint params structure: {e}. "
+        f"Proceeding anyway, but inference may fail."
+    )
+
+  train_state = {
+      "params": params,
+      "state": state,
+      "forward": forward,
+  }
+
+  # ---- Scaler ----
+  scaler: preprocessing.RobustScaler | None = None
+
+  def _build_scaler_from_medians_iqrs(medians, iqrs) -> preprocessing.RobustScaler:
+    s = preprocessing.RobustScaler()
+    s.medians_ = np.asarray(medians, dtype=np.float32)
+    s.iqrs_ = np.asarray(iqrs, dtype=np.float32)
+    # Avoid division by near-zero
+    s.iqrs_ = np.where(s.iqrs_ < 1e-6, 1.0, s.iqrs_)
+    s.fitted_ = True
+    return s
+
+  def _parse_feature_dict(sp: dict) -> tuple[list, list]:
+    """Parse feature_i dict format into medians and iqrs lists.
+
+    Handles non-contiguous indices and validates structure.
+    """
+    # Extract and sort feature indices
+    feature_keys = [k for k in sp.keys() if k.startswith("feature_")]
+    if not feature_keys:
+      raise ValueError("No feature_* keys found in scaler dict")
+
+    # Parse indices and sort
+    try:
+      indices = sorted([int(k.split("_")[1]) for k in feature_keys])
+    except (ValueError, IndexError) as e:
+      raise ValueError(f"Invalid feature key format: {e}")
+
+    # Check for gaps
+    expected_indices = list(range(len(indices)))
+    if indices != expected_indices:
+      raise ValueError(
+          f"Feature indices must be contiguous starting from 0. "
+          f"Expected {expected_indices}, got {indices}"
+      )
+
+    # Extract values in order
+    med = []
+    iqr = []
+    for i in indices:
+      key = f"feature_{i}"
+      val = sp[key]
+      if not isinstance(val, (list, tuple)) or len(val) != 2:
+        raise ValueError(
+            f"Expected {key} to be [median, iqr], got {val}"
+        )
+      med.append(val[0])
+      iqr.append(val[1])
+
+    return med, iqr
+
+  if scaler_path is not None:
+    with open(scaler_path, "r", encoding="utf-8") as f:
+      sp = json.load(f)
+    # Support either {medians, iqrs} or {"feature_0": [median, iqr], ...}
+    if "medians" in sp and "iqrs" in sp:
+      scaler = _build_scaler_from_medians_iqrs(sp["medians"], sp["iqrs"])
+    elif any(k.startswith("feature_") for k in sp.keys()):
+      med, iqr = _parse_feature_dict(sp)
+      scaler = _build_scaler_from_medians_iqrs(med, iqr)
+    else:
+      raise ValueError(f"Unrecognized scaler file format: {scaler_path}")
+  else:
+    sc = ckpt.get("scaler", None)
+    if isinstance(sc, dict):
+      if "medians" in sc and "iqrs" in sc:
+        scaler = _build_scaler_from_medians_iqrs(sc["medians"], sc["iqrs"])
+      elif any(k.startswith("feature_") for k in sc.keys()):
+        med, iqr = _parse_feature_dict(sc)
+        scaler = _build_scaler_from_medians_iqrs(med, iqr)
+
+  return create_service_from_train_state(
+      train_state=train_state,
+      config=config,
+      scaler=scaler,
+      model_version=ckpt.get("model_version", "alphatrade_v0.2"),
   )
 
 

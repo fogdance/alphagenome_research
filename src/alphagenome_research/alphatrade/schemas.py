@@ -15,6 +15,7 @@
 """Data schemas for AlphaTrade."""
 
 import dataclasses
+import math
 from jaxtyping import Array, Float, Int
 from typing import Dict, List
 
@@ -74,7 +75,11 @@ class AlphaTradeConfig:
         raise ValueError(f"quantiles must be in (0, 1), got {q}")
 
     # Check contains 0.5 (required by QuantileHead implementation)
-    if 0.5 not in self.quantiles:
+    has_median = any(
+        math.isclose(float(q), 0.5, rel_tol=0.0, abs_tol=1e-8)
+        for q in self.quantiles
+    )
+    if not has_median:
       raise ValueError(
           "quantiles must contain 0.5 (median) for QuantileHead to work"
       )
@@ -88,7 +93,9 @@ class AlphaTradeConfig:
 
     # Check 0.5 is in the middle
     median_idx = len(self.quantiles) // 2
-    if self.quantiles[median_idx] != 0.5:
+    if not math.isclose(
+        float(self.quantiles[median_idx]), 0.5, rel_tol=0.0, abs_tol=1e-8
+    ):
       raise ValueError(
           f"quantiles[{median_idx}] must be 0.5 (median must be centered), "
           f"got {self.quantiles[median_idx]}"

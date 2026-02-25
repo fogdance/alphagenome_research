@@ -20,12 +20,12 @@ from alphagenome_research.model import layers
 import haiku as hk
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Int
+from jaxtyping import Array, Bool, Float, Int
 
 
 def apply_rope(
     x: Float[Array, 'B S H C'],
-    positions: Int[Array, 'B S'] | None,
+    positions: Float[Array, 'B S'] | None,
     max_position: int,
     base: float = 10000.0,
 ) -> Float[Array, 'B S H C']:
@@ -36,8 +36,8 @@ def apply_rope(
 
   Args:
     x: Input tensor [batch, seq, heads, channels]
-    positions: Optional position indices [batch, seq]. If None, uses 0..seq-1
-    max_position: Maximum position (used for base scaling if needed)
+    positions: Optional position indices [batch, seq] as floats. If None, uses 0..seq-1
+    max_position: Maximum position (currently unused, reserved for future NTK/RoPE scaling)
     base: Base for frequency computation (default 10000)
 
   Returns:
@@ -68,11 +68,9 @@ def apply_rope(
   return x * jnp.cos(theta) + x_rotated * jnp.sin(theta)
 
 
-def create_causal_mask(seq_len: int) -> Float[Array, 'S S']:
-  """Creates a causal mask for attention: position i can only attend to j <= i."""
-  mask = jnp.tril(jnp.ones((seq_len, seq_len), dtype=bool))
-  # Convert to attention bias: 0 for allowed, -inf for masked
-  return jnp.where(mask, 0.0, -1e10)
+def create_causal_mask(seq_len: int) -> Bool[Array, 'S S']:
+  """Creates a boolean causal mask: True where position i can attend to j <= i."""
+  return jnp.tril(jnp.ones((seq_len, seq_len), dtype=bool))
 
 
 class CausalMLPBlock(hk.Module):
@@ -163,7 +161,7 @@ class CausalMHABlock(hk.Module):
     # Using -inf ensures future positions get exactly zero attention weight
     causal_mask = create_causal_mask(seq_len)
     attention_logits = jnp.where(
-        causal_mask[None, None, :, :] == 0.0,
+        causal_mask[None, None, :, :],
         attention_logits,
         -jnp.inf,
     )

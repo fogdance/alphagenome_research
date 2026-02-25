@@ -56,6 +56,12 @@ def fill_missing_minutes(
 ) -> pd.DataFrame:
   """
   把分钟补齐（会变大很多，慎用）。
+
+  Warning:
+    对补出来的非交易分钟，我们会令 O=H=L=C=prev_close, Volume=0。
+    这会导致 hl_range=log(eps)（约 -20.x）等特征出现极端值；虽然 is_session_open=0
+    可以让模型学会忽略，但也可能让模型"过度依赖极端值识别休市"。
+
   - method="by_presence": 原CSV里存在=开盘(1)，补出来=收盘(0)（推荐，更稳，自动处理周末/节假日）
   - method="by_schedule": 按 sessions + 周一到周五 判定开盘（遇到节假日会误判）
   """
