@@ -36,6 +36,7 @@ class AlphaTradeService:
       config: schemas.AlphaTradeConfig,
       train_state: Dict[str, Any],
       scaler: preprocessing.RobustScaler | None = None,
+      target_stats: Dict[int, tuple[float, float]] | None = None,
       model_version: str = 'alphatrade_v0.2',
   ):
     """Initializes the service.
@@ -44,11 +45,14 @@ class AlphaTradeService:
       config: Model configuration
       train_state: Trained model state (params, state, forward function)
       scaler: Optional fitted scaler for feature normalization
+      target_stats: Optional target normalization stats {horizon: (mean, std)}
+                    for denormalizing predictions
       model_version: Version string for the model
     """
     self.config = config
     self.train_state = train_state
     self.scaler = scaler
+    self.target_stats = target_stats
     self.model_version = model_version
     self.preprocessor = preprocessing.FeaturePreprocessor()
 
@@ -141,8 +145,15 @@ class AlphaTradeService:
     log_return_quantiles = {}
     for horizon in horizons:
       if horizon in predictions.log_return_quantiles:
+        # Convert to numpy array
+        quantile_values = predictions.log_return_quantiles[horizon][0]  # [Q]
+
+        # Denormalize if target_stats available
+        if self.target_stats is not None and horizon in self.target_stats:
+          mean, std = self.target_stats[horizon]
+          quantile_values = quantile_values * std + mean
+
         # Convert to list of floats
-        quantile_values = predictions.log_return_quantiles[horizon][0]
         log_return_quantiles[str(horizon)] = [
             float(q) for q in quantile_values
         ]
@@ -450,10 +461,21 @@ def create_service_from_checkpoint(
         med, iqr = _parse_feature_dict(sc)
         scaler = _build_scaler_from_medians_iqrs(med, iqr)
 
+  # ---- Target stats (for denormalization) ----
+  target_stats = ckpt.get("target_stats", None)
+  if target_stats is not None:
+    # Convert keys to int if they're strings
+    if isinstance(target_stats, dict):
+      target_stats = {
+          int(k) if isinstance(k, str) else k: v
+          for k, v in target_stats.items()
+      }
+
   return create_service_from_train_state(
       train_state=train_state,
       config=config,
       scaler=scaler,
+      target_stats=target_stats,
       model_version=ckpt.get("model_version", "alphatrade_v0.2"),
   )
 
@@ -462,6 +484,7 @@ def create_service_from_train_state(
     train_state: Dict[str, Any],
     config: schemas.AlphaTradeConfig,
     scaler: preprocessing.RobustScaler | None = None,
+    target_stats: Dict[int, tuple[float, float]] | None = None,
     model_version: str = 'alphatrade_v0.2',
 ) -> AlphaTradeService:
   """Creates a service from an in-memory training state.
@@ -470,6 +493,7 @@ def create_service_from_train_state(
     train_state: Training state with params, state, and forward function
     config: Model configuration
     scaler: Optional fitted scaler
+    target_stats: Optional target normalization stats {horizon: (mean, std)}
     model_version: Version string
 
   Returns:
@@ -479,6 +503,7 @@ def create_service_from_train_state(
       config=config,
       train_state=train_state,
       scaler=scaler,
+      target_stats=target_stats,
       model_version=model_version,
   )
 

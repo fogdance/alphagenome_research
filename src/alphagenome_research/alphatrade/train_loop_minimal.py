@@ -133,6 +133,69 @@ def load_dataset(npz_path: str, horizons_arg: List[int] | None) -> Tuple[np.ndar
 
 
 # -----------------------------
+# Target normalization
+# -----------------------------
+
+def normalize_targets(
+    Y_dict: Dict[int, np.ndarray]
+) -> Tuple[Dict[int, np.ndarray], Dict[int, Tuple[float, float]]]:
+  """Normalize targets to zero mean and unit variance per horizon.
+
+  This is CRITICAL for training stability when different horizons have
+  very different scales (e.g., h=1 std=0.001 vs h=60 std=0.01).
+
+  Without normalization:
+    - Small-scale targets → small gradients → slow learning → divergence
+    - Different horizons compete for gradient updates
+    - Numerical instability
+
+  Args:
+    Y_dict: {horizon: targets [N]}
+
+  Returns:
+    Y_norm: {horizon: normalized targets [N]}
+    stats: {horizon: (mean, std)} for denormalization at inference
+  """
+  Y_norm = {}
+  stats = {}
+
+  for h, y in Y_dict.items():
+    mean = float(np.mean(y))
+    std = float(np.std(y))
+
+    # Normalize to zero mean, unit variance
+    Y_norm[h] = (y - mean) / (std + 1e-8)
+    stats[h] = (mean, std)
+
+  return Y_norm, stats
+
+
+def denormalize_predictions(
+    predictions: Dict[int, np.ndarray],
+    stats: Dict[int, Tuple[float, float]]
+) -> Dict[int, np.ndarray]:
+  """Denormalize predictions back to original scale.
+
+  Args:
+    predictions: {horizon: quantile predictions [N, Q]}
+    stats: {horizon: (mean, std)} from normalize_targets
+
+  Returns:
+    predictions_denorm: {horizon: denormalized predictions [N, Q]}
+  """
+  predictions_denorm = {}
+
+  for h, pred in predictions.items():
+    if h not in stats:
+      raise ValueError(f"Missing normalization stats for horizon {h}")
+
+    mean, std = stats[h]
+    predictions_denorm[h] = pred * std + mean
+
+  return predictions_denorm
+
+
+# -----------------------------
 # Robust scaler (sample-based)
 # -----------------------------
 
@@ -542,6 +605,7 @@ def main():
         "opt_state": jax.device_get(opt_state),
         "config": dataclasses.asdict(config),
         "scaler": {"medians": med.tolist(), "iqrs": iqr.tolist()},
+        "target_stats": target_stats,  # {horizon: (mean, std)} for denormalization
         "best": {"best_eval_loss": best_eval_loss, "best_step": best_step},
     }
 
@@ -591,6 +655,25 @@ def main():
     raise ValueError(f"Train/Val horizons mismatch: train={sorted(y_train.keys())} val={sorted(y_val.keys())}")
 
   print(f"[data] train: {X_train.shape} val: {X_val.shape} horizons={horizons} quantiles={quantiles}")
+
+  # -----------------------------
+  # Target normalization (CRITICAL for training stability)
+  # -----------------------------
+  print(f"[{_now()}] Normalizing targets...")
+  print("  Original target statistics:")
+  for h in horizons:
+    print(f"    h={h:>2}: mean={np.mean(y_train[h]):+.6f}, std={np.std(y_train[h]):.6f}")
+
+  y_train_norm, target_stats = normalize_targets(y_train)
+  y_val_norm, _ = normalize_targets(y_val)  # Use val's own stats for validation
+
+  print("  Normalized target statistics (train):")
+  for h in horizons:
+    print(f"    h={h:>2}: mean={np.mean(y_train_norm[h]):+.6f}, std={np.std(y_train_norm[h]):.6f}")
+
+  # Use normalized targets for training
+  y_train = y_train_norm
+  y_val = y_val_norm
 
   # -----------------------------
   # Effective batch + accumulation

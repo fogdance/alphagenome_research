@@ -1,197 +1,137 @@
 #!/usr/bin/env python3
-"""Diagnose calibration issues in AlphaTrade predictions."""
+"""Check if the data has any predictive signal (quick baselines).
+
+This script:
+- Loads val.npz (features + y_h*)
+- Builds simple predictors from X:
+  * last timestep features
+  * optional summary features (mean/std over lookback)
+- Computes per-feature correlation with y
+- Fits OLS linear regression as a sanity baseline
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from typing import Dict, Tuple
 
 import numpy as np
-import pickle
-import jax
-import jax.numpy as jnp
-import haiku as hk
-from pathlib import Path
 
-from alphagenome_research.alphatrade import model as model_lib
-from alphagenome_research.alphatrade import schemas
 
-def main():
-    # Load checkpoint
-    ckpt_path = Path("src/alphagenome_research/alphatrade/runs/jm_v02/best.pkl")
-    print(f"Loading checkpoint from {ckpt_path}")
-
-    with open(ckpt_path, "rb") as f:
-        ckpt = pickle.load(f)
-
-    config = schemas.AlphaTradeConfig(**ckpt["config"])
-    params = ckpt["params"]
-    state = ckpt.get("state", {})
-
-    med = np.array(ckpt["scaler"]["medians"], np.float32)
-    iqr = np.array(ckpt["scaler"]["iqrs"], np.float32)
-
-    print(f"\nConfig:")
-    print(f"  Horizons: {config.horizons}")
-    print(f"  Quantiles: {config.quantiles}")
-
-    # Load validation data
-    val_path = Path("src/alphagenome_research/alphatrade/alphatrade_ds_jm/val.npz")
-    print(f"\nLoading validation data from {val_path}")
-
+def _load_val_npz(val_path: Path) -> Tuple[np.ndarray, Dict[int, np.ndarray]]:
     npz = np.load(val_path)
-    X = npz["features"].astype(np.float32)
+    if "features" not in npz.files:
+        raise ValueError(f"{val_path} missing 'features' array")
+    X = npz["features"].astype(np.float32)  # [N, L, F]
 
-    # Extract y for each horizon
-    Y = {}
+    Y: Dict[int, np.ndarray] = {}
     for key in npz.files:
         if key.startswith("y_h"):
-            h = int(key.split("h")[-1])
-            Y[h] = npz[key].astype(np.float32)
+            try:
+                h = int(key.split("h")[-1])
+            except Exception:
+                continue
+            Y[h] = npz[key].astype(np.float32).reshape(-1)
 
-    print(f"\nData shapes:")
+    if not Y:
+        raise ValueError(f"{val_path} contains no y_h* arrays")
+
+    return X, Y
+
+
+def _ols_fit_predict(X: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """OLS with bias term via lstsq."""
+    Xb = np.column_stack([X, np.ones((X.shape[0],), dtype=X.dtype)])
+    w = np.linalg.lstsq(Xb, y, rcond=None)[0]
+    return Xb @ w
+
+
+def _r2(y: np.ndarray, y_pred: np.ndarray) -> float:
+    ss_res = float(np.sum((y - y_pred) ** 2))
+    ss_tot = float(np.sum((y - np.mean(y)) ** 2)) + 1e-12
+    return 1.0 - ss_res / ss_tot
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--val", type=str, default="src/alphagenome_research/alphatrade/alphatrade_ds_jm/val.npz")
+    ap.add_argument("--use_summary", action="store_true", help="Use (last, mean, std) features instead of only last.")
+    args = ap.parse_args()
+
+    val_path = Path(args.val)
+    print(f"Loading validation data from {val_path}")
+
+    X, Y = _load_val_npz(val_path)
+    N, L, F = X.shape
+
+    print("\nData shapes:")
     print(f"  X: {X.shape}")
     for h in sorted(Y.keys()):
         print(f"  y_h{h}: {Y[h].shape}")
 
-    # Normalize X
-    Xn = (X - med[None, None, :]) / iqr[None, None, :]
+    # Feature views
+    X_last = X[:, -1, :]  # [N, F]
+    if args.use_summary:
+        X_mean = np.mean(X, axis=1)
+        X_std = np.std(X, axis=1)
+        X_feat = np.concatenate([X_last, X_mean, X_std], axis=1)
+        feat_names = [f"last_{i}" for i in range(F)] + [f"mean_{i}" for i in range(F)] + [f"std_{i}" for i in range(F)]
+        print("\nUsing feature set: concat(last, mean, std) over lookback")
+    else:
+        X_feat = X_last
+        feat_names = [f"last_{i}" for i in range(F)]
+        print("\nUsing feature set: last timestep only")
 
-    # Create prediction function
-    def forward(features):
-        m = model_lib.AlphaTrade(config)
-        return m(features)
+    print(f"Feature matrix: {X_feat.shape}")
 
-    pred_t = hk.transform_with_state(forward)
+    # constant-feature check
+    const_feats = [feat_names[i] for i in range(X_feat.shape[1]) if float(np.std(X_feat[:, i])) == 0.0]
+    if const_feats:
+        print("\nWARNING: constant features detected:", const_feats)
 
-    def _pred_apply(params, state, rng, features):
-        out, _ = pred_t.apply(params, state, rng, features)
-        return out.log_return_quantiles
+    print(f"\n{'='*72}")
+    print("SIGNAL CHECK: Feature-Target Correlations + Linear Baseline (OLS)")
+    print(f"{'='*72}")
 
-    pred_apply_jit = jax.jit(_pred_apply)
-
-    # Run predictions in batches
-    print(f"\nRunning predictions...")
-    batch_size = 64
-    N = len(Xn)
-
-    pred_q = {h: [] for h in config.horizons}
-    rng = jax.random.PRNGKey(0)
-
-    for i in range(0, N, batch_size):
-        end = min(i + batch_size, N)
-        xb = jnp.asarray(Xn[i:end])
-
-        rng, rk = jax.random.split(rng)
-        out = pred_apply_jit(params, state, rk, xb)
-
-        for h in config.horizons:
-            pred_q[h].append(np.array(out[h]))
-
-    for h in config.horizons:
-        pred_q[h] = np.concatenate(pred_q[h], axis=0)  # [N, Q]
-
-    print(f"\nPrediction shapes:")
-    for h in config.horizons:
-        print(f"  pred_h{h}: {pred_q[h].shape}")
-
-    # Diagnostic 1: Check quantile crossing
-    print(f"\n{'='*60}")
-    print("DIAGNOSTIC 1: Quantile Crossing Rate")
-    print(f"{'='*60}")
-
-    for h in config.horizons:
-        q = pred_q[h]
-        # Check if quantiles are monotonically increasing
-        diffs = np.diff(q, axis=1)  # [N, Q-1]
-        crossing = np.mean(np.any(diffs < 0, axis=1))
-        print(f"h={h:>3} crossing_rate={crossing:.4f} (should be ~0)")
-
-    # Diagnostic 2: Bias and scale
-    print(f"\n{'='*60}")
-    print("DIAGNOSTIC 2: Bias and Scale")
-    print(f"{'='*60}")
-
-    quantiles_np = np.array(config.quantiles, dtype=np.float32)
-
-    for h in config.horizons:
+    for h in sorted(Y.keys()):
         y = Y[h]
-        q = pred_q[h]
+        print(f"\nh={h}:")
 
-        # Compute coverage (empirical CDF at predicted quantiles)
-        obs = [(y <= q[:, j]).mean() for j in range(q.shape[1])]
+        # per-feature correlation
+        max_abs_corr = 0.0
+        best_feat = None
+        for i in range(X_feat.shape[1]):
+            xi = X_feat[:, i]
+            if np.std(xi) == 0:
+                corr = np.nan
+            else:
+                corr = float(np.corrcoef(xi, y)[0, 1])
+            if np.isfinite(corr) and abs(corr) > max_abs_corr:
+                max_abs_corr = abs(corr)
+                best_feat = feat_names[i]
+            if i < 24:  # avoid printing too many when --use_summary
+                print(f"  {feat_names[i]:>10}: {corr:+.4f}")
+        if X_feat.shape[1] > 24:
+            print(f"  ... ({X_feat.shape[1]-24} more features not shown)")
 
-        # Bias: y - median_pred
-        median_idx = len(config.quantiles) // 2
-        bias = float(np.mean(y - q[:, median_idx]))
+        # OLS baseline
+        y_pred = _ols_fit_predict(X_feat, y)
+        r2 = _r2(y, y_pred)
+        corr_pred = float(np.corrcoef(y, y_pred)[0, 1]) if np.std(y_pred) > 0 else float("nan")
 
-        # Scale: IQR
-        iqr_y = float(np.quantile(y, 0.75) - np.quantile(y, 0.25))
+        print(f"  Best |corr| feature: {best_feat}  |corr|={max_abs_corr:.4f}")
+        print(f"  OLS baseline: R²={r2:.6f}, corr(y, y_pred)={corr_pred:+.4f}")
 
-        # Find q25 and q75 indices
-        q25_idx = None
-        q75_idx = None
-        for i, qv in enumerate(config.quantiles):
-            if abs(qv - 0.25) < 0.01:
-                q25_idx = i
-            if abs(qv - 0.75) < 0.01:
-                q75_idx = i
+    print(f"\n{'='*72}")
+    print("INTERPRETATION")
+    print(f"{'='*72}")
+    print("If max |corr| is near 0 and OLS R² < 0.01 across horizons:")
+    print("  -> data may have very weak signal (hard to learn).")
+    print("If max |corr| ~ 0.1+ and OLS corr ~ 0.15+ but deep model corr ~ 0:")
+    print("  -> training/pipeline/model issue likely (e.g., label alignment, loss weighting, over-regularization).")
+    print()
 
-        if q25_idx is not None and q75_idx is not None:
-            iqr_pred = float(np.mean(q[:, q75_idx] - q[:, q25_idx]))
-        else:
-            iqr_pred = float('nan')
-
-        print(f"\nh={h:>3}")
-        print(f"  Coverage: {[f'{v:.3f}' for v in obs]}")
-        print(f"  Expected: {[f'{v:.3f}' for v in config.quantiles]}")
-        print(f"  Bias (y - q50): {bias:+.6f}")
-        print(f"  IQR_y:          {iqr_y:.6f}")
-        print(f"  IQR_pred:       {iqr_pred:.6f}")
-        print(f"  Scale ratio:    {iqr_pred / iqr_y:.3f}")
-
-    # Diagnostic 3: Distribution statistics
-    print(f"\n{'='*60}")
-    print("DIAGNOSTIC 3: Distribution Statistics")
-    print(f"{'='*60}")
-
-    for h in config.horizons:
-        y = Y[h]
-        q = pred_q[h]
-
-        print(f"\nh={h:>3}")
-        print(f"  y_true:  mean={np.mean(y):+.6f}, std={np.std(y):.6f}, "
-              f"min={np.min(y):+.6f}, max={np.max(y):+.6f}")
-
-        median_idx = len(config.quantiles) // 2
-        q_median = q[:, median_idx]
-        print(f"  q50:     mean={np.mean(q_median):+.6f}, std={np.std(q_median):.6f}, "
-              f"min={np.min(q_median):+.6f}, max={np.max(q_median):+.6f}")
-
-    # Diagnostic 4: Check if horizons are swapped
-    print(f"\n{'='*60}")
-    print("DIAGNOSTIC 4: Horizon Alignment Check")
-    print(f"{'='*60}")
-    print("\nIf horizons are swapped, you'll see:")
-    print("  - Short horizons (h=1,5) have predictions matching long horizon targets")
-    print("  - Long horizons (h=20,60) have predictions matching short horizon targets")
-
-    for h_pred in config.horizons:
-        q = pred_q[h_pred]
-        median_idx = len(config.quantiles) // 2
-        q_median = q[:, median_idx]
-
-        print(f"\nPredictions for h={h_pred}:")
-        for h_true in config.horizons:
-            y = Y[h_true]
-            corr = np.corrcoef(y, q_median)[0, 1]
-            mae = np.mean(np.abs(y - q_median))
-            print(f"  vs y_h{h_true}: corr={corr:+.4f}, MAE={mae:.6f}")
-
-    print(f"\n{'='*60}")
-    print("SUMMARY")
-    print(f"{'='*60}")
-    print("\nLook for:")
-    print("1. High crossing_rate → QuantileHead implementation issue")
-    print("2. Large bias → predictions systematically too high/low")
-    print("3. Scale ratio far from 1.0 → predictions too narrow/wide")
-    print("4. Coverage far from expected → calibration failure")
-    print("5. Best correlation on wrong horizon → horizon mapping bug")
 
 if __name__ == "__main__":
     main()
