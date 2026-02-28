@@ -664,8 +664,15 @@ def main():
   for h in horizons:
     print(f"    h={h:>2}: mean={np.mean(y_train[h]):+.6f}, std={np.std(y_train[h]):.6f}")
 
+  def apply_target_stats(Y, stats):
+    out={}
+    for h, y in Y.items():
+      mean, std = stats[h]
+      out[h] = (y - mean) / (std + 1e-8)
+    return out
+
   y_train_norm, target_stats = normalize_targets(y_train)
-  y_val_norm, _ = normalize_targets(y_val)  # Use val's own stats for validation
+  y_val_norm = apply_target_stats(y_val, target_stats)
 
   print("  Normalized target statistics (train):")
   for h in horizons:
