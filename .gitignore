@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .idea/
+data
 alphatrade_ds_jm/
 runs/
 tmux.md
