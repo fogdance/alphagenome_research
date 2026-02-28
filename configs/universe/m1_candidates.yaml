@@ -1,0 +1,54 @@
+candidates:
+- SHFE.ZN
+- SHFE.RU
+- SHFE.RB
+- SHFE.SN
+- SHFE.AL
+- SHFE.HC
+- SHFE.PB
+- SHFE.NI
+- SHFE.AU
+- SHFE.AG
+- SHFE.CU
+- SHFE.BU
+- DCE.C
+- DCE.Y
+- CZCE.SR
+- DCE.A
+- CZCE.TA
+- DCE.M
+- DCE.B
+- DCE.V
+- CZCE.SM
+- CZCE.SF
+- DCE.J
+- DCE.PP
+- DCE.JM
+- DCE.I
+- DCE.JD
+- DCE.L
+- DCE.P
+- DCE.CS
+- CZCE.RM
+- CZCE.MA
+- CZCE.RS
+- CFFEX.TF
+- CFFEX.T
+- CZCE.OI
+- CZCE.AP
+- CFFEX.IF
+- CZCE.CY
+- CFFEX.IH
+- CZCE.CF
+- CZCE.FG
+- CFFEX.IC
+- INE.SC
+- SHFE.FU
+- CFFEX.TS
+- SHFE.SP
+- DCE.EG
+generated_at: '2026-02-28T22:50:10.101969'
+selection_criteria:
+  min_score: 60
+  top_k: 50
+version: m1_t0_candidates

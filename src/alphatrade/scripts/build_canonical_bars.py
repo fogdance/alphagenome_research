@@ -36,7 +36,12 @@ ArchiveReader = archive_reader_module.ArchiveReader
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build canonical bars")
-    parser.add_argument("--symbol", type=str, required=True, help="Symbol to process")
+    parser.add_argument("--symbol", type=str, help="Symbol to process (required unless --all)")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all symbols from config"
+    )
     parser.add_argument(
         "--config",
         type=str,
@@ -46,8 +51,8 @@ def parse_args():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="data/processed/m0_1",
-        help="Output directory"
+        default=None,
+        help="Output directory (default: from config paths.processed_dir)"
     )
     return parser.parse_args()
 
@@ -194,76 +199,70 @@ def generate_profile(df: pd.DataFrame, symbol: str) -> dict:
     return profile
 
 
-def main():
-    args = parse_args()
-    
-    # Load config
-    config = load_config(args.config)
-    
-    print(f"Building canonical bars for: {args.symbol}")
-    print(f"Config: {args.config}")
-    
+def process_symbol(symbol: str, config: dict, output_dir: str, report_path: str):
+    """Process a single symbol."""
+    print(f"\nBuilding canonical bars for: {symbol}")
+
     # Initialize reader
-    # Extract config (support both old and new structure)
     archive_dir = config.get("archive", {}).get("archive_dir") or config.get("paths", {}).get("archive_dir")
     manifest_path = config.get("archive", {}).get("manifest_path", "") or config.get("paths", {}).get("manifest_path", "")
     if not manifest_path:
         manifest_path = "/data/juejin/_manifest/3a1a389f-56e9-46ce-8a04-047cbd456a44.jsonl"
-    
+
     reader = ArchiveReader(archive_dir, manifest_path)
-    
+
     # Load data
     print("\n1. Loading data from archive...")
-    df = reader.load_symbol(args.symbol, dedup_eob="last")
+    df = reader.load_symbol(symbol, dedup_eob="last")
     print(f"   Loaded {len(df):,} rows")
-    
+
     # Compute segments
     print("\n2. Computing segments...")
     gap_seconds = config["canonical"]["gap_seconds"]
     df = compute_segments(df, gap_seconds=gap_seconds)
     print(f"   Found {df['segment_id'].nunique()} segments")
-    
+
     # Compute basic features
     print("\n3. Computing basic features...")
     eps = config["canonical"]["eps"]
     df = compute_basic_features(df, eps=eps)
-    
+
     # Compute minute features
     print("\n4. Computing minute phase features...")
     df = compute_minute_features(df, session_period_minutes=1440, trading_day_start="21:00")
-    
+
     # Cast dtypes
     print("\n5. Casting dtypes...")
-    df = cast_dtypes(df, float_dtype=config["canonical"]["cast_float"])
-    
+    cast_float = config["canonical"].get("cast_float") or config["canonical"].get("cast", {}).get("float", "float32")
+    df = cast_dtypes(df, float_dtype=cast_float)
+
     # Generate profile
     print("\n6. Generating profile...")
-    profile = generate_profile(df, args.symbol)
-    
+    profile = generate_profile(df, symbol)
+
     # Save canonical bars
-    output_dir = Path(args.output_dir) / args.symbol
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "bars.parquet"
-    
+    symbol_output_dir = Path(output_dir) / symbol
+    symbol_output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = symbol_output_dir / "bars.parquet"
+
     df.to_parquet(output_path, index=False)
     print(f"\n✅ Saved canonical bars: {output_path}")
     print(f"   Rows: {len(df):,}")
     print(f"   Segments: {profile['segments']['count']}")
-    
+
     # Append to report
-    report_path = "reports/m0_1_canonical_profile.md"
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
-    
+
     mode = 'a' if os.path.exists(report_path) else 'w'
     with open(report_path, mode, encoding='utf-8') as f:
         if mode == 'w':
             f.write("# Canonical Bars Profile Report\n\n")
             f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        
+
         f.write(f"## Symbol: {profile['symbol']}\n\n")
         f.write(f"- **总行数**: {profile['rows']:,}\n")
         f.write(f"- **时间范围**: {profile['min_eob']} 至 {profile['max_eob']}\n\n")
-        
+
         f.write("### Segment 统计\n\n")
         f.write(f"- **Segment 数量**: {profile['segments']['count']}\n")
         f.write(f"- **Segment 长度**:\n")
@@ -271,7 +270,7 @@ def main():
         f.write(f"  - Median: {profile['segments']['lengths']['median']}\n")
         f.write(f"  - P95: {profile['segments']['lengths']['p95']}\n")
         f.write(f"  - Max: {profile['segments']['lengths']['max']}\n\n")
-        
+
         f.write("### 特征统计\n\n")
         for feat, stats in profile['features'].items():
             f.write(f"#### {feat}\n\n")
@@ -279,8 +278,64 @@ def main():
             f.write(f"- Std: {stats['std']:.6f}\n")
             f.write(f"- Range: [{stats['min']:.6f}, {stats['max']:.6f}]\n")
             f.write(f"- P01-P99: [{stats['p01']:.6f}, {stats['p99']:.6f}]\n\n")
-    
-    print(f"✅ Report saved: {report_path}")
+
+    print(f"✅ Report updated: {report_path}")
+
+
+def main():
+    args = parse_args()
+
+    # Validate arguments
+    if not args.symbol and not args.all:
+        print("Error: Either --symbol or --all must be specified")
+        sys.exit(1)
+
+    # Load config
+    config = load_config(args.config)
+
+    print(f"Config: {args.config}")
+
+    # Determine output directory
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        output_dir = config.get("paths", {}).get("processed_dir") or config.get("dataset", {}).get("processed_root", "data/processed/m0_1")
+
+    # Determine report path
+    dataset_name = config.get("dataset", {}).get("name", "m0_1")
+    reports_dir = config.get("paths", {}).get("reports_dir", "reports")
+    report_path = f"{reports_dir}/{dataset_name}_canonical_profile.md"
+
+    # Get symbols to process
+    if args.all:
+        symbols = config.get("symbol_universe", {}).get("symbols") or config.get("symbols", [])
+        if not symbols:
+            print("Error: No symbols found in config")
+            sys.exit(1)
+        print(f"Processing {len(symbols)} symbols from config")
+    else:
+        symbols = [args.symbol]
+
+    # Process each symbol
+    for i, symbol in enumerate(symbols, 1):
+        print(f"\n{'='*60}")
+        print(f"[{i}/{len(symbols)}] Processing: {symbol}")
+        print(f"{'='*60}")
+
+        try:
+            process_symbol(symbol, config, output_dir, report_path)
+        except Exception as e:
+            print(f"\n❌ Error processing {symbol}: {e}")
+            import traceback
+            traceback.print_exc()
+            if not args.all:
+                sys.exit(1)
+            else:
+                print(f"Continuing with next symbol...")
+
+    print(f"\n{'='*60}")
+    print(f"✅ Completed processing {len(symbols)} symbols")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":

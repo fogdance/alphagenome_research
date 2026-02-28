@@ -1,0 +1,230 @@
+# configs/universe/m1_scan_rules.yaml
+# M1-T0 Universe scan rules: symbol typing + scoring thresholds (rule-based)
+# Goal:
+# - Detect symbol_type (continuous vs real contract) from symbol string
+# - Compute quality/liquidity/coverage metrics from manifest + parquet samples
+# - Filter and rank candidates for training
+#
+# Notes:
+# - Designed for Juejin futures archive layout: provider=.../freq=1m/symbol=.../year=.../month=.../data.parquet
+# - Default biases towards CONTINUOUS (main continuous), because real contracts often have low volume/position.
+
+version: "m1_t0_rules_v1"
+
+# -----------------------------
+# Scope / filtering
+# -----------------------------
+scope:
+  allowed_exchanges: ["SHFE", "DCE", "CZCE", "CFFEX", "INE", "GFEX"]
+  # If true, drop symbols not in allowed_exchanges.
+  drop_unknown_exchange: true
+
+# -----------------------------
+# Symbol type inference
+# -----------------------------
+symbol_type_rules:
+  # Symbol examples:
+  # - Continuous likely: DCE.JM / SHFE.RB / CFFEX.IC / CZCE.FG
+  # - Real likely: SHFE.rb2505 / CZCE.FG509 / CFFEX.IC2603
+  #
+  # Implementation hint:
+  # - Parse exchange and sec_id by splitting at "."
+  # - Normalize to upper-case exchange; keep sec_id original for regex checks
+  #
+  # The rules are evaluated in order. First match wins.
+  rules:
+    # 1) Real contract: ends with 3-4 digits (rb2505, FG509, IC2603)
+    - name: "real_contract_suffix_digits"
+      type: "REAL_LIKELY"
+      regex:
+        # apply to sec_id (part after dot)
+        sec_id: "^[A-Za-z]+\\d{3,4}$"
+
+    # 2) Continuous: no trailing digits at all (JM, RB, IC, FG)
+    - name: "continuous_no_digits"
+      type: "CONTINUOUS_LIKELY"
+      regex:
+        sec_id: "^[A-Za-z]+$"
+
+    # 3) Continuous variants often used by vendors (IC00/IC01, rb00/rb99 etc.)
+    # These are NOT main continuous contracts, they are "连一/连二" (1st/2nd nearby)
+    # DISABLE this rule to only match true main continuous contracts
+    - name: "continuous_vendor_series"
+      type: "CONTINUOUS_LIKELY"
+      enabled: false
+      regex:
+        sec_id: "^[A-Za-z]+\\d{2}$"
+
+  default_type: "UNKNOWN"
+
+# -----------------------------
+# Parquet sampling strategy
+# -----------------------------
+sampling:
+  # If true, allow "--fast" mode to skip parquet reads and only use manifest stats.
+  allow_fast_mode: true
+
+  # Default sampling months per symbol when parquet is enabled.
+  months_per_symbol: 6
+
+  # Always include these positions if available (by sorted year-month):
+  include_positions: ["first", "last", "middle"]
+
+  # Fill remaining slots with random months.
+  random_fill: true
+  random_seed: 42
+
+  # Read only these columns from parquet for metrics.
+  parquet_columns: ["eob", "open", "high", "low", "close", "volume", "position"]
+
+# -----------------------------
+# Metric computation thresholds
+# -----------------------------
+metrics:
+  # Health checks (file-level)
+  file_health:
+    # Acceptable duplicate EOB ratio in a sampled file: duplicate_eob_count / rows_read
+    max_duplicate_eob_ratio: 0.001   # 0.1%
+    # EOB should be monotonic increasing for data sanity
+    require_eob_monotonic: true
+    # OHLC NaN rate threshold (if any OHLC NaN counts towards NaN)
+    max_nan_rate_ohlc: 0.0001        # 0.01%
+
+  # Liquidity checks (symbol-level aggregated from sampled months)
+  liquidity:
+    # Ratio of non-zero volume / position in sampled rows (median across sampled files)
+    min_volume_nonzero_ratio_med: 0.80
+    min_position_nonzero_ratio_med: 0.80
+
+    # Optional absolute thresholds (set to 0 to disable).
+    # Use with caution: different contracts have different scales.
+    min_volume_p50_med: 0
+    min_position_p50_med: 0
+
+  # Coverage checks (manifest-level)
+  coverage:
+    # Require at least N months in manifest
+    min_months: 12
+
+    # Allow up to N missing months (based on year-month continuity).
+    # Set high if data is known to have gaps; default strict.
+    max_missing_months: 2
+
+    # Require max_eob within N days from global_max_eob (freshness)
+    # Set to null to disable.
+    max_staleness_days_from_global_max: 30
+
+# -----------------------------
+# Filtering policy (hard gates)
+# -----------------------------
+filtering:
+  # If parquet sampling is enabled:
+  # - fail if sampled parquet read failures exceed this ratio
+  max_sample_read_fail_ratio: 0.30
+
+  # If true, prefer continuous symbols and optionally drop real symbols unless they are explicitly kept.
+  prefer_continuous: true
+
+  # If true, drop REAL_LIKELY unless score is very high.
+  drop_real_unless_score_ge: 85
+
+  # Optional allowlist / blocklist patterns (regex on full symbol)
+  allowlist_regex: []
+  blocklist_regex: []
+
+# -----------------------------
+# Scoring model (0~100)
+# -----------------------------
+scoring:
+  # Score is a weighted sum of sub-scores, then clamped to [0, 100].
+  #
+  # Sub-scores are each normalized to [0, 1] before weighting.
+
+  weights:
+    coverage: 0.35
+    freshness: 0.15
+    liquidity: 0.35
+    quality: 0.15
+
+  # Coverage sub-score
+  coverage_score:
+    # Normalize months via min/max caps
+    months_cap_min: 12
+    months_cap_max: 120  # ~10 years
+    # Penalize missing months
+    missing_month_penalty_per_month: 0.05  # subtract from coverage subscore per missing month
+
+  # Freshness sub-score
+  freshness_score:
+    # If staleness_days is 0 => score=1; if >= cap => score=0
+    staleness_days_cap: 90
+
+  # Liquidity sub-score
+  liquidity_score:
+    # These convert ratios into score; below min => 0, above target => 1
+    volume_nonzero_min: 0.50
+    volume_nonzero_target: 0.95
+
+    position_nonzero_min: 0.50
+    position_nonzero_target: 0.95
+
+    # Optional: use p50 scaling if enabled (min/max caps)
+    use_p50_terms: false
+    volume_p50_cap_min: 1
+    volume_p50_cap_max: 1000
+    position_p50_cap_min: 1
+    position_p50_cap_max: 200000
+
+  # Quality sub-score
+  quality_score:
+    # Start at 1.0, apply penalties
+    duplicate_eob_ratio_penalty_scale: 50.0  # penalty = min(1, dup_ratio * scale)
+    nan_rate_penalty_scale: 5000.0           # penalty = min(1, nan_rate * scale)
+    read_fail_penalty_scale: 1.0             # penalty = min(1, fail_ratio * scale)
+
+  # Symbol type adjustment
+  type_bonus:
+    CONTINUOUS_LIKELY: 0.05  # +5 points (since final score is 0~100 after weights)
+    REAL_LIKELY: -0.05       # -5 points
+    UNKNOWN: -0.02
+
+# -----------------------------
+# Output selection
+# -----------------------------
+selection:
+  # default top-k for candidates yaml
+  top_k: 50
+
+  # If set, include only symbols with score >= threshold in candidates yaml.
+  min_score_for_candidates: 60
+
+  # Also generate these lists in JSON report
+  export_lists:
+    - name: "candidates"
+      min_score: 60
+    - name: "strong_candidates"
+      min_score: 75
+    - name: "watchlist"
+      min_score: 45
+
+# -----------------------------
+# Reporting tags (explanations)
+# -----------------------------
+tags:
+  # Tags to attach for interpretability
+  # (Claude can map conditions -> tags)
+  definitions:
+    - tag: "short_coverage"
+      when: "months < coverage.min_months"
+    - tag: "missing_months"
+      when: "missing_months_count > 0"
+    - tag: "stale"
+      when: "staleness_days_from_global_max > coverage.max_staleness_days_from_global_max"
+    - tag: "low_liquidity"
+      when: "volume_nonzero_ratio_med < liquidity.min_volume_nonzero_ratio_med OR position_nonzero_ratio_med < liquidity.min_position_nonzero_ratio_med"
+    - tag: "bad_eob_duplicates"
+      when: "dup_eob_ratio_max > file_health.max_duplicate_eob_ratio"
+    - tag: "nan_ohlc"
+      when: "nan_rate_ohlc_max > file_health.max_nan_rate_ohlc"
+    - tag: "parquet_read_flaky"
+      when: "sample_read_fail_ratio > filtering.max_sample_read_fail_ratio"

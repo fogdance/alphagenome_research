@@ -1,0 +1,164 @@
+# M1 dataset config (30 symbols + normalization + multi-symbol mixing)
+dataset:
+  name: m1
+  description: "M1: 30 symbols continuous futures dataset with normalization and multi-symbol mixing"
+  timezone: "Asia/Shanghai"
+
+paths:
+  # Juejin archive root (parquet partitioned by provider/freq/symbol/year/month)
+  archive_dir: "/data/juejin"
+
+  # manifest jsonl (can be a concrete file path)
+  # 固定到确定的 manifest 保证可复现
+  manifest_path: "/data/juejin/_manifest/3a1a389f-56e9-46ce-8a04-047cbd456a44.jsonl"
+
+  # processed outputs
+  processed_dir: "data/processed/m1"
+  reports_dir: "reports"
+
+symbol_universe:
+  # 推荐先用 explicit（最稳），把 30 个 continuous symbols 明确写进来
+  mode: "explicit"   # explicit | filter
+
+  symbols:
+    # Top 30 symbols by total rows (>=60 months, >=200k rows)
+    - "SHFE.AG"
+    - "SHFE.AU"
+    - "INE.SC"
+
+  # filter 模式预留（可选实现）
+  filter:
+    # 只作为筛选条件；真正可复现仍建议把筛选后的列表落盘到 reports 并回写 symbols
+    include_exchanges: ["SHFE", "DCE", "CZCE", "CFFEX", "INE", "GFEX"]
+    exclude_suffixes: ["00", "01", "02", "03"]   # 若不想要连一/连二
+    min_months: 60
+    min_rows: 200000
+
+canonical:
+  freq: "1m"
+
+  # gap-based segmentation
+  gap_seconds: 1800
+  eps: 1.0e-12
+
+  # raw cleanup
+  dedup:
+    key: "eob"
+    keep: "last"   # last | first
+
+  # dtype policy
+  cast:
+    float: "float32"
+    int: "int32"
+
+  # feature set
+  features:
+    base:
+      - "ret_1m"
+      - "hl_range"
+      - "co_change"
+      - "vol_log1p"
+      - "pos_log1p"
+    time_phase:
+      - "minute_sin"
+      - "minute_cos"
+      - "is_open"
+
+    # rolling features (optional)
+    rolling:
+      enabled: false
+      windows: [5, 20, 60]
+      include:
+        - "ret_mean"
+        - "ret_std"
+        - "vol_sum"
+        - "range_mean"
+
+  # optional clipping to reduce outlier impact (off by default)
+  clip:
+    enabled: false
+    # example:
+    # ret_1m: [-0.2, 0.2]
+    # hl_range: [0.0, 0.1]
+
+sampling:
+  lookback: 60
+  stride: 5
+  horizons: [1, 5, 20, 60]
+
+  label:
+    type: "future_return"   # future_return | log_return
+    price_col: "close"
+
+  require_same_segment: true
+
+  # prevent leakage: require label point still within split window
+  drop_if_label_outside_split: true
+
+time_split:
+  # left-closed, right-open: [start, end)
+  train:
+    start: "2018-01-01"
+    end:   "2024-01-01"
+  val:
+    start: "2024-01-01"
+    end:   "2025-01-01"
+  test:
+    start: "2025-01-01"
+    end:   "2026-01-01"
+
+normalization:
+  # Feature scaler
+  features:
+    enabled: true
+    fit_split: "train"      # train only
+    scope: "per_symbol"     # per_symbol | global
+    method: "zscore"        # zscore
+    save_path: "{processed_dir}/_stats/feature_scaler.json"
+
+  # Label scaler (recommended for multi-symbol multi-horizon)
+  labels:
+    enabled: true
+    fit_split: "train"
+    scope: "per_symbol_per_horizon"   # per_symbol_per_horizon | global_per_horizon | off
+    method: "zscore"
+    save_path: "{processed_dir}/_stats/label_scaler.json"
+
+dataloader:
+  # how to mix symbols during training
+  mixing:
+    strategy: "uniform_by_symbol"   # uniform_by_symbol | sqrt_weighted | proportional
+    seed: 42
+
+  # for offline/online slicing
+  num_workers: 4
+  pin_memory: true
+
+cache:
+  # overwrite existing processed files?
+  overwrite_canonical: false
+  overwrite_index: false
+
+quality_gates:
+  enforce_monotonic_eob: true
+  max_duplicate_eob: 0
+  require_no_nan: true
+
+  # allow dropping weak symbols
+  allow_drop_symbol: true
+  min_train_samples_per_symbol: 1000
+
+fingerprint:
+  # what to include in dataset fingerprint (written to stats + metrics)
+  include_git_sha: true
+  include_config_sha: true
+  include_manifest_sha: true
+  include_symbols: true
+  include_params:
+    - "canonical.gap_seconds"
+    - "sampling.lookback"
+    - "sampling.stride"
+    - "sampling.horizons"
+    - "time_split"
+    - "normalization"
+    - "dataloader.mixing"
