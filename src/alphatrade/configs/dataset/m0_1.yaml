@@ -1,0 +1,73 @@
+# m0_1.yaml
+# M0.1: Training data standardization minimal loop (2 symbols)
+
+dataset:
+  name: "m0_1"
+  provider: "JUEJIN"
+  freq: "1m"
+
+paths:
+  # archive root (parquet partitioned by provider/freq/symbol/year/month)
+  archive_dir: "/data/juejin"
+  # manifest jsonl produced by backfill job (optional, if your reader can auto-detect latest)
+  manifest_path: ""  # e.g. "/data/juejin/_manifest/<run_id>.jsonl"
+  processed_dir: "data/processed/m0_1"
+  reports_dir: "reports"
+
+universe:
+  symbols:
+    - "DCE.JM"
+    - "SHFE.RB"
+
+canonical:
+  # gap-based segmentation
+  gap_seconds: 1800
+  # numeric stability
+  eps: 1.0e-12
+  # dedup policy on timestamp
+  dedup_key: "eob"
+  dedup_keep: "last"
+  # dtype
+  cast_float: "float32"
+  cast_int: "int32"
+
+features:
+  # base features (per bar)
+  - "ret_1m"
+  - "hl_range"
+  - "co_change"
+  - "vol_log1p"
+  - "pos_log1p"
+  # intraday phase
+  - "minute_sin"
+  - "minute_cos"
+  - "is_open"
+
+sampling:
+  lookback: 60
+  stride: 5
+  horizons: [1, 5, 20, 60]
+  # label definition
+  label_type: "log_return"   # log(close[t+h]/close[t])
+  require_same_segment: true # window + label endpoint must be within same segment
+  drop_nan: true
+
+time_split:
+  # split by sample eob_end (the prediction anchor time)
+  # (you can adjust, but keep it explicit to avoid leakage)
+  train:
+    start: "2018-01-01"
+    end:   "2024-06-30"
+  val:
+    start: "2024-07-01"
+    end:   "2024-12-31"
+  test:
+    start: "2025-01-01"
+    end:   "2026-01-01"
+
+train_smoke:
+  # only for smoke runs; real training overrides CLI
+  max_steps: 200
+  batch_size: 128
+  lr: 1.0e-3
+  seed: 42
