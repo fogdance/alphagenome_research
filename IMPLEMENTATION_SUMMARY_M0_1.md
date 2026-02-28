@@ -135,7 +135,8 @@ src/alphatrade/
 │   ├── build_sample_index.py
 │   └── train_m0_1_baseline.py
 └── configs/
-    └── m0_1_dataset.yaml
+    └── dataset/
+        └── m0_1.yaml
 ```
 
 ### 数据

@@ -25,7 +25,7 @@ import yaml
 
 def parse_args():
     parser = argparse.ArgumentParser(description="M0.1 Baseline Training")
-    parser.add_argument("--config", type=str, default="src/alphatrade/configs/m0_1_dataset.yaml")
+    parser.add_argument("--config", type=str, default="src/alphatrade/configs/dataset/m0_1.yaml")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -258,8 +258,9 @@ def main():
     print(f"Using device: {device}")
     
     # Extract config
-    symbols = config["symbols"]
-    processed_root = config["dataset"]["processed_root"]
+    # Extract config (support both old and new structure)
+    symbols = config.get("universe", {}).get("symbols") or config.get("symbols", [])
+    processed_root = config.get("paths", {}).get("processed_dir") or config.get("dataset", {}).get("processed_root", "data/processed/m0_1")
     features = config["features"]
     lookback = config["sampling"]["lookback"]
     horizons = config["sampling"]["horizons"]

@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument(
         "--config",
         type=str,
-        default="src/alphatrade/configs/m0_1_dataset.yaml",
+        default="src/alphatrade/configs/dataset/m0_1.yaml",
         help="Config file path"
     )
     parser.add_argument(

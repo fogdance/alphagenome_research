@@ -1,12 +1,12 @@
 # M0.1 Baseline Training Run
 
-生成时间: 2026-02-28 17:35:38
+生成时间: 2026-02-28 18:12:48
 
 ## 运行命令
 
 ```bash
 python src/alphatrade/scripts/train_m0_1_baseline.py \
-  --config src/alphatrade/configs/m0_1_dataset.yaml \
+  --config src/alphatrade/configs/dataset/m0_1.yaml \
   --seed 42 \
   --max-steps 200 \
   --batch-size 128 \

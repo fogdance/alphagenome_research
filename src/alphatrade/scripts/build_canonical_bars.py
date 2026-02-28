@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument(
         "--config",
         type=str,
-        default="src/alphatrade/configs/m0_1_dataset.yaml",
+        default="src/alphatrade/configs/dataset/m0_1.yaml",
         help="Config file path"
     )
     parser.add_argument(
@@ -204,8 +204,9 @@ def main():
     print(f"Config: {args.config}")
     
     # Initialize reader
-    archive_dir = config["archive"]["archive_dir"]
-    manifest_path = config["archive"].get("manifest_path", "")
+    # Extract config (support both old and new structure)
+    archive_dir = config.get("archive", {}).get("archive_dir") or config.get("paths", {}).get("archive_dir")
+    manifest_path = config.get("archive", {}).get("manifest_path", "") or config.get("paths", {}).get("manifest_path", "")
     if not manifest_path:
         manifest_path = "/data/juejin/_manifest/3a1a389f-56e9-46ce-8a04-047cbd456a44.jsonl"
     

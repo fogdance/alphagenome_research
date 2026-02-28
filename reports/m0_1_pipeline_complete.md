@@ -27,7 +27,7 @@
 - `train_m0_1_baseline.py` - Baseline 训练
 
 **配置** (`configs/`)
-- `m0_1_dataset.yaml` - M0.1 数据集配置
+- `m0_1.yaml` - M0.1 数据集配置
 
 ## 实现的功能
 
@@ -200,7 +200,8 @@ alphagenome_research/
 │   │   ├── build_sample_index.py
 │   │   └── train_m0_1_baseline.py
 │   └── configs/
-│       └── m0_1_dataset.yaml
+│       └── dataset/
+│           └── m0_1.yaml
 ├── data/processed/m0_1/
 │   ├── DCE.JM/
 │   │   ├── bars.parquet (21MB)
