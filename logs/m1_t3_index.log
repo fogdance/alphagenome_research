@@ -1,0 +1,1271 @@
+Loaded 48 symbols from universe
+
+============================================================
+M1-T3: Build Sample Index
+============================================================
+Symbols: 48
+Lookback: 60
+Stride: 5
+Horizons: [1, 5, 20, 60]
+Train: 2018-01-01 to 2023-01-01
+Val: 2023-01-01 to 2024-01-01
+Test: 2024-01-01 to 2026-01-01
+============================================================
+
+[1/48] Processing SHFE.ZN...
+
+============================================================
+Building sample index for: SHFE.ZN
+============================================================
+
+1. Loading canonical bars...
+   Loaded 848,968 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 45,636 samples
+
+4. Splitting by time...
+   Train: 28,121 samples
+   Val: 5,892 samples
+   Test: 11,623 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.ZN/index_train.parquet
+   Val: data/processed/m1/SHFE.ZN/index_val.parquet
+   Test: data/processed/m1/SHFE.ZN/index_test.parquet
+
+[2/48] Processing SHFE.RU...
+
+============================================================
+Building sample index for: SHFE.RU
+============================================================
+
+1. Loading canonical bars...
+   Loaded 652,950 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,628 samples
+
+4. Splitting by time...
+   Train: 3,781 samples
+   Val: 1,047 samples
+   Test: 1,800 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.RU/index_train.parquet
+   Val: data/processed/m1/SHFE.RU/index_val.parquet
+   Test: data/processed/m1/SHFE.RU/index_test.parquet
+
+[3/48] Processing SHFE.RB...
+
+============================================================
+Building sample index for: SHFE.RB
+============================================================
+
+1. Loading canonical bars...
+   Loaded 652,991 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,983 samples
+
+4. Splitting by time...
+   Train: 3,811 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.RB/index_train.parquet
+   Val: data/processed/m1/SHFE.RB/index_val.parquet
+   Test: data/processed/m1/SHFE.RB/index_test.parquet
+
+[4/48] Processing SHFE.SN...
+
+============================================================
+Building sample index for: SHFE.SN
+============================================================
+
+1. Loading canonical bars...
+   Loaded 835,338 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 43,310 samples
+
+4. Splitting by time...
+   Train: 25,662 samples
+   Val: 5,928 samples
+   Test: 11,720 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.SN/index_train.parquet
+   Val: data/processed/m1/SHFE.SN/index_val.parquet
+   Test: data/processed/m1/SHFE.SN/index_test.parquet
+
+[5/48] Processing SHFE.AL...
+
+============================================================
+Building sample index for: SHFE.AL
+============================================================
+
+1. Loading canonical bars...
+   Loaded 843,184 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 44,637 samples
+
+4. Splitting by time...
+   Train: 27,232 samples
+   Val: 5,836 samples
+   Test: 11,569 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.AL/index_train.parquet
+   Val: data/processed/m1/SHFE.AL/index_val.parquet
+   Test: data/processed/m1/SHFE.AL/index_test.parquet
+
+[6/48] Processing SHFE.HC...
+
+============================================================
+Building sample index for: SHFE.HC
+============================================================
+
+1. Loading canonical bars...
+   Loaded 652,989 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,982 samples
+
+4. Splitting by time...
+   Train: 3,810 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.HC/index_train.parquet
+   Val: data/processed/m1/SHFE.HC/index_val.parquet
+   Test: data/processed/m1/SHFE.HC/index_test.parquet
+
+[7/48] Processing SHFE.PB...
+
+============================================================
+Building sample index for: SHFE.PB
+============================================================
+
+1. Loading canonical bars...
+   Loaded 825,923 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 41,268 samples
+
+4. Splitting by time...
+   Train: 25,830 samples
+   Val: 4,699 samples
+   Test: 10,739 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.PB/index_train.parquet
+   Val: data/processed/m1/SHFE.PB/index_val.parquet
+   Test: data/processed/m1/SHFE.PB/index_test.parquet
+
+[8/48] Processing SHFE.NI...
+
+============================================================
+Building sample index for: SHFE.NI
+============================================================
+
+1. Loading canonical bars...
+   Loaded 848,466 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 45,784 samples
+
+4. Splitting by time...
+   Train: 28,114 samples
+   Val: 5,936 samples
+   Test: 11,734 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.NI/index_train.parquet
+   Val: data/processed/m1/SHFE.NI/index_val.parquet
+   Test: data/processed/m1/SHFE.NI/index_test.parquet
+
+[9/48] Processing SHFE.AU...
+
+============================================================
+Building sample index for: SHFE.AU
+============================================================
+
+1. Loading canonical bars...
+   Loaded 978,645 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 71,616 samples
+
+4. Splitting by time...
+   Train: 43,751 samples
+   Val: 9,349 samples
+   Test: 18,516 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.AU/index_train.parquet
+   Val: data/processed/m1/SHFE.AU/index_val.parquet
+   Test: data/processed/m1/SHFE.AU/index_test.parquet
+
+[10/48] Processing SHFE.AG...
+
+============================================================
+Building sample index for: SHFE.AG
+============================================================
+
+1. Loading canonical bars...
+   Loaded 981,648 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 72,240 samples
+
+4. Splitting by time...
+   Train: 44,334 samples
+   Val: 9,383 samples
+   Test: 18,523 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.AG/index_train.parquet
+   Val: data/processed/m1/SHFE.AG/index_val.parquet
+   Test: data/processed/m1/SHFE.AG/index_test.parquet
+
+[11/48] Processing SHFE.CU...
+
+============================================================
+Building sample index for: SHFE.CU
+============================================================
+
+1. Loading canonical bars...
+   Loaded 848,485 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 45,662 samples
+
+4. Splitting by time...
+   Train: 28,072 samples
+   Val: 5,927 samples
+   Test: 11,663 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.CU/index_train.parquet
+   Val: data/processed/m1/SHFE.CU/index_val.parquet
+   Test: data/processed/m1/SHFE.CU/index_test.parquet
+
+[12/48] Processing SHFE.BU...
+
+============================================================
+Building sample index for: SHFE.BU
+============================================================
+
+1. Loading canonical bars...
+   Loaded 652,976 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,088 samples
+
+4. Splitting by time...
+   Train: 3,847 samples
+   Val: 1,204 samples
+   Test: 2,037 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.BU/index_train.parquet
+   Val: data/processed/m1/SHFE.BU/index_val.parquet
+   Test: data/processed/m1/SHFE.BU/index_test.parquet
+
+[13/48] Processing DCE.C...
+
+============================================================
+Building sample index for: DCE.C
+============================================================
+
+1. Loading canonical bars...
+   Loaded 618,101 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,627 samples
+
+4. Splitting by time...
+   Train: 4,455 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.C/index_train.parquet
+   Val: data/processed/m1/DCE.C/index_val.parquet
+   Test: data/processed/m1/DCE.C/index_test.parquet
+
+[14/48] Processing DCE.Y...
+
+============================================================
+Building sample index for: DCE.Y
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,711 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,405 samples
+
+4. Splitting by time...
+   Train: 6,233 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.Y/index_train.parquet
+   Val: data/processed/m1/DCE.Y/index_val.parquet
+   Test: data/processed/m1/DCE.Y/index_test.parquet
+
+[15/48] Processing CZCE.SR...
+
+============================================================
+Building sample index for: CZCE.SR
+============================================================
+
+1. Loading canonical bars...
+   Loaded 666,257 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,738 samples
+
+4. Splitting by time...
+   Train: 6,569 samples
+   Val: 726 samples
+   Test: 1,443 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.SR/index_train.parquet
+   Val: data/processed/m1/CZCE.SR/index_val.parquet
+   Test: data/processed/m1/CZCE.SR/index_test.parquet
+
+[16/48] Processing DCE.A...
+
+============================================================
+Building sample index for: DCE.A
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,532 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,136 samples
+
+4. Splitting by time...
+   Train: 5,541 samples
+   Val: 1,010 samples
+   Test: 1,585 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.A/index_train.parquet
+   Val: data/processed/m1/DCE.A/index_val.parquet
+   Test: data/processed/m1/DCE.A/index_test.parquet
+
+[17/48] Processing CZCE.TA...
+
+============================================================
+Building sample index for: CZCE.TA
+============================================================
+
+1. Loading canonical bars...
+   Loaded 666,202 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,591 samples
+
+4. Splitting by time...
+   Train: 6,423 samples
+   Val: 726 samples
+   Test: 1,442 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.TA/index_train.parquet
+   Val: data/processed/m1/CZCE.TA/index_val.parquet
+   Test: data/processed/m1/CZCE.TA/index_test.parquet
+
+[18/48] Processing DCE.M...
+
+============================================================
+Building sample index for: DCE.M
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,759 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,032 samples
+
+4. Splitting by time...
+   Train: 5,860 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.M/index_train.parquet
+   Val: data/processed/m1/DCE.M/index_val.parquet
+   Test: data/processed/m1/DCE.M/index_test.parquet
+
+[19/48] Processing DCE.B...
+
+============================================================
+Building sample index for: DCE.B
+============================================================
+
+1. Loading canonical bars...
+   Loaded 649,814 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,661 samples
+
+4. Splitting by time...
+   Train: 4,902 samples
+   Val: 1,006 samples
+   Test: 1,753 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.B/index_train.parquet
+   Val: data/processed/m1/DCE.B/index_val.parquet
+   Test: data/processed/m1/DCE.B/index_test.parquet
+
+[20/48] Processing DCE.V...
+
+============================================================
+Building sample index for: DCE.V
+============================================================
+
+1. Loading canonical bars...
+   Loaded 618,093 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,308 samples
+
+4. Splitting by time...
+   Train: 3,942 samples
+   Val: 920 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.V/index_train.parquet
+   Val: data/processed/m1/DCE.V/index_val.parquet
+   Test: data/processed/m1/DCE.V/index_test.parquet
+
+[21/48] Processing CZCE.SM...
+
+============================================================
+Building sample index for: CZCE.SM
+============================================================
+
+1. Loading canonical bars...
+   Loaded 435,982 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,165 samples
+
+4. Splitting by time...
+   Train: 3,996 samples
+   Val: 726 samples
+   Test: 1,443 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.SM/index_train.parquet
+   Val: data/processed/m1/CZCE.SM/index_val.parquet
+   Test: data/processed/m1/CZCE.SM/index_test.parquet
+
+[22/48] Processing CZCE.SF...
+
+============================================================
+Building sample index for: CZCE.SF
+============================================================
+
+1. Loading canonical bars...
+   Loaded 435,822 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,345 samples
+
+4. Splitting by time...
+   Train: 4,176 samples
+   Val: 726 samples
+   Test: 1,443 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.SF/index_train.parquet
+   Val: data/processed/m1/CZCE.SF/index_val.parquet
+   Test: data/processed/m1/CZCE.SF/index_test.parquet
+
+[23/48] Processing DCE.J...
+
+============================================================
+Building sample index for: DCE.J
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,389 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,079 samples
+
+4. Splitting by time...
+   Train: 5,643 samples
+   Val: 911 samples
+   Test: 1,525 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.J/index_train.parquet
+   Val: data/processed/m1/DCE.J/index_val.parquet
+   Test: data/processed/m1/DCE.J/index_test.parquet
+
+[24/48] Processing DCE.PP...
+
+============================================================
+Building sample index for: DCE.PP
+============================================================
+
+1. Loading canonical bars...
+   Loaded 618,252 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,286 samples
+
+4. Splitting by time...
+   Train: 4,114 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.PP/index_train.parquet
+   Val: data/processed/m1/DCE.PP/index_val.parquet
+   Test: data/processed/m1/DCE.PP/index_test.parquet
+
+[25/48] Processing DCE.JM...
+
+============================================================
+Building sample index for: DCE.JM
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,417 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,898 samples
+
+4. Splitting by time...
+   Train: 5,726 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.JM/index_train.parquet
+   Val: data/processed/m1/DCE.JM/index_val.parquet
+   Test: data/processed/m1/DCE.JM/index_test.parquet
+
+[26/48] Processing DCE.I...
+
+============================================================
+Building sample index for: DCE.I
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,764 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,876 samples
+
+4. Splitting by time...
+   Train: 5,704 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.I/index_train.parquet
+   Val: data/processed/m1/DCE.I/index_val.parquet
+   Test: data/processed/m1/DCE.I/index_test.parquet
+
+[27/48] Processing DCE.JD...
+
+============================================================
+Building sample index for: DCE.JD
+============================================================
+
+1. Loading canonical bars...
+   Loaded 436,245 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,454 samples
+
+4. Splitting by time...
+   Train: 3,657 samples
+   Val: 869 samples
+   Test: 1,928 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.JD/index_train.parquet
+   Val: data/processed/m1/DCE.JD/index_val.parquet
+   Test: data/processed/m1/DCE.JD/index_test.parquet
+
+[28/48] Processing DCE.L...
+
+============================================================
+Building sample index for: DCE.L
+============================================================
+
+1. Loading canonical bars...
+   Loaded 618,185 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,172 samples
+
+4. Splitting by time...
+   Train: 3,770 samples
+   Val: 1,010 samples
+   Test: 2,392 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.L/index_train.parquet
+   Val: data/processed/m1/DCE.L/index_val.parquet
+   Test: data/processed/m1/DCE.L/index_test.parquet
+
+[29/48] Processing DCE.P...
+
+============================================================
+Building sample index for: DCE.P
+============================================================
+
+1. Loading canonical bars...
+   Loaded 661,738 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,018 samples
+
+4. Splitting by time...
+   Train: 5,652 samples
+   Val: 920 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.P/index_train.parquet
+   Val: data/processed/m1/DCE.P/index_val.parquet
+   Test: data/processed/m1/DCE.P/index_test.parquet
+
+[30/48] Processing DCE.CS...
+
+============================================================
+Building sample index for: DCE.CS
+============================================================
+
+1. Loading canonical bars...
+   Loaded 617,360 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 7,134 samples
+
+4. Splitting by time...
+   Train: 4,553 samples
+   Val: 990 samples
+   Test: 1,591 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.CS/index_train.parquet
+   Val: data/processed/m1/DCE.CS/index_val.parquet
+   Test: data/processed/m1/DCE.CS/index_test.parquet
+
+[31/48] Processing CZCE.RM...
+
+============================================================
+Building sample index for: CZCE.RM
+============================================================
+
+1. Loading canonical bars...
+   Loaded 666,136 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,698 samples
+
+4. Splitting by time...
+   Train: 6,529 samples
+   Val: 726 samples
+   Test: 1,443 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.RM/index_train.parquet
+   Val: data/processed/m1/CZCE.RM/index_val.parquet
+   Test: data/processed/m1/CZCE.RM/index_test.parquet
+
+[32/48] Processing CZCE.MA...
+
+============================================================
+Building sample index for: CZCE.MA
+============================================================
+
+1. Loading canonical bars...
+   Loaded 666,030 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 10,948 samples
+
+4. Splitting by time...
+   Train: 7,358 samples
+   Val: 1,204 samples
+   Test: 2,386 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.MA/index_train.parquet
+   Val: data/processed/m1/CZCE.MA/index_val.parquet
+   Test: data/processed/m1/CZCE.MA/index_test.parquet
+
+[33/48] Processing CZCE.RS...
+
+============================================================
+Building sample index for: CZCE.RS
+============================================================
+
+1. Loading canonical bars...
+   Loaded 32,166 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 12 samples
+
+4. Splitting by time...
+   Train: 10 samples
+   Val: 0 samples
+   Test: 2 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.RS/index_train.parquet
+   Val: data/processed/m1/CZCE.RS/index_val.parquet
+   Test: data/processed/m1/CZCE.RS/index_test.parquet
+
+[34/48] Processing CFFEX.TF...
+
+============================================================
+Building sample index for: CFFEX.TF
+============================================================
+
+1. Loading canonical bars...
+   Loaded 490,307 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 6,136 samples
+
+4. Splitting by time...
+   Train: 3,914 samples
+   Val: 737 samples
+   Test: 1,485 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.TF/index_train.parquet
+   Val: data/processed/m1/CFFEX.TF/index_val.parquet
+   Test: data/processed/m1/CFFEX.TF/index_test.parquet
+
+[35/48] Processing CFFEX.T...
+
+============================================================
+Building sample index for: CFFEX.T
+============================================================
+
+1. Loading canonical bars...
+   Loaded 502,863 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,437 samples
+
+4. Splitting by time...
+   Train: 5,965 samples
+   Val: 864 samples
+   Test: 1,608 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.T/index_train.parquet
+   Val: data/processed/m1/CFFEX.T/index_val.parquet
+   Test: data/processed/m1/CFFEX.T/index_test.parquet
+
+[36/48] Processing CZCE.OI...
+
+============================================================
+Building sample index for: CZCE.OI
+============================================================
+
+1. Loading canonical bars...
+   Loaded 665,957 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 9,055 samples
+
+4. Splitting by time...
+   Train: 6,886 samples
+   Val: 726 samples
+   Test: 1,443 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.OI/index_train.parquet
+   Val: data/processed/m1/CZCE.OI/index_val.parquet
+   Test: data/processed/m1/CZCE.OI/index_test.parquet
+
+[37/48] Processing CZCE.AP...
+
+============================================================
+Building sample index for: CZCE.AP
+============================================================
+
+1. Loading canonical bars...
+   Loaded 435,766 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,805 samples
+
+4. Splitting by time...
+   Train: 3,639 samples
+   Val: 726 samples
+   Test: 1,440 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.AP/index_train.parquet
+   Val: data/processed/m1/CZCE.AP/index_val.parquet
+   Test: data/processed/m1/CZCE.AP/index_test.parquet
+
+[38/48] Processing CFFEX.IF...
+
+============================================================
+Building sample index for: CFFEX.IF
+============================================================
+
+1. Loading canonical bars...
+   Loaded 465,090 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 228 samples
+
+4. Splitting by time...
+   Train: 228 samples
+   Val: 0 samples
+   Test: 0 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.IF/index_train.parquet
+   Val: data/processed/m1/CFFEX.IF/index_val.parquet
+   Test: data/processed/m1/CFFEX.IF/index_test.parquet
+
+[39/48] Processing CZCE.CY...
+
+============================================================
+Building sample index for: CZCE.CY
+============================================================
+
+1. Loading canonical bars...
+   Loaded 508,494 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 1,884 samples
+
+4. Splitting by time...
+   Train: 1,432 samples
+   Val: 206 samples
+   Test: 246 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.CY/index_train.parquet
+   Val: data/processed/m1/CZCE.CY/index_val.parquet
+   Test: data/processed/m1/CZCE.CY/index_test.parquet
+
+[40/48] Processing CFFEX.IH...
+
+============================================================
+Building sample index for: CFFEX.IH
+============================================================
+
+1. Loading canonical bars...
+   Loaded 465,025 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 1,639 samples
+
+4. Splitting by time...
+   Train: 195 samples
+   Val: 484 samples
+   Test: 960 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.IH/index_train.parquet
+   Val: data/processed/m1/CFFEX.IH/index_val.parquet
+   Test: data/processed/m1/CFFEX.IH/index_test.parquet
+
+[41/48] Processing CZCE.CF...
+
+============================================================
+Building sample index for: CZCE.CF
+============================================================
+
+1. Loading canonical bars...
+   Loaded 665,708 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 8,805 samples
+
+4. Splitting by time...
+   Train: 6,639 samples
+   Val: 726 samples
+   Test: 1,440 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.CF/index_train.parquet
+   Val: data/processed/m1/CZCE.CF/index_val.parquet
+   Test: data/processed/m1/CZCE.CF/index_test.parquet
+
+[42/48] Processing CZCE.FG...
+
+============================================================
+Building sample index for: CZCE.FG
+============================================================
+
+1. Loading canonical bars...
+   Loaded 665,733 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 10,071 samples
+
+4. Splitting by time...
+   Train: 7,905 samples
+   Val: 726 samples
+   Test: 1,440 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CZCE.FG/index_train.parquet
+   Val: data/processed/m1/CZCE.FG/index_val.parquet
+   Test: data/processed/m1/CZCE.FG/index_test.parquet
+
+[43/48] Processing CFFEX.IC...
+
+============================================================
+Building sample index for: CFFEX.IC
+============================================================
+
+1. Loading canonical bars...
+   Loaded 464,974 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 1,668 samples
+
+4. Splitting by time...
+   Train: 1,668 samples
+   Val: 0 samples
+   Test: 0 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.IC/index_train.parquet
+   Val: data/processed/m1/CFFEX.IC/index_val.parquet
+   Test: data/processed/m1/CFFEX.IC/index_test.parquet
+
+[44/48] Processing INE.SC...
+
+============================================================
+Building sample index for: INE.SC
+============================================================
+
+1. Loading canonical bars...
+   Loaded 949,844 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 69,715 samples
+
+4. Splitting by time...
+   Train: 41,924 samples
+   Val: 9,340 samples
+   Test: 18,451 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/INE.SC/index_train.parquet
+   Val: data/processed/m1/INE.SC/index_val.parquet
+   Test: data/processed/m1/INE.SC/index_test.parquet
+
+[45/48] Processing SHFE.FU...
+
+============================================================
+Building sample index for: SHFE.FU
+============================================================
+
+1. Loading canonical bars...
+   Loaded 609,167 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,653 samples
+
+4. Splitting by time...
+   Train: 3,481 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.FU/index_train.parquet
+   Val: data/processed/m1/SHFE.FU/index_val.parquet
+   Test: data/processed/m1/SHFE.FU/index_test.parquet
+
+[46/48] Processing CFFEX.TS...
+
+============================================================
+Building sample index for: CFFEX.TS
+============================================================
+
+1. Loading canonical bars...
+   Loaded 350,781 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 2,145 samples
+
+4. Splitting by time...
+   Train: 592 samples
+   Val: 204 samples
+   Test: 1,349 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/CFFEX.TS/index_train.parquet
+   Val: data/processed/m1/CFFEX.TS/index_val.parquet
+   Test: data/processed/m1/CFFEX.TS/index_test.parquet
+
+[47/48] Processing SHFE.SP...
+
+============================================================
+Building sample index for: SHFE.SP
+============================================================
+
+1. Loading canonical bars...
+   Loaded 578,126 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,325 samples
+
+4. Splitting by time...
+   Train: 3,153 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/SHFE.SP/index_train.parquet
+   Val: data/processed/m1/SHFE.SP/index_val.parquet
+   Test: data/processed/m1/SHFE.SP/index_test.parquet
+
+[48/48] Processing DCE.EG...
+
+============================================================
+Building sample index for: DCE.EG
+============================================================
+
+1. Loading canonical bars...
+   Loaded 566,554 rows
+
+2. Computing labels (horizons=[1, 5, 20, 60])...
+
+3. Generating sample indices (lookback=60, stride=5)...
+   Generated 5,222 samples
+
+4. Splitting by time...
+   Train: 3,050 samples
+   Val: 726 samples
+   Test: 1,446 samples
+
+5. Computing statistics...
+
+✅ Saved index files:
+   Train: data/processed/m1/DCE.EG/index_train.parquet
+   Val: data/processed/m1/DCE.EG/index_val.parquet
+   Test: data/processed/m1/DCE.EG/index_test.parquet
+
+============================================================
+✅ M1-T3 Index Complete
+============================================================
+Success: 48/48
+Total train samples: 461,849
+Total val samples: 90,396
+Total test samples: 178,960
+Report: reports/m1_t3_sample_index.md
+============================================================

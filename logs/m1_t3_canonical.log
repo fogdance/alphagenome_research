@@ -1,0 +1,1265 @@
+Loaded 48 symbols from universe
+
+============================================================
+M1-T3: Build Canonical Bars
+============================================================
+Symbols: 48
+Input: data/processed/m1
+Output: data/processed/m1
+Gap seconds: 1800
+============================================================
+
+[1/48] Processing SHFE.ZN...
+
+============================================================
+Building canonical bars for: SHFE.ZN
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.ZN/raw_continuous_bars.parquet
+   Loaded 848,968 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.ZN/bars.parquet
+   Rows: 848,968
+   Segments: 5685
+   Size: 22.7 MB
+
+[2/48] Processing SHFE.RU...
+
+============================================================
+Building canonical bars for: SHFE.RU
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.RU/raw_continuous_bars.parquet
+   Loaded 652,950 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.RU/bars.parquet
+   Rows: 652,950
+   Segments: 5685
+   Size: 18.6 MB
+
+[3/48] Processing SHFE.RB...
+
+============================================================
+Building canonical bars for: SHFE.RB
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.RB/raw_continuous_bars.parquet
+   Loaded 652,991 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.RB/bars.parquet
+   Rows: 652,991
+   Segments: 5685
+   Size: 20.8 MB
+
+[4/48] Processing SHFE.SN...
+
+============================================================
+Building canonical bars for: SHFE.SN
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.SN/raw_continuous_bars.parquet
+   Loaded 835,338 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.SN/bars.parquet
+   Rows: 835,338
+   Segments: 5685
+   Size: 28.0 MB
+
+[5/48] Processing SHFE.AL...
+
+============================================================
+Building canonical bars for: SHFE.AL
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.AL/raw_continuous_bars.parquet
+   Loaded 843,184 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.AL/bars.parquet
+   Rows: 843,184
+   Segments: 5685
+   Size: 22.2 MB
+
+[6/48] Processing SHFE.HC...
+
+============================================================
+Building canonical bars for: SHFE.HC
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.HC/raw_continuous_bars.parquet
+   Loaded 652,989 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.HC/bars.parquet
+   Rows: 652,989
+   Segments: 5685
+   Size: 20.2 MB
+
+[7/48] Processing SHFE.PB...
+
+============================================================
+Building canonical bars for: SHFE.PB
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.PB/raw_continuous_bars.parquet
+   Loaded 825,923 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.PB/bars.parquet
+   Rows: 825,923
+   Segments: 5685
+   Size: 20.5 MB
+
+[8/48] Processing SHFE.NI...
+
+============================================================
+Building canonical bars for: SHFE.NI
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.NI/raw_continuous_bars.parquet
+   Loaded 848,466 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5683 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.NI/bars.parquet
+   Rows: 848,466
+   Segments: 5683
+   Size: 29.0 MB
+
+[9/48] Processing SHFE.AU...
+
+============================================================
+Building canonical bars for: SHFE.AU
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.AU/raw_continuous_bars.parquet
+   Loaded 978,645 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.AU/bars.parquet
+   Rows: 978,645
+   Segments: 5685
+   Size: 32.4 MB
+
+[10/48] Processing SHFE.AG...
+
+============================================================
+Building canonical bars for: SHFE.AG
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.AG/raw_continuous_bars.parquet
+   Loaded 981,648 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.AG/bars.parquet
+   Rows: 981,648
+   Segments: 5685
+   Size: 30.6 MB
+
+[11/48] Processing SHFE.CU...
+
+============================================================
+Building canonical bars for: SHFE.CU
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.CU/raw_continuous_bars.parquet
+   Loaded 848,485 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.CU/bars.parquet
+   Rows: 848,485
+   Segments: 5685
+   Size: 23.1 MB
+
+[12/48] Processing SHFE.BU...
+
+============================================================
+Building canonical bars for: SHFE.BU
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.BU/raw_continuous_bars.parquet
+   Loaded 652,976 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.BU/bars.parquet
+   Rows: 652,976
+   Segments: 5685
+   Size: 19.4 MB
+
+[13/48] Processing DCE.C...
+
+============================================================
+Building canonical bars for: DCE.C
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.C/raw_continuous_bars.parquet
+   Loaded 618,101 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5394 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.C/bars.parquet
+   Rows: 618,101
+   Segments: 5394
+   Size: 17.5 MB
+
+[14/48] Processing DCE.Y...
+
+============================================================
+Building canonical bars for: DCE.Y
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.Y/raw_continuous_bars.parquet
+   Loaded 661,711 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.Y/bars.parquet
+   Rows: 661,711
+   Segments: 5685
+   Size: 20.1 MB
+
+[15/48] Processing CZCE.SR...
+
+============================================================
+Building canonical bars for: CZCE.SR
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.SR/raw_continuous_bars.parquet
+   Loaded 666,257 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5682 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.SR/bars.parquet
+   Rows: 666,257
+   Segments: 5682
+   Size: 19.8 MB
+
+[16/48] Processing DCE.A...
+
+============================================================
+Building canonical bars for: DCE.A
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.A/raw_continuous_bars.parquet
+   Loaded 661,532 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5684 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.A/bars.parquet
+   Rows: 661,532
+   Segments: 5684
+   Size: 18.4 MB
+
+[17/48] Processing CZCE.TA...
+
+============================================================
+Building canonical bars for: CZCE.TA
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.TA/raw_continuous_bars.parquet
+   Loaded 666,202 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5682 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.TA/bars.parquet
+   Rows: 666,202
+   Segments: 5682
+   Size: 20.5 MB
+
+[18/48] Processing DCE.M...
+
+============================================================
+Building canonical bars for: DCE.M
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.M/raw_continuous_bars.parquet
+   Loaded 661,759 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.M/bars.parquet
+   Rows: 661,759
+   Segments: 5685
+   Size: 20.6 MB
+
+[19/48] Processing DCE.B...
+
+============================================================
+Building canonical bars for: DCE.B
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.B/raw_continuous_bars.parquet
+   Loaded 649,814 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5704 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.B/bars.parquet
+   Rows: 649,814
+   Segments: 5704
+   Size: 18.0 MB
+
+[20/48] Processing DCE.V...
+
+============================================================
+Building canonical bars for: DCE.V
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.V/raw_continuous_bars.parquet
+   Loaded 618,093 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5395 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.V/bars.parquet
+   Rows: 618,093
+   Segments: 5395
+   Size: 19.2 MB
+
+[21/48] Processing CZCE.SM...
+
+============================================================
+Building canonical bars for: CZCE.SM
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.SM/raw_continuous_bars.parquet
+   Loaded 435,982 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3876 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.SM/bars.parquet
+   Rows: 435,982
+   Segments: 3876
+   Size: 13.4 MB
+
+[22/48] Processing CZCE.SF...
+
+============================================================
+Building canonical bars for: CZCE.SF
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.SF/raw_continuous_bars.parquet
+   Loaded 435,822 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3876 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.SF/bars.parquet
+   Rows: 435,822
+   Segments: 3876
+   Size: 13.7 MB
+
+[23/48] Processing DCE.J...
+
+============================================================
+Building canonical bars for: DCE.J
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.J/raw_continuous_bars.parquet
+   Loaded 661,389 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.J/bars.parquet
+   Rows: 661,389
+   Segments: 5685
+   Size: 20.5 MB
+
+[24/48] Processing DCE.PP...
+
+============================================================
+Building canonical bars for: DCE.PP
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.PP/raw_continuous_bars.parquet
+   Loaded 618,252 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5395 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.PP/bars.parquet
+   Rows: 618,252
+   Segments: 5395
+   Size: 20.6 MB
+
+[25/48] Processing DCE.JM...
+
+============================================================
+Building canonical bars for: DCE.JM
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.JM/raw_continuous_bars.parquet
+   Loaded 661,417 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.JM/bars.parquet
+   Rows: 661,417
+   Segments: 5685
+   Size: 20.4 MB
+
+[26/48] Processing DCE.I...
+
+============================================================
+Building canonical bars for: DCE.I
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.I/raw_continuous_bars.parquet
+   Loaded 661,764 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.I/bars.parquet
+   Rows: 661,764
+   Segments: 5685
+   Size: 20.1 MB
+
+[27/48] Processing DCE.JD...
+
+============================================================
+Building canonical bars for: DCE.JD
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.JD/raw_continuous_bars.parquet
+   Loaded 436,245 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3878 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.JD/bars.parquet
+   Rows: 436,245
+   Segments: 3878
+   Size: 13.0 MB
+
+[28/48] Processing DCE.L...
+
+============================================================
+Building canonical bars for: DCE.L
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.L/raw_continuous_bars.parquet
+   Loaded 618,185 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5395 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.L/bars.parquet
+   Rows: 618,185
+   Segments: 5395
+   Size: 18.5 MB
+
+[29/48] Processing DCE.P...
+
+============================================================
+Building canonical bars for: DCE.P
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.P/raw_continuous_bars.parquet
+   Loaded 661,738 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5685 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.P/bars.parquet
+   Rows: 661,738
+   Segments: 5685
+   Size: 20.7 MB
+
+[30/48] Processing DCE.CS...
+
+============================================================
+Building canonical bars for: DCE.CS
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.CS/raw_continuous_bars.parquet
+   Loaded 617,360 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5394 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.CS/bars.parquet
+   Rows: 617,360
+   Segments: 5394
+   Size: 16.3 MB
+
+[31/48] Processing CZCE.RM...
+
+============================================================
+Building canonical bars for: CZCE.RM
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.RM/raw_continuous_bars.parquet
+   Loaded 666,136 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5681 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.RM/bars.parquet
+   Rows: 666,136
+   Segments: 5681
+   Size: 20.0 MB
+
+[32/48] Processing CZCE.MA...
+
+============================================================
+Building canonical bars for: CZCE.MA
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.MA/raw_continuous_bars.parquet
+   Loaded 666,030 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5680 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.MA/bars.parquet
+   Rows: 666,030
+   Segments: 5680
+   Size: 20.6 MB
+
+[33/48] Processing CZCE.RS...
+
+============================================================
+Building canonical bars for: CZCE.RS
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.RS/raw_continuous_bars.parquet
+   Loaded 32,166 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3844 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.RS/bars.parquet
+   Rows: 32,166
+   Segments: 3844
+   Size: 1.0 MB
+
+[34/48] Processing CFFEX.TF...
+
+============================================================
+Building canonical bars for: CFFEX.TF
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.TF/raw_continuous_bars.parquet
+   Loaded 490,307 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.TF/bars.parquet
+   Rows: 490,307
+   Segments: 3874
+   Size: 12.7 MB
+
+[35/48] Processing CFFEX.T...
+
+============================================================
+Building canonical bars for: CFFEX.T
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.T/raw_continuous_bars.parquet
+   Loaded 502,863 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.T/bars.parquet
+   Rows: 502,863
+   Segments: 3874
+   Size: 14.1 MB
+
+[36/48] Processing CZCE.OI...
+
+============================================================
+Building canonical bars for: CZCE.OI
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.OI/raw_continuous_bars.parquet
+   Loaded 665,957 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5681 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.OI/bars.parquet
+   Rows: 665,957
+   Segments: 5681
+   Size: 22.0 MB
+
+[37/48] Processing CZCE.AP...
+
+============================================================
+Building canonical bars for: CZCE.AP
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.AP/raw_continuous_bars.parquet
+   Loaded 435,766 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.AP/bars.parquet
+   Rows: 435,766
+   Segments: 3874
+   Size: 14.8 MB
+
+[38/48] Processing CFFEX.IF...
+
+============================================================
+Building canonical bars for: CFFEX.IF
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.IF/raw_continuous_bars.parquet
+   Loaded 465,090 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.IF/bars.parquet
+   Rows: 465,090
+   Segments: 3874
+   Size: 16.9 MB
+
+[39/48] Processing CZCE.CY...
+
+============================================================
+Building canonical bars for: CZCE.CY
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.CY/raw_continuous_bars.parquet
+   Loaded 508,494 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5684 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.CY/bars.parquet
+   Rows: 508,494
+   Segments: 5684
+   Size: 13.1 MB
+
+[40/48] Processing CFFEX.IH...
+
+============================================================
+Building canonical bars for: CFFEX.IH
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.IH/raw_continuous_bars.parquet
+   Loaded 465,025 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.IH/bars.parquet
+   Rows: 465,025
+   Segments: 3874
+   Size: 15.3 MB
+
+[41/48] Processing CZCE.CF...
+
+============================================================
+Building canonical bars for: CZCE.CF
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.CF/raw_continuous_bars.parquet
+   Loaded 665,708 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5678 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.CF/bars.parquet
+   Rows: 665,708
+   Segments: 5678
+   Size: 19.5 MB
+
+[42/48] Processing CZCE.FG...
+
+============================================================
+Building canonical bars for: CZCE.FG
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CZCE.FG/raw_continuous_bars.parquet
+   Loaded 665,733 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5679 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CZCE.FG/bars.parquet
+   Rows: 665,733
+   Segments: 5679
+   Size: 19.4 MB
+
+[43/48] Processing CFFEX.IC...
+
+============================================================
+Building canonical bars for: CFFEX.IC
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.IC/raw_continuous_bars.parquet
+   Loaded 464,974 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3874 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.IC/bars.parquet
+   Rows: 464,974
+   Segments: 3874
+   Size: 18.1 MB
+
+[44/48] Processing INE.SC...
+
+============================================================
+Building canonical bars for: INE.SC
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/INE.SC/raw_continuous_bars.parquet
+   Loaded 949,844 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5523 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/INE.SC/bars.parquet
+   Rows: 949,844
+   Segments: 5523
+   Size: 26.1 MB
+
+[45/48] Processing SHFE.FU...
+
+============================================================
+Building canonical bars for: SHFE.FU
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.FU/raw_continuous_bars.parquet
+   Loaded 609,167 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5301 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.FU/bars.parquet
+   Rows: 609,167
+   Segments: 5301
+   Size: 19.0 MB
+
+[46/48] Processing CFFEX.TS...
+
+============================================================
+Building canonical bars for: CFFEX.TS
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/CFFEX.TS/raw_continuous_bars.parquet
+   Loaded 350,781 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 3773 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/CFFEX.TS/bars.parquet
+   Rows: 350,781
+   Segments: 3773
+   Size: 8.8 MB
+
+[47/48] Processing SHFE.SP...
+
+============================================================
+Building canonical bars for: SHFE.SP
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/SHFE.SP/raw_continuous_bars.parquet
+   Loaded 578,126 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 5033 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/SHFE.SP/bars.parquet
+   Rows: 578,126
+   Segments: 5033
+   Size: 16.6 MB
+
+[48/48] Processing DCE.EG...
+
+============================================================
+Building canonical bars for: DCE.EG
+============================================================
+
+1. Loading raw continuous bars...
+   Path: data/processed/m1/DCE.EG/raw_continuous_bars.parquet
+   Loaded 566,554 rows
+
+2. Computing segments (gap_seconds=1800)...
+   Found 4937 segments
+
+3. Computing basic features...
+
+4. Computing minute phase features...
+
+5. Casting dtypes...
+
+6. Generating profile...
+
+✅ Saved canonical bars: data/processed/m1/DCE.EG/bars.parquet
+   Rows: 566,554
+   Segments: 4937
+   Size: 18.2 MB
+
+============================================================
+✅ M1-T3 Canonical Complete
+============================================================
+Success: 48/48
+Report: reports/m1_t3_canonical_profile.md
+============================================================
