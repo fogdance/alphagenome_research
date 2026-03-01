@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m2_universe_sweep_v1",
+  "title": "M2 Universe Sweep Schema",
+  "description": "Fixed schema for M2 universe sweep output",
+  "type": "object",
+  "required": ["timestamp", "universe", "total_symbols", "statistics", "results"],
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "universe": {
+      "type": "string"
+    },
+    "total_symbols": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "statistics": {
+      "type": "object",
+      "required": ["success", "insufficient_samples", "missing_files", "nan_detected", "error", "trainable", "trainable_rate"],
+      "properties": {
+        "success": {"type": "integer", "minimum": 0},
+        "insufficient_samples": {"type": "integer", "minimum": 0},
+        "missing_files": {"type": "integer", "minimum": 0},
+        "nan_detected": {"type": "integer", "minimum": 0},
+        "error": {"type": "integer", "minimum": 0},
+        "trainable": {"type": "integer", "minimum": 0},
+        "trainable_rate": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "status", "trainable"],
+        "properties": {
+          "symbol": {"type": "string"},
+          "status": {
+            "type": "string",
+            "enum": ["success", "insufficient_samples", "missing_files", "nan_detected", "error", "unknown"]
+          },
+          "error": {"type": ["string", "null"]},
+          "n_bars": {"type": "integer", "minimum": 0},
+          "n_train_samples": {"type": "integer", "minimum": 0},
+          "n_val_samples": {"type": "integer", "minimum": 0},
+          "train_loss_first": {"type": ["number", "null"]},
+          "train_loss_last": {"type": ["number", "null"]},
+          "val_loss": {"type": ["number", "null"]},
+          "has_nan": {"type": "boolean"},
+          "trainable": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

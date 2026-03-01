@@ -1,0 +1,104 @@
+# M2 Dataset Configuration
+# AlphaTrade v0.2 training with multi-symbol data
+
+version: m2
+description: Multi-symbol dataset for AlphaTrade v0.2 training
+
+# Universe (start with small smoke test, then scale to full candidates)
+universe:
+  # For smoke test: use 2-5 symbols
+  smoke_symbols:
+    - DCE.JM
+    - SHFE.AG
+    - CZCE.MA
+  
+  # For full training: reference candidates file
+  candidates_file: configs/universe/m1_selected.yaml  # 24 symbols
+  full_candidates_file: configs/universe/m1_candidates.yaml  # 48 symbols
+
+# Data paths (reuse M1 data)
+paths:
+  processed_dir: data/processed/m1_f8
+
+# Feature specification (8D, fixed order)
+features:
+  dim: 8
+  cols:
+    - ret_1m
+    - hl_range
+    - co_change
+    - vol_log1p
+    - pos_log1p
+    - minute_sin
+    - minute_cos
+    - is_session_open
+
+# Sample index configuration
+sample_index:
+  lookback: 60
+  stride: 5
+  horizons: [1, 5, 20, 60]
+  
+  # Time splits
+  train_start: "2018-01-01"
+  train_end: "2023-01-01"
+  val_start: "2023-01-01"
+  val_end: "2024-01-01"
+  test_start: "2024-01-01"
+  test_end: "2026-01-01"
+
+# Model configuration (AlphaTrade v0.2)
+model:
+  type: alphatrade_v0_2
+  
+  # Quantile prediction
+  quantiles:
+    num: 5
+    levels: [0.1, 0.3, 0.5, 0.7, 0.9]
+  
+  # Model architecture (placeholder, will use actual v0.2 config)
+  hidden_dim: 256
+  num_layers: 6
+  num_heads: 8
+  dropout: 0.1
+
+# Training configuration
+training:
+  # Basic
+  max_steps: 1000
+  batch_size: 256
+  num_workers: 4
+  seed: 42
+  
+  # Optimizer
+  optimizer: adamw
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: cosine
+    warmup_steps: 100
+  
+  # Validation
+  val_every: 100
+  
+  # Checkpointing
+  save_every: 500
+  keep_last_n: 3
+
+# Loss configuration
+loss:
+  # Pinball loss for quantiles
+  pinball:
+    enabled: true
+    horizon_weights: [1.0, 1.0, 1.0, 1.0]  # Equal weight for all horizons
+  
+  # Quantile crossing penalty
+  crossing_penalty:
+    enabled: true
+    weight: 0.1
+
+# Metrics schema version
+metrics_schema: m2_train_metrics_v1

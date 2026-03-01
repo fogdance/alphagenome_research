@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m2_t1_dataloader_check_v1",
+  "title": "M2-T1 Dataloader Check Schema",
+  "description": "Fixed schema for M2-T1 dataloader validation output",
+  "type": "object",
+  "required": ["timestamp", "config", "dataset", "validation", "random_samples", "symbol_samples"],
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config": {
+      "type": "object",
+      "required": ["processed_dir", "feature_dim", "feature_cols", "lookback", "horizons"],
+      "properties": {
+        "processed_dir": {"type": "string"},
+        "feature_dim": {"type": "integer", "minimum": 1},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "lookback": {"type": "integer", "minimum": 1},
+        "horizons": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 1
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["total_samples", "symbols", "symbol_sample_counts"],
+      "properties": {
+        "total_samples": {"type": "integer", "minimum": 0},
+        "symbols": {"type": "integer", "minimum": 0},
+        "symbol_sample_counts": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["total_checks", "valid_checks", "invalid_checks", "success_rate"],
+      "properties": {
+        "total_checks": {"type": "integer", "minimum": 0},
+        "valid_checks": {"type": "integer", "minimum": 0},
+        "invalid_checks": {"type": "integer", "minimum": 0},
+        "success_rate": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "random_samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "x_shape", "y_shape", "segment_consistent", "valid"],
+        "properties": {
+          "symbol": {"type": "string"},
+          "x_start": {"type": "integer", "minimum": 0},
+          "x_end": {"type": "integer", "minimum": 0},
+          "segment_id": {"type": "integer"},
+          "x_shape": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "y_shape": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 1,
+            "maxItems": 1
+          },
+          "x_has_nan": {"type": "boolean"},
+          "x_has_inf": {"type": "boolean"},
+          "y_has_nan": {"type": "boolean"},
+          "y_has_inf": {"type": "boolean"},
+          "segment_consistent": {"type": "boolean"},
+          "errors": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "valid": {"type": "boolean"}
+        }
+      }
+    },
+    "symbol_samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "x_shape", "y_shape", "segment_consistent", "valid"],
+        "properties": {
+          "symbol": {"type": "string"},
+          "x_start": {"type": "integer", "minimum": 0},
+          "x_end": {"type": "integer", "minimum": 0},
+          "segment_id": {"type": "integer"},
+          "x_shape": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "y_shape": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 1,
+            "maxItems": 1
+          },
+          "x_has_nan": {"type": "boolean"},
+          "x_has_inf": {"type": "boolean"},
+          "y_has_nan": {"type": "boolean"},
+          "y_has_inf": {"type": "boolean"},
+          "segment_consistent": {"type": "boolean"},
+          "errors": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "valid": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

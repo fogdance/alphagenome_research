@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m2_train_metrics_v1",
+  "title": "M2 Training Metrics Schema",
+  "description": "Fixed schema for M2 training metrics output (m2_train_metrics_v1)",
+  "type": "object",
+  "required": ["run", "dataset", "model", "training", "loss", "stability"],
+  "additionalProperties": false,
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": ["run_id", "git_sha", "created_at", "device", "seed"],
+      "properties": {
+        "run_id": {"type": "string"},
+        "git_sha": {"type": "string"},
+        "created_at": {"type": "string"},
+        "device": {"type": "string"},
+        "seed": {"type": "integer"}
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["name", "symbols", "train_samples", "val_samples", "feature_dim", "feature_cols", "lookback", "horizons", "quantiles"],
+      "properties": {
+        "name": {"type": "string"},
+        "config_path": {"type": "string"},
+        "processed_dir": {"type": "string"},
+        "symbols": {"type": "integer", "minimum": 1},
+        "train_samples": {"type": "integer", "minimum": 0},
+        "val_samples": {"type": "integer", "minimum": 0},
+        "test_samples": {"type": "integer", "minimum": 0},
+        "feature_dim": {"type": "integer", "minimum": 1},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "lookback": {"type": "integer", "minimum": 1},
+        "horizons": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 1
+        },
+        "quantiles": {
+          "type": "array",
+          "items": {"type": "number"},
+          "minItems": 1
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["type", "total_params", "trainable_params"],
+      "properties": {
+        "type": {"type": "string"},
+        "total_params": {"type": "integer", "minimum": 0},
+        "trainable_params": {"type": "integer", "minimum": 0},
+        "config": {"type": "object"}
+      }
+    },
+    "training": {
+      "type": "object",
+      "required": ["max_steps", "batch_size", "learning_rate", "grad_clip", "optimizer"],
+      "properties": {
+        "max_steps": {"type": "integer", "minimum": 1},
+        "batch_size": {"type": "integer", "minimum": 1},
+        "learning_rate": {"type": "number", "minimum": 0},
+        "weight_decay": {"type": "number", "minimum": 0},
+        "grad_clip": {"type": "number", "minimum": 0},
+        "optimizer": {"type": "string"},
+        "lr_schedule": {"type": "object"}
+      }
+    },
+    "loss": {
+      "type": "object",
+      "required": ["train_last", "train_best", "val_last", "val_best", "best_step", "by_horizon"],
+      "properties": {
+        "train_last": {"type": "number"},
+        "train_best": {"type": "number"},
+        "val_last": {"type": "number"},
+        "val_best": {"type": "number"},
+        "best_step": {"type": "integer", "minimum": 0},
+        "by_horizon": {
+          "type": "object",
+          "required": ["h1", "h5", "h20", "h60"],
+          "properties": {
+            "h1": {
+              "type": "object",
+              "required": ["train", "val"],
+              "properties": {
+                "train": {"type": "number"},
+                "val": {"type": "number"}
+              }
+            },
+            "h5": {
+              "type": "object",
+              "required": ["train", "val"],
+              "properties": {
+                "train": {"type": "number"},
+                "val": {"type": "number"}
+              }
+            },
+            "h20": {
+              "type": "object",
+              "required": ["train", "val"],
+              "properties": {
+                "train": {"type": "number"},
+                "val": {"type": "number"}
+              }
+            },
+            "h60": {
+              "type": "object",
+              "required": ["train", "val"],
+              "properties": {
+                "train": {"type": "number"},
+                "val": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "stability": {
+      "type": "object",
+      "required": ["nan_steps", "inf_steps", "max_grad_norm"],
+      "properties": {
+        "nan_steps": {"type": "integer", "minimum": 0},
+        "inf_steps": {"type": "integer", "minimum": 0},
+        "max_grad_norm": {"type": "number", "minimum": 0}
+      }
+    }
+  }
+}
