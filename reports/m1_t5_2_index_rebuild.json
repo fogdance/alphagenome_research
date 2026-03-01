@@ -1,0 +1,205 @@
+{
+  "timestamp": "2026-03-01T12:21:18.924362",
+  "output_processed_dir": "data/processed/m1_f8",
+  "symbols_total": 24,
+  "success": 24,
+  "skip": 0,
+  "failed": 0,
+  "total_train_samples": 387673,
+  "total_val_samples": 74459,
+  "total_test_samples": 147523,
+  "results": [
+    {
+      "csymbol": "CFFEX.T",
+      "status": "SUCCESS",
+      "train_samples": 5965,
+      "val_samples": 864,
+      "test_samples": 1608,
+      "total_samples": 8437
+    },
+    {
+      "csymbol": "CZCE.SR",
+      "status": "SUCCESS",
+      "train_samples": 6569,
+      "val_samples": 726,
+      "test_samples": 1443,
+      "total_samples": 8738
+    },
+    {
+      "csymbol": "CZCE.FG",
+      "status": "SUCCESS",
+      "train_samples": 7905,
+      "val_samples": 726,
+      "test_samples": 1440,
+      "total_samples": 10071
+    },
+    {
+      "csymbol": "CZCE.OI",
+      "status": "SUCCESS",
+      "train_samples": 6886,
+      "val_samples": 726,
+      "test_samples": 1443,
+      "total_samples": 9055
+    },
+    {
+      "csymbol": "CZCE.CF",
+      "status": "SUCCESS",
+      "train_samples": 6639,
+      "val_samples": 726,
+      "test_samples": 1440,
+      "total_samples": 8805
+    },
+    {
+      "csymbol": "CZCE.RM",
+      "status": "SUCCESS",
+      "train_samples": 6529,
+      "val_samples": 726,
+      "test_samples": 1443,
+      "total_samples": 8698
+    },
+    {
+      "csymbol": "CZCE.TA",
+      "status": "SUCCESS",
+      "train_samples": 6423,
+      "val_samples": 726,
+      "test_samples": 1442,
+      "total_samples": 8591
+    },
+    {
+      "csymbol": "CZCE.MA",
+      "status": "SUCCESS",
+      "train_samples": 7358,
+      "val_samples": 1204,
+      "test_samples": 2386,
+      "total_samples": 10948
+    },
+    {
+      "csymbol": "DCE.A",
+      "status": "SUCCESS",
+      "train_samples": 5541,
+      "val_samples": 1010,
+      "test_samples": 1585,
+      "total_samples": 8136
+    },
+    {
+      "csymbol": "DCE.I",
+      "status": "SUCCESS",
+      "train_samples": 5704,
+      "val_samples": 726,
+      "test_samples": 1446,
+      "total_samples": 7876
+    },
+    {
+      "csymbol": "DCE.J",
+      "status": "SUCCESS",
+      "train_samples": 5643,
+      "val_samples": 911,
+      "test_samples": 1525,
+      "total_samples": 8079
+    },
+    {
+      "csymbol": "DCE.M",
+      "status": "SUCCESS",
+      "train_samples": 5860,
+      "val_samples": 726,
+      "test_samples": 1446,
+      "total_samples": 8032
+    },
+    {
+      "csymbol": "DCE.JM",
+      "status": "SUCCESS",
+      "train_samples": 5726,
+      "val_samples": 726,
+      "test_samples": 1446,
+      "total_samples": 7898
+    },
+    {
+      "csymbol": "DCE.Y",
+      "status": "SUCCESS",
+      "train_samples": 6233,
+      "val_samples": 726,
+      "test_samples": 1446,
+      "total_samples": 8405
+    },
+    {
+      "csymbol": "DCE.P",
+      "status": "SUCCESS",
+      "train_samples": 5652,
+      "val_samples": 920,
+      "test_samples": 1446,
+      "total_samples": 8018
+    },
+    {
+      "csymbol": "INE.SC",
+      "status": "SUCCESS",
+      "train_samples": 41924,
+      "val_samples": 9340,
+      "test_samples": 18451,
+      "total_samples": 69715
+    },
+    {
+      "csymbol": "SHFE.PB",
+      "status": "SUCCESS",
+      "train_samples": 25830,
+      "val_samples": 4699,
+      "test_samples": 10739,
+      "total_samples": 41268
+    },
+    {
+      "csymbol": "SHFE.AL",
+      "status": "SUCCESS",
+      "train_samples": 27232,
+      "val_samples": 5836,
+      "test_samples": 11569,
+      "total_samples": 44637
+    },
+    {
+      "csymbol": "SHFE.SN",
+      "status": "SUCCESS",
+      "train_samples": 25662,
+      "val_samples": 5928,
+      "test_samples": 11720,
+      "total_samples": 43310
+    },
+    {
+      "csymbol": "SHFE.CU",
+      "status": "SUCCESS",
+      "train_samples": 28072,
+      "val_samples": 5927,
+      "test_samples": 11663,
+      "total_samples": 45662
+    },
+    {
+      "csymbol": "SHFE.NI",
+      "status": "SUCCESS",
+      "train_samples": 28114,
+      "val_samples": 5936,
+      "test_samples": 11734,
+      "total_samples": 45784
+    },
+    {
+      "csymbol": "SHFE.AG",
+      "status": "SUCCESS",
+      "train_samples": 44334,
+      "val_samples": 9383,
+      "test_samples": 18523,
+      "total_samples": 72240
+    },
+    {
+      "csymbol": "SHFE.AU",
+      "status": "SUCCESS",
+      "train_samples": 43751,
+      "val_samples": 9349,
+      "test_samples": 18516,
+      "total_samples": 71616
+    },
+    {
+      "csymbol": "SHFE.ZN",
+      "status": "SUCCESS",
+      "train_samples": 28121,
+      "val_samples": 5892,
+      "test_samples": 11623,
+      "total_samples": 45636
+    }
+  ]
+}
