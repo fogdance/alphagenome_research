@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-03-01T22:24:53.849753",
+  "reports_dir": "reports",
+  "schemas_dir": "src/alphatrade/schemas",
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "missing": 0,
+    "success_rate": 1.0
+  },
+  "results": [
+    {
+      "report": "reports/m2_train_metrics.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m2_train_metrics"
+    },
+    {
+      "report": "reports/m2_universe_sweep.json",
+      "schema": "src/alphatrade/schemas/m2_universe_sweep.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m2_universe_sweep"
+    },
+    {
+      "report": "reports/m2_t1_dataloader_check.json",
+      "schema": "src/alphatrade/schemas/m2_t1_dataloader_check.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m2_t1_dataloader_check"
+    },
+    {
+      "report": "reports/m3_train_metrics.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m3_train_metrics"
+    },
+    {
+      "report": "reports/m4_train_metrics.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_train_metrics"
+    },
+    {
+      "report": "reports/m4_eval_metrics.json",
+      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_eval_metrics"
+    }
+  ]
+}

@@ -88,12 +88,12 @@ def main():
     args = parse_args()
     
     print(f"\n{'='*60}")
-    print(f"M2 Reports Schema Validation")
+    print(f"Reports Schema Validation")
     print(f"{'='*60}")
     print(f"Reports dir: {args.reports_dir}")
     print(f"Schemas dir: {args.schemas_dir}")
     print(f"{'='*60}\n")
-    
+
     # Define report-schema pairs
     validations = [
         {
@@ -110,6 +110,21 @@ def main():
             "name": "m2_t1_dataloader_check",
             "report": os.path.join(args.reports_dir, "m2_t1_dataloader_check.json"),
             "schema": os.path.join(args.schemas_dir, "m2_t1_dataloader_check.schema.json")
+        },
+        {
+            "name": "m3_train_metrics",
+            "report": os.path.join(args.reports_dir, "m3_train_metrics.json"),
+            "schema": os.path.join(args.schemas_dir, "m2_train_metrics.schema.json")
+        },
+        {
+            "name": "m4_train_metrics",
+            "report": os.path.join(args.reports_dir, "m4_train_metrics.json"),
+            "schema": os.path.join(args.schemas_dir, "m2_train_metrics.schema.json")
+        },
+        {
+            "name": "m4_eval_metrics",
+            "report": os.path.join(args.reports_dir, "m4_eval_metrics.json"),
+            "schema": os.path.join(args.schemas_dir, "m4_eval_metrics.schema.json")
         }
     ]
     
@@ -168,17 +183,17 @@ def main():
         "results": results
     }
     
-    json_path = os.path.join(args.reports_dir, "m2_schema_validation.json")
+    json_path = os.path.join(args.reports_dir, "m4_schema_validation.json")
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(json_report, f, indent=2)
-    
+
     print(f"✅ JSON report: {json_path}")
-    
+
     # Generate Markdown report
-    md_path = os.path.join(args.reports_dir, "m2_schema_validation.md")
+    md_path = os.path.join(args.reports_dir, "m4_schema_validation.md")
     with open(md_path, 'w') as f:
-        f.write("# M2 Reports Schema Validation\n\n")
+        f.write("# Reports Schema Validation\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
         f.write("## 配置\n\n")

@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m4_eval_metrics_v1",
+  "title": "M4 Evaluation Metrics Schema",
+  "description": "Fixed schema for M4 evaluation metrics output (m4_eval_metrics_v1)",
+  "type": "object",
+  "required": ["run_id", "eval_timestamp", "dataset", "pinball_loss", "quantile_coverage", "quantile_crossing"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Run ID from training (must match m4_train_metrics.json)"
+    },
+    "eval_timestamp": {
+      "type": "string",
+      "description": "Evaluation timestamp (ISO 8601 format)"
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["split", "symbols", "samples"],
+      "properties": {
+        "split": {
+          "type": "string",
+          "enum": ["train", "val", "test"],
+          "description": "Dataset split used for evaluation"
+        },
+        "symbols": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of symbols"
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of samples"
+        }
+      }
+    },
+    "pinball_loss": {
+      "type": "object",
+      "required": ["overall", "by_horizon"],
+      "properties": {
+        "overall": {
+          "type": "number",
+          "description": "Overall pinball loss (average across all horizons)"
+        },
+        "by_horizon": {
+          "type": "object",
+          "required": ["h1", "h5", "h20", "h60"],
+          "properties": {
+            "h1": {"type": "number"},
+            "h5": {"type": "number"},
+            "h20": {"type": "number"},
+            "h60": {"type": "number"}
+          }
+        }
+      }
+    },
+    "quantile_coverage": {
+      "type": "object",
+      "required": ["q10", "q30", "q50", "q70", "q90"],
+      "description": "Actual coverage rate for each quantile (expected: q10=0.1, q50=0.5, q90=0.9)",
+      "properties": {
+        "q10": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "q30": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "q50": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "q70": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "q90": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "quantile_crossing": {
+      "type": "object",
+      "required": ["rate", "count"],
+      "description": "Quantile crossing (non-monotonic predictions)",
+      "properties": {
+        "rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Crossing rate (crossings / total predictions)"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of crossings"
+        }
+      }
+    },
+    "ic_metrics": {
+      "type": "object",
+      "required": ["ic", "rank_ic"],
+      "description": "Information Coefficient metrics (using q50 as prediction)",
+      "properties": {
+        "ic": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Pearson correlation coefficient"
+        },
+        "rank_ic": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Spearman rank correlation coefficient"
+        },
+        "ic_by_horizon": {
+          "type": "object",
+          "properties": {
+            "h1": {"type": "number", "minimum": -1, "maximum": 1},
+            "h5": {"type": "number", "minimum": -1, "maximum": 1},
+            "h20": {"type": "number", "minimum": -1, "maximum": 1},
+            "h60": {"type": "number", "minimum": -1, "maximum": 1}
+          }
+        }
+      }
+    },
+    "by_symbol": {
+      "type": "array",
+      "description": "Per-symbol metrics",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "samples", "pinball_loss"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Symbol name (e.g., DCE.JM)"
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of samples for this symbol"
+          },
+          "pinball_loss": {
+            "type": "number",
+            "description": "Overall pinball loss for this symbol"
+          },
+          "ic": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "IC for this symbol (optional)"
+          }
+        }
+      }
+    }
+  }
+}
