@@ -1,31 +1,31 @@
 {
-  "run_id": "f587ecaa",
-  "eval_timestamp": "2026-03-02T21:01:42.996313",
+  "run_id": "66dec787",
+  "eval_timestamp": "2026-03-03T00:40:28.639524",
   "model": {
     "source": "checkpoint",
     "checkpoint_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44/best",
-    "checkpoint_step": 20,
-    "train_run_id": "f587ecaa",
-    "git_sha": "da3301b"
+    "checkpoint_step": 500,
+    "train_run_id": "66dec787",
+    "git_sha": "6cbb4a1"
   },
   "dataset": {
     "split": "val",
-    "symbols": 3,
-    "samples": 11313
+    "symbols": 24,
+    "samples": 74459
   },
   "pinball_loss": {
-    "overall": 0.049309462583542796,
+    "overall": 0.003387921416292847,
     "by_horizon": {
-      "h1": 0.04964949170714416,
-      "h5": 0.05620556145158669,
-      "h20": 0.04469377495330139,
-      "h60": 0.04668902222213895
+      "h1": 0.00309952375935797,
+      "h5": 0.0037659195093367966,
+      "h20": 0.002624524945784032,
+      "h60": 0.0040617174506925886
     }
   },
   "quantile_coverage": {
     "q10": 0.0,
     "q30": 0.0,
-    "q50": 0.0005303632988597189,
+    "q50": 0.6387542137283606,
     "q70": 1.0,
     "q90": 1.0
   },
@@ -34,39 +34,164 @@
     "count": 0
   },
   "ic_metrics": {
-    "ic": -0.016093613509400428,
-    "rank_ic": -0.00699809530759018,
+    "ic": 0.0011756838711210168,
+    "rank_ic": 0.0016670382919383778,
     "ic_by_horizon": {
-      "h1": -0.016093613509400428,
-      "h5": -0.004912988032694639,
-      "h20": 0.0016800296232436713,
-      "h60": 0.042935225487383585
+      "h1": 0.0011756838711210168,
+      "h5": -0.0018580766403965673,
+      "h20": 0.005250574552475068,
+      "h60": -0.0054740011653127505
     }
   },
   "by_symbol": [
     {
-      "symbol": "DCE.JM",
-      "samples": 726,
-      "pinball_loss": 0.0498652879809208,
-      "ic": 0.0017620010026620624
+      "symbol": "CFFEX.T",
+      "samples": 864,
+      "pinball_loss": 0.0034168793077814304,
+      "ic": -0.012300706165795372
     },
     {
-      "symbol": "SHFE.AG",
-      "samples": 9383,
-      "pinball_loss": 0.0492356074324415,
-      "ic": -0.027699610841654603
+      "symbol": "CZCE.CF",
+      "samples": 726,
+      "pinball_loss": 0.003435946334086702,
+      "ic": 0.045442972346898404
+    },
+    {
+      "symbol": "CZCE.FG",
+      "samples": 726,
+      "pinball_loss": 0.0035852730497837495,
+      "ic": -0.00886054780923159
     },
     {
       "symbol": "CZCE.MA",
       "samples": 1204,
-      "pinball_loss": 0.04954987258710342,
-      "ic": 0.026593382045236265
+      "pinball_loss": 0.003473860624143613,
+      "ic": 0.0016161793353838257
+    },
+    {
+      "symbol": "CZCE.OI",
+      "samples": 726,
+      "pinball_loss": 0.0034666558447398656,
+      "ic": -0.021113587014142333
+    },
+    {
+      "symbol": "CZCE.RM",
+      "samples": 726,
+      "pinball_loss": 0.0034642747046011247,
+      "ic": -0.08350432318581211
+    },
+    {
+      "symbol": "CZCE.SR",
+      "samples": 726,
+      "pinball_loss": 0.003418139409456616,
+      "ic": -0.0020015104602408794
+    },
+    {
+      "symbol": "CZCE.TA",
+      "samples": 726,
+      "pinball_loss": 0.003470826820601304,
+      "ic": -0.01287618659277281
+    },
+    {
+      "symbol": "DCE.A",
+      "samples": 1010,
+      "pinball_loss": 0.0033926591952017048,
+      "ic": 0.026367857941066147
+    },
+    {
+      "symbol": "DCE.I",
+      "samples": 726,
+      "pinball_loss": 0.003506460209573282,
+      "ic": 0.07120087442425316
+    },
+    {
+      "symbol": "DCE.J",
+      "samples": 911,
+      "pinball_loss": 0.0035705281222152274,
+      "ic": 0.015375443833409235
+    },
+    {
+      "symbol": "DCE.JM",
+      "samples": 726,
+      "pinball_loss": 0.003621809501639818,
+      "ic": -0.023076713214733927
+    },
+    {
+      "symbol": "DCE.M",
+      "samples": 726,
+      "pinball_loss": 0.0034305949604945506,
+      "ic": -0.005240065932624081
+    },
+    {
+      "symbol": "DCE.P",
+      "samples": 920,
+      "pinball_loss": 0.003501418193128914,
+      "ic": 0.013050591087781798
+    },
+    {
+      "symbol": "DCE.Y",
+      "samples": 726,
+      "pinball_loss": 0.003451705732970663,
+      "ic": -0.021225533516262943
+    },
+    {
+      "symbol": "INE.SC",
+      "samples": 9340,
+      "pinball_loss": 0.00340747309953026,
+      "ic": 0.017256949653288313
+    },
+    {
+      "symbol": "SHFE.AG",
+      "samples": 9383,
+      "pinball_loss": 0.003359019674633118,
+      "ic": -0.018068922780036033
+    },
+    {
+      "symbol": "SHFE.AL",
+      "samples": 5836,
+      "pinball_loss": 0.0033510728210957913,
+      "ic": 0.0010092443706032498
+    },
+    {
+      "symbol": "SHFE.AU",
+      "samples": 9349,
+      "pinball_loss": 0.00333866213936107,
+      "ic": -0.013543490833423235
+    },
+    {
+      "symbol": "SHFE.CU",
+      "samples": 5927,
+      "pinball_loss": 0.0033513095180713673,
+      "ic": -0.00677467027561261
+    },
+    {
+      "symbol": "SHFE.NI",
+      "samples": 5936,
+      "pinball_loss": 0.0034102038675934464,
+      "ic": 0.006640379615160457
+    },
+    {
+      "symbol": "SHFE.PB",
+      "samples": 4699,
+      "pinball_loss": 0.0033626482773899853,
+      "ic": -0.021386600380687085
+    },
+    {
+      "symbol": "SHFE.SN",
+      "samples": 5928,
+      "pinball_loss": 0.0033938467336198505,
+      "ic": 0.001496254782884203
+    },
+    {
+      "symbol": "SHFE.ZN",
+      "samples": 5892,
+      "pinball_loss": 0.00335778677602886,
+      "ic": 0.01681281289594438
     }
   ],
   "sanity_warnings": [
     "quantile_coverage[q10] = 0.0000 < 0.02",
     "quantile_coverage[q30] = 0.0000 < 0.02",
-    "quantile_coverage[q50] = 0.0005 < 0.02",
     "quantile_coverage[q70] = 1.0000 > 0.98",
     "quantile_coverage[q90] = 1.0000 > 0.98"
   ]

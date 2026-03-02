@@ -1,22 +1,22 @@
 # M4 Training Run - AlphaTrade v0.2 (JAX)
 
-生成时间: 2026-03-02 21:00:32
+生成时间: 2026-03-03 00:37:50
 
 ## 运行命令
 
 ```bash
-python src/alphatrade/scripts/train_m4_alphatrade.py --config configs/dataset/m2.yaml --max-steps 20 --batch-size 128 --clip-norm 1.0 --jit 0 --seed 44 --smoke
+python src/alphatrade/scripts/train_m4_alphatrade.py --config configs/dataset/m2.yaml --max-steps 500 --batch-size 128 --clip-norm 1.0 --jit 0 --seed 44
 ```
 
 ## 配置
 
-- Run ID: f587ecaa
+- Run ID: 66dec787
 - Backend: JAX
 - JIT: disabled
 - Device: cuda
-- Symbols: 3
-- Train samples: 57,418
-- Val samples: 11,313
+- Symbols: 24
+- Train samples: 387,673
+- Val samples: 74,459
 
 ## 模型
 
@@ -28,33 +28,33 @@ python src/alphatrade/scripts/train_m4_alphatrade.py --config configs/dataset/m2
 
 ## Loss
 
-- Train last: 0.205676
-- Train best: 0.205676
-- Val last: 0.196407
-- Val best: 0.196407 @ step 20
+- Train last: 0.016444
+- Train best: 0.013565
+- Val last: 0.013364
+- Val best: 0.013364 @ step 500
 
 ### By-Horizon Loss
 
 | Horizon | Train | Val |
 |---------|-------|-----|
-| h1 | 0.058739 | 0.049070 |
-| h5 | 0.076979 | 0.056000 |
-| h20 | 0.051454 | 0.044774 |
-| h60 | 0.058981 | 0.046563 |
+| h1 | 0.004136 | 0.003149 |
+| h5 | 0.003699 | 0.003631 |
+| h20 | 0.003633 | 0.002592 |
+| h60 | 0.004484 | 0.003992 |
 
 ## Stability
 
 - NaN steps: 0
 - Inf steps: 0
-- Max grad norm (pre-clip): 6.9578
-- Max grad norm (post-clip): 0.2496
+- Max grad norm (pre-clip): 7.1594
+- Max grad norm (post-clip): 0.2497
 - OOM count: 0
 
 ## Checkpoint
 
 - Checkpoint dir: `/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44`
-- Best checkpoint: `/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44/best` @ step 20
-- Last checkpoint: step 20
+- Best checkpoint: `/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44/best` @ step 500
+- Last checkpoint: step 500
 - Save every: 100 steps
 - Keep last: 3
 

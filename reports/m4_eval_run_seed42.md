@@ -1,14 +1,14 @@
 # M4 Evaluation Run (FAST) - AlphaTrade v0.2 (JAX)
 
-生成时间: 2026-03-02 21:38:30
+生成时间: 2026-03-02 23:53:10
 
 ## Checkpoint Info
 
 - Source: checkpoint
 - Checkpoint step: 500
 - Checkpoint dir: `/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed42/best`
-- Train run ID: 3c4db23f
-- Git SHA: da3301b
+- Train run ID: 0d542c49
+- Git SHA: 6cbb4a1
 - Split: val
 
 Reproduce:
@@ -21,7 +21,7 @@ python src/alphatrade/scripts/eval_m4_fast.py \
 
 ## 配置
 
-- Run ID: 3c4db23f
+- Run ID: 0d542c49
 - Split: val
 - Symbols: 24
 - Samples: 74,459

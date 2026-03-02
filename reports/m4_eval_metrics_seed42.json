@@ -1,12 +1,12 @@
 {
-  "run_id": "3c4db23f",
-  "eval_timestamp": "2026-03-02T21:38:30.397431",
+  "run_id": "0d542c49",
+  "eval_timestamp": "2026-03-02T23:53:10.806486",
   "model": {
     "source": "checkpoint",
     "checkpoint_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed42/best",
     "checkpoint_step": 500,
-    "train_run_id": "3c4db23f",
-    "git_sha": "da3301b"
+    "train_run_id": "0d542c49",
+    "git_sha": "6cbb4a1"
   },
   "dataset": {
     "split": "val",

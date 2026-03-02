@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-02T21:51:51.952088",
+  "generated_at": "2026-03-03T00:40:30.648696",
   "config": {
     "dataset_config": "configs/dataset/m2.yaml",
     "seeds": [
@@ -9,7 +9,7 @@
     ],
     "max_steps": 500,
     "batch_size": 128,
-    "jit": true,
+    "jit": false,
     "smoke": false,
     "gpu": true,
     "eval_split": "val"
@@ -17,18 +17,146 @@
   "seeds": [
     {
       "seed": 42,
-      "train": null,
-      "eval": null
+      "train": {
+        "metrics_path": "reports/m4_train_metrics_seed42.json",
+        "ckpt_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed42",
+        "train_loss_last": 0.021610289812088013,
+        "val_loss_last": 0.02011034407259263,
+        "best_step": 500,
+        "nan_steps": 0,
+        "inf_steps": 0,
+        "grad_norm_pre_clip_max": 7.611284255981445,
+        "grad_norm_post_clip_max": 0.24960342049598694,
+        "by_horizon_train": {
+          "h1": 0.003994887438602745,
+          "h5": 0.0038626082008704544,
+          "h20": 0.005075482442043722,
+          "h60": 0.008241598960012197
+        }
+      },
+      "eval": {
+        "metrics_path": "reports/m4_eval_metrics_seed42.json",
+        "ckpt_step": 500,
+        "pinball_loss_overall": 0.005037163524182407,
+        "pinball_by_horizon": {
+          "h1": 0.003541820227026823,
+          "h5": 0.005426784277889442,
+          "h20": 0.004848505078410955,
+          "h60": 0.006331544513402408
+        },
+        "ic": -0.0002631198256193139,
+        "rank_ic": -0.004616847890380479,
+        "quantile_coverage": {
+          "q10": 0.0,
+          "q30": 0.0,
+          "q50": 0.0018265085483286103,
+          "q70": 0.9999865697900858,
+          "q90": 1.0
+        },
+        "crossing_rate": 0.0,
+        "sanity_warnings": [
+          "quantile_coverage[q10] = 0.0000 < 0.02",
+          "quantile_coverage[q30] = 0.0000 < 0.02",
+          "quantile_coverage[q50] = 0.0018 < 0.02",
+          "quantile_coverage[q70] = 1.0000 > 0.98",
+          "quantile_coverage[q90] = 1.0000 > 0.98"
+        ]
+      }
     },
     {
       "seed": 43,
-      "train": null,
-      "eval": null
+      "train": {
+        "metrics_path": "reports/m4_train_metrics_seed43.json",
+        "ckpt_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed43",
+        "train_loss_last": 0.01745983399450779,
+        "val_loss_last": 0.012557280414715358,
+        "best_step": 500,
+        "nan_steps": 0,
+        "inf_steps": 0,
+        "grad_norm_pre_clip_max": 7.578820705413818,
+        "grad_norm_post_clip_max": 0.24987122416496277,
+        "by_horizon_train": {
+          "h1": 0.0030489043332636357,
+          "h5": 0.0036523893009871244,
+          "h20": 0.0028998458525165915,
+          "h60": 0.0055787435732781885
+        }
+      },
+      "eval": {
+        "metrics_path": "reports/m4_eval_metrics_seed43.json",
+        "ckpt_step": 500,
+        "pinball_loss_overall": 0.00310659631387911,
+        "pinball_by_horizon": {
+          "h1": 0.0028109618832346884,
+          "h5": 0.0035302269376563515,
+          "h20": 0.0029019314040330526,
+          "h60": 0.003183265030592345
+        },
+        "ic": -0.0016444860350837095,
+        "rank_ic": -0.0013716956826375166,
+        "quantile_coverage": {
+          "q10": 0.0,
+          "q30": 0.00044319692716797166,
+          "q50": 0.991243503135954,
+          "q70": 1.0,
+          "q90": 1.0
+        },
+        "crossing_rate": 0.0,
+        "sanity_warnings": [
+          "quantile_coverage[q10] = 0.0000 < 0.02",
+          "quantile_coverage[q30] = 0.0004 < 0.02",
+          "quantile_coverage[q50] = 0.9912 > 0.98",
+          "quantile_coverage[q70] = 1.0000 > 0.98",
+          "quantile_coverage[q90] = 1.0000 > 0.98"
+        ]
+      }
     },
     {
       "seed": 44,
-      "train": null,
-      "eval": null
+      "train": {
+        "metrics_path": "reports/m4_train_metrics_seed44.json",
+        "ckpt_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44",
+        "train_loss_last": 0.016443781554698944,
+        "val_loss_last": 0.013364437213839637,
+        "best_step": 500,
+        "nan_steps": 0,
+        "inf_steps": 0,
+        "grad_norm_pre_clip_max": 7.1594343185424805,
+        "grad_norm_post_clip_max": 0.2496999204158783,
+        "by_horizon_train": {
+          "h1": 0.00413625359069556,
+          "h5": 0.0036992328241467476,
+          "h20": 0.0036333864321932197,
+          "h60": 0.004483932070434094
+        }
+      },
+      "eval": {
+        "metrics_path": "reports/m4_eval_metrics_seed44.json",
+        "ckpt_step": 500,
+        "pinball_loss_overall": 0.003387921416292847,
+        "pinball_by_horizon": {
+          "h1": 0.00309952375935797,
+          "h5": 0.0037659195093367966,
+          "h20": 0.002624524945784032,
+          "h60": 0.0040617174506925886
+        },
+        "ic": 0.0011756838711210168,
+        "rank_ic": 0.0016670382919383778,
+        "quantile_coverage": {
+          "q10": 0.0,
+          "q30": 0.0,
+          "q50": 0.6387542137283606,
+          "q70": 1.0,
+          "q90": 1.0
+        },
+        "crossing_rate": 0.0,
+        "sanity_warnings": [
+          "quantile_coverage[q10] = 0.0000 < 0.02",
+          "quantile_coverage[q30] = 0.0000 < 0.02",
+          "quantile_coverage[q70] = 1.0000 > 0.98",
+          "quantile_coverage[q90] = 1.0000 > 0.98"
+        ]
+      }
     }
   ]
 }

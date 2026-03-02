@@ -14,6 +14,8 @@ M2 任务已验收通过，为防止后续修改导致 JSON 字段/路径漂移�
 - 新增字段需同步更新 schema
 - 任何修改必须通过 schema 验证
 
+> **注意**: 字段定义以 schema 为准，完整治理规则详见 `docs/reports_governance.md`。
+
 ---
 
 ## Schema 文件

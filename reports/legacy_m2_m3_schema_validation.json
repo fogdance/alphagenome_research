@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-03-03T08:10:31.028143",
-  "profile": "m4",
-  "strict": true,
+  "timestamp": "2026-03-03T08:09:42.691994",
+  "profile": "legacy_m2_m3",
+  "strict": false,
   "manifest": "src/alphatrade/schemas/contracts_manifest.yaml",
   "reports_dir": "reports",
   "summary": {
-    "schema_total": 6,
-    "schema_passed": 6,
+    "schema_total": 4,
+    "schema_passed": 2,
     "schema_required_fail": 0,
     "semantic_total": 12,
     "semantic_passed": 12,
@@ -14,52 +14,42 @@
   },
   "schema_results": [
     {
-      "report": "reports/m4_train_metrics_seed42.json",
+      "report": "reports/m2_train_metrics.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed42",
-      "required": true
+      "status": "fail",
+      "error": "'grad_norm_pre_clip_max' is a required property",
+      "error_path": [
+        "stability"
+      ],
+      "name": "m2_train_metrics",
+      "required": false
     },
     {
-      "report": "reports/m4_train_metrics_seed43.json",
+      "report": "reports/m2_universe_sweep.json",
+      "schema": "src/alphatrade/schemas/m2_universe_sweep.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m2_universe_sweep",
+      "required": false
+    },
+    {
+      "report": "reports/m2_t1_dataloader_check.json",
+      "schema": "src/alphatrade/schemas/m2_t1_dataloader_check.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m2_t1_dataloader_check",
+      "required": false
+    },
+    {
+      "report": "reports/m3_train_metrics.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed43",
-      "required": true
-    },
-    {
-      "report": "reports/m4_train_metrics_seed44.json",
-      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed44",
-      "required": true
-    },
-    {
-      "report": "reports/m4_eval_metrics_seed42.json",
-      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed42",
-      "required": true
-    },
-    {
-      "report": "reports/m4_eval_metrics_seed43.json",
-      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed43",
-      "required": true
-    },
-    {
-      "report": "reports/m4_eval_metrics_seed44.json",
-      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed44",
-      "required": true
+      "status": "fail",
+      "error": "'grad_norm_pre_clip_max' is a required property",
+      "error_path": [
+        "stability"
+      ],
+      "name": "m3_train_metrics",
+      "required": false
     }
   ],
   "semantic_results": [

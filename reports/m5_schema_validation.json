@@ -1,64 +1,80 @@
 {
-  "timestamp": "2026-03-03T08:10:31.028143",
-  "profile": "m4",
-  "strict": true,
+  "timestamp": "2026-03-03T08:10:24.910263",
+  "profile": "m5",
+  "strict": false,
   "manifest": "src/alphatrade/schemas/contracts_manifest.yaml",
   "reports_dir": "reports",
   "summary": {
-    "schema_total": 6,
-    "schema_passed": 6,
-    "schema_required_fail": 0,
+    "schema_total": 8,
+    "schema_passed": 0,
+    "schema_required_fail": 8,
     "semantic_total": 12,
     "semantic_passed": 12,
-    "overall": "pass"
+    "overall": "fail"
   },
   "schema_results": [
     {
-      "report": "reports/m4_train_metrics_seed42.json",
+      "report": "reports/m5_train_metrics_seed42.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed42",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_train_metrics_seed42.json",
+      "name": "m5_train_metrics_seed42",
       "required": true
     },
     {
-      "report": "reports/m4_train_metrics_seed43.json",
+      "report": "reports/m5_train_metrics_seed43.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed43",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_train_metrics_seed43.json",
+      "name": "m5_train_metrics_seed43",
       "required": true
     },
     {
-      "report": "reports/m4_train_metrics_seed44.json",
+      "report": "reports/m5_train_metrics_seed44.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_train_metrics_seed44",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_train_metrics_seed44.json",
+      "name": "m5_train_metrics_seed44",
       "required": true
     },
     {
-      "report": "reports/m4_eval_metrics_seed42.json",
+      "report": "reports/m5_eval_metrics_seed42.json",
       "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed42",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_eval_metrics_seed42.json",
+      "name": "m5_eval_metrics_seed42",
       "required": true
     },
     {
-      "report": "reports/m4_eval_metrics_seed43.json",
+      "report": "reports/m5_eval_metrics_seed43.json",
       "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed43",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_eval_metrics_seed43.json",
+      "name": "m5_eval_metrics_seed43",
       "required": true
     },
     {
-      "report": "reports/m4_eval_metrics_seed44.json",
+      "report": "reports/m5_eval_metrics_seed44.json",
       "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
-      "status": "pass",
-      "error": null,
-      "name": "m4_eval_metrics_seed44",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_eval_metrics_seed44.json",
+      "name": "m5_eval_metrics_seed44",
+      "required": true
+    },
+    {
+      "report": "reports/m5_ablation_table.json",
+      "schema": "src/alphatrade/schemas/m5_ablation_table.schema.json",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_ablation_table.json",
+      "name": "m5_ablation_table",
+      "required": true
+    },
+    {
+      "report": "reports/m5_matrix_summary.json",
+      "schema": "",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m5_matrix_summary.json",
+      "name": "m5_matrix_summary",
       "required": true
     }
   ],

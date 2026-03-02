@@ -1,0 +1,32 @@
+version: 1
+profiles:
+  m4:
+    description: "Mainline gate. 3-seed train+eval."
+    reports_dir: "reports"
+    items:
+      - {name: m4_train_metrics_seed42, path: "m4_train_metrics_seed42.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m4_train_metrics_seed43, path: "m4_train_metrics_seed43.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m4_train_metrics_seed44, path: "m4_train_metrics_seed44.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m4_eval_metrics_seed42, path: "m4_eval_metrics_seed42.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+      - {name: m4_eval_metrics_seed43, path: "m4_eval_metrics_seed43.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+      - {name: m4_eval_metrics_seed44, path: "m4_eval_metrics_seed44.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+  m5:
+    description: "M5 ablation study. 3-seed baseline + ablation variants."
+    reports_dir: "reports"
+    items:
+      - {name: m5_train_metrics_seed42, path: "m5_train_metrics_seed42.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m5_train_metrics_seed43, path: "m5_train_metrics_seed43.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m5_train_metrics_seed44, path: "m5_train_metrics_seed44.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
+      - {name: m5_eval_metrics_seed42, path: "m5_eval_metrics_seed42.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+      - {name: m5_eval_metrics_seed43, path: "m5_eval_metrics_seed43.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+      - {name: m5_eval_metrics_seed44, path: "m5_eval_metrics_seed44.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
+      - {name: m5_ablation_table, path: "m5_ablation_table.json", schema: "src/alphatrade/schemas/m5_ablation_table.schema.json", required: true}
+      - {name: m5_matrix_summary, path: "m5_matrix_summary.json", schema: "", required: true}
+  legacy_m2_m3:
+    description: "Historical artifacts. Never blocks CI."
+    reports_dir: "reports"
+    items:
+      - {name: m2_train_metrics, path: "m2_train_metrics.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: false}
+      - {name: m2_universe_sweep, path: "m2_universe_sweep.json", schema: "src/alphatrade/schemas/m2_universe_sweep.schema.json", required: false}
+      - {name: m2_t1_dataloader_check, path: "m2_t1_dataloader_check.json", schema: "src/alphatrade/schemas/m2_t1_dataloader_check.schema.json", required: false}
+      - {name: m3_train_metrics, path: "m3_train_metrics.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: false}

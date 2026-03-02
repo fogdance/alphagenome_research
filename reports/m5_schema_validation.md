@@ -1,22 +1,24 @@
-# Reports Schema & Semantic Validation (profile: m4)
+# Reports Schema & Semantic Validation (profile: m5)
 
-Generated: 2026-03-03 08:10:31
-Strict: True
+Generated: 2026-03-03 08:10:24
+Strict: False
 
 ## Phase 1: Schema Validation
 
-- Total: 6
-- Passed: 6
-- Failed/Missing: 0
+- Total: 8
+- Passed: 0
+- Failed/Missing: 8
 
 | Report | Required | Status | Error |
 |--------|----------|--------|-------|
-| m4_train_metrics_seed42 | ✅ | ✅ pass | - |
-| m4_train_metrics_seed43 | ✅ | ✅ pass | - |
-| m4_train_metrics_seed44 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed42 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed43 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed44 | ✅ | ✅ pass | - |
+| m5_train_metrics_seed42 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_train_metrics_seed42.json |
+| m5_train_metrics_seed43 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_train_metrics_seed43.json |
+| m5_train_metrics_seed44 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_train_metrics_seed44.json |
+| m5_eval_metrics_seed42 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_eval_metrics_seed42.json |
+| m5_eval_metrics_seed43 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_eval_metrics_seed43.json |
+| m5_eval_metrics_seed44 | ✅ | ⚠️ missing_report | Report file not found: reports/m5_eval_metrics_seed44.json |
+| m5_ablation_table | ✅ | ⚠️ missing_report | Report file not found: reports/m5_ablation_table.json |
+| m5_matrix_summary | ✅ | ⚠️ missing_report | Report file not found: reports/m5_matrix_summary.json |
 
 ## Phase 2: M4 Semantic Checks
 
@@ -60,6 +62,6 @@ Strict: True
 
 ## Overall
 
-- Schema (required): ✅ pass
+- Schema (required): ❌ fail
 - Semantic: ✅ pass
-- **Overall: ✅ ALL PASS**
+- **Overall: ❌ FAIL**

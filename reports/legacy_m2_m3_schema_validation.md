@@ -1,22 +1,20 @@
-# Reports Schema & Semantic Validation (profile: m4)
+# Reports Schema & Semantic Validation (profile: legacy_m2_m3)
 
-Generated: 2026-03-03 08:10:31
-Strict: True
+Generated: 2026-03-03 08:09:42
+Strict: False
 
 ## Phase 1: Schema Validation
 
-- Total: 6
-- Passed: 6
-- Failed/Missing: 0
+- Total: 4
+- Passed: 2
+- Failed/Missing: 2
 
 | Report | Required | Status | Error |
 |--------|----------|--------|-------|
-| m4_train_metrics_seed42 | ✅ | ✅ pass | - |
-| m4_train_metrics_seed43 | ✅ | ✅ pass | - |
-| m4_train_metrics_seed44 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed42 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed43 | ✅ | ✅ pass | - |
-| m4_eval_metrics_seed44 | ✅ | ✅ pass | - |
+| m2_train_metrics | - | ❌ fail | 'grad_norm_pre_clip_max' is a required property |
+| m2_universe_sweep | - | ✅ pass | - |
+| m2_t1_dataloader_check | - | ✅ pass | - |
+| m3_train_metrics | - | ❌ fail | 'grad_norm_pre_clip_max' is a required property |
 
 ## Phase 2: M4 Semantic Checks
 

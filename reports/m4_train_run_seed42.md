@@ -1,6 +1,6 @@
 # M4 Training Run - AlphaTrade v0.2 (JAX)
 
-生成时间: 2026-03-02 21:35:48
+生成时间: 2026-03-02 23:50:32
 
 ## 运行命令
 
@@ -10,7 +10,7 @@ python src/alphatrade/scripts/train_m4_alphatrade.py --config configs/dataset/m2
 
 ## 配置
 
-- Run ID: 3c4db23f
+- Run ID: 0d542c49
 - Backend: JAX
 - JIT: disabled
 - Device: cuda
