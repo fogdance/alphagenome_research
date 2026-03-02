@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-03-02T21:51:51.952088",
+  "config": {
+    "dataset_config": "configs/dataset/m2.yaml",
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "max_steps": 500,
+    "batch_size": 128,
+    "jit": true,
+    "smoke": false,
+    "gpu": true,
+    "eval_split": "val"
+  },
+  "seeds": [
+    {
+      "seed": 42,
+      "train": null,
+      "eval": null
+    },
+    {
+      "seed": 43,
+      "train": null,
+      "eval": null
+    },
+    {
+      "seed": 44,
+      "train": null,
+      "eval": null
+    }
+  ]
+}

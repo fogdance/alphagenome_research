@@ -1,51 +1,39 @@
 # M4 Matrix Summary
-**生成时间**: 2026-03-01 23:04:58
+
+**生成时间**: 2026-03-02T21:51:51.952088
+
 ---
+
 
 ## 配置
 
-- Dataset config: configs/dataset/m2.yaml
+- Dataset config: `configs/dataset/m2.yaml`
 - Seeds: [42, 43, 44]
-- Max steps: 10
-- Batch size: 32
+- Max steps: 500
+- Batch size: 128
 - JIT: enabled
-- Smoke test: yes
+- Smoke: no
+- GPU: yes
+- Eval split: val
 
-## 训练结果对比
+## Train + Eval 对比
 
-| Seed | Train Loss | Val Loss | Best Step | NaN Steps | Inf Steps | Grad Norm (pre/post) |
-|------|------------|----------|-----------|-----------|-----------|----------------------|
-| 42 | 0.327098 | 0.302739 | 10 | 0 | 0 | 6.3908/0.2496 |
-| 43 | 0.279281 | 0.258886 | 10 | 0 | 0 | 4.7166/0.2498 |
-| 44 | 0.334956 | 0.305501 | 10 | 0 | 0 | 6.9422/0.2496 |
-
-### By-Horizon 训练损失
-
-| Seed | h1 | h5 | h20 | h60 |
-|------|----|----|-----|-----|
-| 42 | 0.123812 | 0.122633 | 0.115851 | 0.128888 |
-| 43 | 0.119000 | 0.113663 | 0.121047 | 0.090296 |
-| 44 | 0.114861 | 0.174008 | 0.112178 | 0.125908 |
+| Seed | Train Loss | Val Loss | Best Step | NaN/Inf | Grad Max | Pinball | IC | Rank IC | Crossing |
+|------|-----------|----------|-----------|---------|----------|---------|------|---------|----------|
+| 42 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL |
+| 43 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL |
+| 44 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL |
 
 ## 统计分析
 
-### 训练损失统计
+## 文件追溯
 
-- Train loss: 0.313778 ± 0.024603
-- Val loss: 0.289042 ± 0.021354
-- Best val loss: 0.258886 (seed=43)
-
-## 生成文件
-
-### 训练输出
-
-- `reports/m4_train_metrics_seed42.json`
-- `reports/m4_train_run_seed42.md`
-- `reports/m4_train_metrics_seed43.json`
-- `reports/m4_train_run_seed43.md`
-- `reports/m4_train_metrics_seed44.json`
-- `reports/m4_train_run_seed44.md`
+| Seed | train_metrics | eval_metrics | ckpt_dir |
+|------|---------------|--------------|----------|
+| 42 | `N/A` | `N/A` | `N/A` |
+| 43 | `N/A` | `N/A` | `N/A` |
+| 44 | `N/A` | `N/A` | `N/A` |
 
 ---
 
-**总计**: 3 个训练实验
+**总计**: 0/3 seeds 完成 train+eval

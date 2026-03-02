@@ -1,20 +1,23 @@
 {
-  "timestamp": "2026-03-01T22:24:53.849753",
+  "timestamp": "2026-03-02T21:11:04.500259",
   "reports_dir": "reports",
   "schemas_dir": "src/alphatrade/schemas",
   "summary": {
-    "total": 6,
-    "passed": 6,
-    "failed": 0,
-    "missing": 0,
-    "success_rate": 1.0
+    "schema_total": 12,
+    "schema_passed": 8,
+    "semantic_total": 12,
+    "semantic_passed": 12,
+    "overall": "fail"
   },
-  "results": [
+  "schema_results": [
     {
       "report": "reports/m2_train_metrics.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
+      "status": "fail",
+      "error": "'grad_norm_pre_clip_max' is a required property",
+      "error_path": [
+        "stability"
+      ],
       "name": "m2_train_metrics"
     },
     {
@@ -34,23 +37,151 @@
     {
       "report": "reports/m3_train_metrics.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
+      "status": "fail",
+      "error": "'grad_norm_pre_clip_max' is a required property",
+      "error_path": [
+        "stability"
+      ],
       "name": "m3_train_metrics"
     },
     {
       "report": "reports/m4_train_metrics.json",
       "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
-      "status": "pass",
-      "error": null,
+      "status": "missing_report",
+      "error": "Report file not found: reports/m4_train_metrics.json",
       "name": "m4_train_metrics"
     },
     {
       "report": "reports/m4_eval_metrics.json",
       "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
+      "status": "missing_report",
+      "error": "Report file not found: reports/m4_eval_metrics.json",
+      "name": "m4_eval_metrics"
+    },
+    {
+      "report": "reports/m4_eval_metrics_seed42.json",
+      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
       "status": "pass",
       "error": null,
-      "name": "m4_eval_metrics"
+      "name": "m4_eval_metrics_seed42"
+    },
+    {
+      "report": "reports/m4_train_metrics_seed42.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_train_metrics_seed42"
+    },
+    {
+      "report": "reports/m4_eval_metrics_seed43.json",
+      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_eval_metrics_seed43"
+    },
+    {
+      "report": "reports/m4_train_metrics_seed43.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_train_metrics_seed43"
+    },
+    {
+      "report": "reports/m4_eval_metrics_seed44.json",
+      "schema": "src/alphatrade/schemas/m4_eval_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_eval_metrics_seed44"
+    },
+    {
+      "report": "reports/m4_train_metrics_seed44.json",
+      "schema": "src/alphatrade/schemas/m2_train_metrics.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m4_train_metrics_seed44"
+    }
+  ],
+  "semantic_results": [
+    {
+      "seed": "42",
+      "eval_path": "reports/m4_eval_metrics_seed42.json",
+      "train_path": "reports/m4_train_metrics_seed42.json",
+      "checks": [
+        {
+          "check": "model.source == 'checkpoint'",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.train_run_id == train.run.run_id",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_step >= 1",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_dir non-empty",
+          "status": "pass",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "seed": "43",
+      "eval_path": "reports/m4_eval_metrics_seed43.json",
+      "train_path": "reports/m4_train_metrics_seed43.json",
+      "checks": [
+        {
+          "check": "model.source == 'checkpoint'",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.train_run_id == train.run.run_id",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_step >= 1",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_dir non-empty",
+          "status": "pass",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "seed": "44",
+      "eval_path": "reports/m4_eval_metrics_seed44.json",
+      "train_path": "reports/m4_train_metrics_seed44.json",
+      "checks": [
+        {
+          "check": "model.source == 'checkpoint'",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.train_run_id == train.run.run_id",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_step >= 1",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "model.checkpoint_dir non-empty",
+          "status": "pass",
+          "detail": ""
+        }
+      ]
     }
   ]
 }

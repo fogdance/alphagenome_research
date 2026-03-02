@@ -3,8 +3,20 @@
 M4 Training Script - AlphaTrade v0.2 (JAX)
 
 Long training runs with improved stability tracking.
-Defaults: JIT=1, steps=1000, batch=128
+Defaults: CPU backend, JIT=0, steps=1000, batch=128.
+
+GPU usage: set env before running:
+    XLA_FLAGS="--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=" \
+    JAX_PLATFORMS=cuda python -c "from alphatrade.scripts.train_m4_alphatrade import main; main()"
+
+See docs/gpu_jit_issue.md for details.
 """
+import os as _os
+
+# Default to CPU to avoid JAX 0.9 + CUDA 13 autotuner crash (docs/gpu_jit_issue.md).
+# Override with JAX_PLATFORMS=cuda externally to use GPU.
+if "JAX_PLATFORMS" not in _os.environ:
+    _os.environ["JAX_PLATFORMS"] = "cpu"
 
 import argparse
 import json
@@ -21,6 +33,7 @@ import numpy as np
 import optax
 import pandas as pd
 import yaml
+from flax.training import checkpoints as flax_ckpt
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -39,9 +52,15 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size (default: 128)")
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--jit", type=int, default=1, help="Use JIT compilation (0/1, default: 1)")
+    parser.add_argument("--jit", type=int, default=0, help="Use JIT compilation (0/1, default: 0; see docs/gpu_jit_issue.md)")
     parser.add_argument("--clip-norm", type=float, default=1.0)
     parser.add_argument("--smoke", action="store_true", help="Use 3 symbols for quick test")
+    # Checkpoint arguments
+    parser.add_argument("--ckpt-dir", type=str, default=None, help="Checkpoint directory (default: checkpoints/m4/<run_id>)")
+    parser.add_argument("--save-every", type=int, default=100, help="Save checkpoint every N steps (default: 100)")
+    parser.add_argument("--keep-last", type=int, default=3, help="Keep last N checkpoints (default: 3)")
+    parser.add_argument("--resume", type=str, default=None, choices=["last", "best"], help="Resume from last/best checkpoint")
+    parser.add_argument("--resume-dir", type=str, default=None, help="Directory to resume from (if different from ckpt-dir)")
     return parser.parse_args()
 
 
@@ -386,10 +405,25 @@ def main():
     run_id = str(uuid.uuid4())[:8]
     val_every = config_dict['training']['val_every']
 
+    # Setup checkpoint directory
+    if args.ckpt_dir:
+        ckpt_dir = Path(args.ckpt_dir).resolve()
+    else:
+        ckpt_dir = (Path("checkpoints/m4") / run_id).resolve()
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    best_ckpt_dir = ckpt_dir / "best"
+    best_ckpt_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"Checkpoint dir: {ckpt_dir}")
+    print(f"Save every: {args.save_every} steps")
+    print(f"Keep last: {args.keep_last} checkpoints")
+
     train_losses = []
     val_losses = []
     best_val_loss = float('inf')
     best_step = 0
+    best_ckpt_step = 0
+    last_step = 0
     max_grad_norm_pre_clip = 0.0
     max_grad_norm_post_clip = 0.0
     nan_steps = 0
@@ -400,6 +434,39 @@ def main():
     horizon_val_losses = {f"h{h}": [] for h in [1, 5, 20, 60]}
 
     step = 0
+    
+    # Resume from checkpoint if requested
+    resume_dir = Path(args.resume_dir) if args.resume_dir else ckpt_dir
+    if args.resume:
+        if args.resume == "best":
+            resume_ckpt_dir = resume_dir / "best"
+        else:  # "last"
+            resume_ckpt_dir = resume_dir
+
+        if resume_ckpt_dir.exists():
+            # Load checkpoint
+            ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": 0}
+            restored = flax_ckpt.restore_checkpoint(str(resume_ckpt_dir), ckpt_state)
+            if restored["step"] > 0:
+                params = restored["params"]
+                state = restored["state"]
+                opt_state = restored["opt_state"]
+                step = restored["step"]
+                last_step = step
+                print(f"✓ Resumed from checkpoint at step {step}")
+
+                # Try to restore best_val_loss from artifacts.json
+                artifacts_path = resume_dir / "artifacts.json"
+                if artifacts_path.exists():
+                    with open(artifacts_path, 'r') as f:
+                        artifacts = json.load(f)
+                    best_step = artifacts.get("best_step", 0)
+                    best_ckpt_step = artifacts.get("best_ckpt_step", 0)
+                    print(f"  Restored best_step={best_step}, best_ckpt_step={best_ckpt_step} from artifacts.json")
+            else:
+                print(f"⚠️ No checkpoint found in {resume_ckpt_dir}, starting fresh")
+        else:
+            print(f"⚠️ Resume dir {resume_ckpt_dir} not found, starting fresh")
 
     while step < max_steps:
         # Training epoch
@@ -453,24 +520,68 @@ def main():
                 for h in [1, 5, 20, 60]:
                     horizon_val_losses[f"h{h}"].append(val_horizon_sum[f"h{h}"] / n_val_batches)
 
+                # Save best checkpoint if improved
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     best_step = step
+                    best_ckpt_step = step
+                    # Save best checkpoint
+                    ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": step}
+                    flax_ckpt.save_checkpoint(str(best_ckpt_dir), ckpt_state, step=step, overwrite=True, keep=1)
+                    print(f"  💾 Saved best checkpoint at step {step}")
 
                 print(f"Step {step}/{max_steps} | Train: {loss:.6f} | Val: {val_loss:.6f} | Best: {best_val_loss:.6f} @ {best_step} | Grad: {grad_norm_pre:.4f}/{grad_norm_post:.4f}")
+            
+            # Save periodic checkpoint
+            if step % args.save_every == 0:
+                ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": step}
+                flax_ckpt.save_checkpoint(str(ckpt_dir), ckpt_state, step=step, overwrite=True, keep=args.keep_last)
+                last_step = step
+                print(f"  💾 Saved checkpoint at step {step}")
 
     print(f"\n{'='*60}")
     print(f"✅ Training Complete")
     print(f"{'='*60}")
 
-    # Generate metrics (M2 schema compatible)
+    # Save final checkpoint
+    ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": step}
+    flax_ckpt.save_checkpoint(str(ckpt_dir), ckpt_state, step=step, overwrite=True, keep=args.keep_last)
+    last_step = step
+    print(f"💾 Saved final checkpoint at step {step}")
+    
+    # Save artifacts.json with metadata
+    artifacts = {
+        "run_id": run_id,
+        "git_sha": get_git_sha(),
+        "created_at": datetime.now().isoformat(),
+        "config_path": args.config,
+        "seed": seed,
+        "best_step": best_step,
+        "best_ckpt_step": best_ckpt_step,
+        "last_step": last_step,
+        "model_config": {
+            "lookback_length": alphatrade_config.lookback_length,
+            "num_features": alphatrade_config.num_features,
+            "horizons": alphatrade_config.horizons,
+            "quantiles": alphatrade_config.quantiles,
+            "d_model": alphatrade_config.d_model,
+            "num_transformer_layers": alphatrade_config.num_transformer_layers
+        }
+    }
+    artifacts_path = ckpt_dir / "artifacts.json"
+    with open(artifacts_path, 'w') as f:
+        json.dump(artifacts, f, indent=2)
+    print(f"💾 Saved artifacts: {artifacts_path}")
+
+    # Generate metrics (M2 schema compatible + checkpoint info)
     metrics_output = {
         "run": {
             "run_id": run_id,
             "git_sha": get_git_sha(),
             "created_at": datetime.now().isoformat(),
             "device": "cuda" if jax.devices()[0].platform == "gpu" else "cpu",
-            "seed": seed
+            "seed": seed,
+            "checkpoint_dir": str(ckpt_dir)
         },
         "dataset": {
             "name": "m2",
@@ -510,7 +621,10 @@ def main():
             "grad_clip": args.clip_norm,
             "optimizer": "adamw",
             "compile_jit": use_jit,
-            "lr_schedule": config_dict['training']['lr_schedule']
+            "lr_schedule": config_dict['training']['lr_schedule'],
+            "best_step": best_step,
+            "last_step": last_step,
+            "best_ckpt_step": best_ckpt_step
         },
         "loss": {
             "train_last": float(train_losses[-1]) if train_losses else 0.0,
@@ -606,6 +720,28 @@ def main():
         f.write(f"- Max grad norm (pre-clip): {max_grad_norm_pre_clip:.4f}\n")
         f.write(f"- Max grad norm (post-clip): {max_grad_norm_post_clip:.4f}\n")
         f.write(f"- OOM count: 0\n")
+        
+        f.write(f"\n## Checkpoint\n\n")
+        f.write(f"- Checkpoint dir: `{ckpt_dir}`\n")
+        f.write(f"- Best checkpoint: `{best_ckpt_dir}` @ step {best_ckpt_step}\n")
+        f.write(f"- Last checkpoint: step {last_step}\n")
+        f.write(f"- Save every: {args.save_every} steps\n")
+        f.write(f"- Keep last: {args.keep_last}\n")
+        f.write(f"\n### 恢复训练\n\n```bash\n")
+        f.write(f"# 从最后的checkpoint恢复\n")
+        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume last --resume-dir {ckpt_dir}\n\n")
+        f.write(f"# 从最佳checkpoint恢复\n")
+        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume best --resume-dir {ckpt_dir}\n")
+        f.write("```\n")
+        
+        f.write(f"\n### 评估命令\n\n```bash\n")
+        f.write(f"# 使用训练好的checkpoint评估\n")
+        f.write(f"python src/alphatrade/scripts/eval_m4_fast.py \\\n")
+        f.write(f"  --train-metrics reports/m4_train_metrics.json \\\n")
+        f.write(f"  --ckpt-dir {best_ckpt_dir} \\\n")
+        f.write(f"  --dataset-config {args.config} \\\n")
+        f.write(f"  --split val\n")
+        f.write("```\n")
 
     print(f"✅ Report: {md_path}")
 

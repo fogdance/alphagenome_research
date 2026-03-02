@@ -1,10 +1,11 @@
 {
   "run": {
-    "run_id": "cc01971e",
-    "git_sha": "b8df9b50",
-    "created_at": "2026-03-01T23:03:03.513796",
+    "run_id": "5a685bdc",
+    "git_sha": "da3301b3",
+    "created_at": "2026-03-02T20:57:00.820544",
     "device": "cuda",
-    "seed": 43
+    "seed": 43,
+    "checkpoint_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed43"
   },
   "dataset": {
     "name": "m2",
@@ -68,48 +69,51 @@
     }
   },
   "training": {
-    "max_steps": 10,
-    "batch_size": 32,
+    "max_steps": 20,
+    "batch_size": 128,
     "learning_rate": 0.0001,
     "weight_decay": 0.0001,
     "grad_clip": 1.0,
     "optimizer": "adamw",
-    "compile_jit": true,
+    "compile_jit": false,
     "lr_schedule": {
       "type": "cosine",
       "warmup_steps": 100
-    }
+    },
+    "best_step": 20,
+    "last_step": 20,
+    "best_ckpt_step": 20
   },
   "loss": {
-    "train_last": 0.2792806923389435,
-    "train_best": 0.2792806923389435,
-    "val_last": 0.25888554196236496,
-    "val_best": 0.25888554196236496,
-    "best_step": 10,
+    "train_last": 0.2086183726787567,
+    "train_best": 0.2086183726787567,
+    "val_last": 0.19750947329435456,
+    "val_best": 0.19750947329435456,
+    "best_step": 20,
     "by_horizon": {
       "h1": {
-        "train": 0.11899962201714516,
-        "val": 0.06709087494823893
+        "train": 0.06804143711924553,
+        "val": 0.053359151053964424
       },
       "h5": {
-        "train": 0.11366314589977264,
-        "val": 0.07360231952141907
+        "train": 0.06592623740434647,
+        "val": 0.051995767552531165
       },
       "h20": {
-        "train": 0.12104682400822639,
-        "val": 0.06549272186380659
+        "train": 0.05582296811044216,
+        "val": 0.052567241566904475
       },
       "h60": {
-        "train": 0.0902964111417532,
-        "val": 0.05269962637606314
+        "train": 0.05338464230298996,
+        "val": 0.03958731132109514
       }
     }
   },
   "stability": {
     "nan_steps": 0,
     "inf_steps": 0,
-    "grad_norm_pre_clip_max": 4.716588973999023,
-    "grad_norm_post_clip_max": 0.2498142123222351,
+    "grad_norm_pre_clip_max": 6.705373764038086,
+    "grad_norm_post_clip_max": 0.24980668723583221,
     "oom_count": 0
   }
 }

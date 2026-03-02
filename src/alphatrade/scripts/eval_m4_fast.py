@@ -7,10 +7,15 @@ Optimized version with:
 - JIT compilation
 - 15-25x speedup compared to eval_m4.py
 """
+import os as _os
+
+if "JAX_PLATFORMS" not in _os.environ:
+    _os.environ["JAX_PLATFORMS"] = "cpu"
 
 import argparse
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +26,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import yaml
+from flax.training import checkpoints as flax_ckpt
 from scipy.stats import spearmanr
 
 # Add parent to path
@@ -41,8 +47,10 @@ def parse_args():
                         help="Dataset split to evaluate")
     parser.add_argument("--batch-size", type=int, default=128,
                         help="Batch size for inference (default: 128)")
-    parser.add_argument("--checkpoint", type=str, default=None,
-                        help="Checkpoint path (optional, will use final params if not provided)")
+    parser.add_argument("--ckpt-step", type=str, default="best",
+                        help="Checkpoint step: 'best' (default), 'last', or integer step number")
+    parser.add_argument("--smoke", action="store_true",
+                        help="Use smoke test symbols (overrides auto-detection)")
     return parser.parse_args()
 
 
@@ -331,13 +339,12 @@ def main():
     config_dict = load_config(args.dataset_config)
 
     # Select symbols
-    symbols_file = config_dict['universe']['candidates_file']
-    with open(symbols_file, 'r') as f:
-        symbols = yaml.safe_load(f)['candidates']
-
-    # For smoke test, use smoke_symbols
-    if 'smoke_symbols' in config_dict['universe']:
+    if args.smoke:
         symbols = config_dict['universe']['smoke_symbols']
+    else:
+        symbols_file = config_dict['universe']['candidates_file']
+        with open(symbols_file, 'r') as f:
+            symbols = yaml.safe_load(f)['candidates']
 
     # Load dataset
     dataset = M4EvalDataset(symbols, config_dict['paths']['processed_dir'], args.split)
@@ -370,14 +377,62 @@ def main():
     dummy_x = jnp.zeros((1, alphatrade_config.lookback_length, alphatrade_config.num_features), dtype=jnp.float32)
     params, state = forward_t.init(rng, dummy_x)
 
+    # Create dummy optimizer state for checkpoint restoration
+    import optax
+    dummy_optimizer = optax.adam(1e-3)
+    opt_state = dummy_optimizer.init(params)
+
     print("  ✓ Model initialized\n")
 
-    # Note: In production, load checkpoint here
-    if args.checkpoint:
-        print(f"Loading checkpoint: {args.checkpoint}")
-        print("  ⚠️  Checkpoint loading not implemented, using random params\n")
+    # --- Hard-fail checkpoint loading ---
+    ckpt_dir = train_metrics['run'].get('checkpoint_dir')
+    if not ckpt_dir:
+        sys.exit("ERROR: train_metrics missing 'run.checkpoint_dir'")
+
+    # Determine checkpoint path and restore step based on --ckpt-step
+    chosen_step = None
+    if args.ckpt_step == "best":
+        ckpt_path = str(Path(ckpt_dir) / "best")
+    elif args.ckpt_step == "last":
+        ckpt_path = ckpt_dir
     else:
-        print("  ⚠️  No checkpoint provided, using random params for demo\n")
+        # Integer step number
+        try:
+            chosen_step = int(args.ckpt_step)
+        except ValueError:
+            sys.exit(f"ERROR: --ckpt-step must be 'best', 'last', or an integer, got '{args.ckpt_step}'")
+        ckpt_path = ckpt_dir
+
+    print(f"Loading checkpoint from: {ckpt_path}")
+    ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": 0}
+    try:
+        restored = flax_ckpt.restore_checkpoint(ckpt_path, ckpt_state, step=chosen_step)
+    except ValueError as e:
+        sys.exit(f"ERROR: {e}")
+    if restored["step"] == 0:
+        sys.exit(f"ERROR: No checkpoint found at {ckpt_path}")
+
+    params = restored["params"]
+    state = restored["state"]
+    checkpoint_step = int(restored["step"])
+    print(f"  Loaded checkpoint from step {checkpoint_step}\n")
+
+    # Get git sha
+    try:
+        git_sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        git_sha = "unknown"
+
+    # Build model provenance info
+    model_info = {
+        "source": "checkpoint",
+        "checkpoint_dir": str(Path(ckpt_path).resolve()),
+        "checkpoint_step": checkpoint_step,
+        "train_run_id": run_id,
+        "git_sha": git_sha,
+    }
 
     # Evaluate (BATCHED)
     eval_results = evaluate_model_batched(
@@ -390,10 +445,23 @@ def main():
         args.batch_size
     )
 
+    # --- Sanity check on quantile coverage ---
+    sanity_warnings = []
+    for q_label, cov_val in eval_results['quantile_coverage'].items():
+        if cov_val < 0.02:
+            warn = f"quantile_coverage[{q_label}] = {cov_val:.4f} < 0.02"
+            sanity_warnings.append(warn)
+            print(f"  WARNING: {warn}")
+        elif cov_val > 0.98:
+            warn = f"quantile_coverage[{q_label}] = {cov_val:.4f} > 0.98"
+            sanity_warnings.append(warn)
+            print(f"  WARNING: {warn}")
+
     # Generate output
     eval_metrics = {
         "run_id": run_id,
         "eval_timestamp": datetime.now().isoformat(),
+        "model": model_info,
         "dataset": {
             "split": args.split,
             "symbols": len(symbols),
@@ -401,6 +469,8 @@ def main():
         },
         **eval_results
     }
+    if sanity_warnings:
+        eval_metrics["sanity_warnings"] = sanity_warnings
 
     # Save JSON
     json_path = "reports/m4_eval_metrics_fast.json"
@@ -408,13 +478,30 @@ def main():
     with open(json_path, 'w') as f:
         json.dump(eval_metrics, f, indent=2)
 
-    print(f"✅ Metrics: {json_path}")
+    print(f"Metrics: {json_path}")
 
     # Save markdown report
     md_path = "reports/m4_eval_run_fast.md"
     with open(md_path, 'w') as f:
         f.write("# M4 Evaluation Run (FAST) - AlphaTrade v0.2 (JAX)\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+        f.write("## Checkpoint Info\n\n")
+        f.write(f"- Source: {model_info['source']}\n")
+        f.write(f"- Checkpoint step: {checkpoint_step}\n")
+        f.write(f"- Checkpoint dir: `{model_info['checkpoint_dir']}`\n")
+        f.write(f"- Train run ID: {run_id}\n")
+        f.write(f"- Git SHA: {git_sha}\n")
+        f.write(f"- Split: {args.split}\n\n")
+        f.write("Reproduce:\n")
+        f.write("```bash\n")
+        f.write(f"python src/alphatrade/scripts/eval_m4_fast.py \\\n")
+        f.write(f"  --train-metrics {args.train_metrics} \\\n")
+        f.write(f"  --ckpt-step {args.ckpt_step} \\\n")
+        f.write(f"  --split {args.split}")
+        if args.smoke:
+            f.write(" \\\n  --smoke")
+        f.write("\n```\n\n")
 
         f.write("## 配置\n\n")
         f.write(f"- Run ID: {run_id}\n")
@@ -457,13 +544,16 @@ def main():
         for s in eval_results['by_symbol']:
             f.write(f"| {s['symbol']} | {s['samples']:,} | {s['pinball_loss']:.6f} | {s['ic']:.4f} |\n")
 
-    print(f"✅ Report: {md_path}")
+        if sanity_warnings:
+            f.write("\n## Sanity Warnings\n\n")
+            for w in sanity_warnings:
+                f.write(f"- {w}\n")
+
+    print(f"Report: {md_path}")
 
     print(f"\n{'='*60}")
-    print(f"✅ M4 Evaluation (FAST) Complete")
-    print(f"{'='*60}")
-    print(f"\nNext: Compare with slow version")
-    print(f"  diff reports/m4_eval_metrics.json reports/m4_eval_metrics_fast.json\n")
+    print(f"M4 Evaluation (FAST) Complete")
+    print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,8 @@
         "git_sha": {"type": "string"},
         "created_at": {"type": "string"},
         "device": {"type": "string"},
-        "seed": {"type": "integer"}
+        "seed": {"type": "integer"},
+        "checkpoint_dir": {"type": "string"}
       }
     },
     "dataset": {
@@ -53,6 +54,7 @@
       "required": ["type", "total_params", "trainable_params"],
       "properties": {
         "type": {"type": "string"},
+        "backend": {"type": "string"},
         "total_params": {"type": "integer", "minimum": 0},
         "trainable_params": {"type": "integer", "minimum": 0},
         "config": {"type": "object"}
@@ -68,7 +70,11 @@
         "weight_decay": {"type": "number", "minimum": 0},
         "grad_clip": {"type": "number", "minimum": 0},
         "optimizer": {"type": "string"},
-        "lr_schedule": {"type": "object"}
+        "compile_jit": {"type": "boolean"},
+        "lr_schedule": {"type": "object"},
+        "best_step": {"type": "integer", "minimum": 0},
+        "last_step": {"type": "integer", "minimum": 0},
+        "best_ckpt_step": {"type": "integer", "minimum": 0}
       }
     },
     "loss": {
@@ -122,11 +128,13 @@
     },
     "stability": {
       "type": "object",
-      "required": ["nan_steps", "inf_steps", "max_grad_norm"],
+      "required": ["nan_steps", "inf_steps", "grad_norm_pre_clip_max", "grad_norm_post_clip_max"],
       "properties": {
         "nan_steps": {"type": "integer", "minimum": 0},
         "inf_steps": {"type": "integer", "minimum": 0},
-        "max_grad_norm": {"type": "number", "minimum": 0}
+        "grad_norm_pre_clip_max": {"type": "number", "minimum": 0},
+        "grad_norm_post_clip_max": {"type": "number", "minimum": 0},
+        "oom_count": {"type": "integer", "minimum": 0}
       }
     }
   }

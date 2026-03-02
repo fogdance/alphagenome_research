@@ -4,7 +4,7 @@
   "title": "M4 Evaluation Metrics Schema",
   "description": "Fixed schema for M4 evaluation metrics output (m4_eval_metrics_v1)",
   "type": "object",
-  "required": ["run_id", "eval_timestamp", "dataset", "pinball_loss", "quantile_coverage", "quantile_crossing"],
+  "required": ["run_id", "eval_timestamp", "model", "dataset", "pinball_loss", "quantile_coverage", "quantile_crossing"],
   "additionalProperties": false,
   "properties": {
     "run_id": {
@@ -14,6 +14,30 @@
     "eval_timestamp": {
       "type": "string",
       "description": "Evaluation timestamp (ISO 8601 format)"
+    },
+    "model": {
+      "type": "object",
+      "description": "Model provenance — proves checkpoint was loaded",
+      "required": ["source", "checkpoint_dir", "checkpoint_step", "train_run_id"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["checkpoint"]
+        },
+        "checkpoint_dir": {
+          "type": "string"
+        },
+        "checkpoint_step": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "train_run_id": {
+          "type": "string"
+        },
+        "git_sha": {
+          "type": "string"
+        }
+      }
     },
     "dataset": {
       "type": "object",
@@ -161,6 +185,13 @@
             "description": "IC for this symbol (optional)"
           }
         }
+      }
+    },
+    "sanity_warnings": {
+      "type": "array",
+      "description": "Sanity check warnings (e.g., extreme quantile coverage values)",
+      "items": {
+        "type": "string"
       }
     }
   }

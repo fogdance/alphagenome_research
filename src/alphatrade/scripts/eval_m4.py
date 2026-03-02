@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """
-M4 Evaluation Script
+M4 Evaluation Script  [DEPRECATED]
+
+DEPRECATED: Use eval_m4_fast.py instead. This script allows silent fallback to
+random-init weights and does not record model provenance. eval_m4_fast.py enforces
+hard-fail checkpoint loading and writes a 'model' field into eval_metrics.
 
 Evaluates trained AlphaTrade v0.2 model and generates comprehensive metrics.
 """
+import os as _os
+
+if "JAX_PLATFORMS" not in _os.environ:
+    _os.environ["JAX_PLATFORMS"] = "cpu"
 
 import argparse
 import json
@@ -18,6 +26,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import yaml
+from flax.training import checkpoints as flax_ckpt
 from scipy.stats import spearmanr
 
 # Add parent to path
@@ -38,6 +47,8 @@ def parse_args():
                         help="Dataset split to evaluate")
     parser.add_argument("--checkpoint", type=str, default=None,
                         help="Checkpoint path (optional, will use final params if not provided)")
+    parser.add_argument("--smoke", action="store_true",
+                        help="Use smoke test symbols (overrides auto-detection)")
     return parser.parse_args()
 
 
@@ -67,7 +78,7 @@ class M4EvalDataset:
             bars_path = symbol_dir / "bars.parquet"
             index_path = symbol_dir / f"index_{split}.parquet"
 
-            if not bars_path.exists() or not index_path.exists:
+            if not bars_path.exists() or not index_path.exists():
                 continue
 
             bars_df = pd.read_parquet(bars_path)
@@ -298,13 +309,12 @@ def main():
     config_dict = load_config(args.dataset_config)
 
     # Select symbols
-    symbols_file = config_dict['universe']['candidates_file']
-    with open(symbols_file, 'r') as f:
-        symbols = yaml.safe_load(f)['candidates']
-
-    # For smoke test, use smoke_symbols
-    if 'smoke_symbols' in config_dict['universe']:
+    if args.smoke:
         symbols = config_dict['universe']['smoke_symbols']
+    else:
+        symbols_file = config_dict['universe']['candidates_file']
+        with open(symbols_file, 'r') as f:
+            symbols = yaml.safe_load(f)['candidates']
 
     print(f"Loading {args.split} data...")
     dataset = M4EvalDataset(symbols, config_dict['paths']['processed_dir'], args.split)
@@ -338,15 +348,33 @@ def main():
     dummy_x = jnp.zeros((1, alphatrade_config.lookback_length, alphatrade_config.num_features), dtype=jnp.float32)
     params, state = forward_t.init(rng, dummy_x)
 
+    # Create dummy optimizer state for checkpoint restoration
+    import optax
+    dummy_optimizer = optax.adam(1e-3)
+    opt_state = dummy_optimizer.init(params)
+
     print("  ✓ Model initialized\n")
 
-    # Note: In production, load checkpoint here
+    # Load checkpoint
     if args.checkpoint:
-        print(f"Loading checkpoint: {args.checkpoint}")
-        # TODO: Implement checkpoint loading
-        print("  ⚠️  Checkpoint loading not implemented, using random params\n")
+        ckpt_path = args.checkpoint
+    elif 'checkpoint_dir' in train_metrics.get('run', {}):
+        ckpt_path = str(Path(train_metrics['run']['checkpoint_dir']) / "best")
     else:
-        print("  ⚠️  No checkpoint provided, using random params for demo\n")
+        ckpt_path = None
+
+    if ckpt_path:
+        print(f"Loading checkpoint from: {ckpt_path}")
+        ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": 0}
+        restored = flax_ckpt.restore_checkpoint(ckpt_path, ckpt_state)
+        if restored["step"] > 0:
+            params = restored["params"]
+            state = restored["state"]
+            print(f"  ✓ Loaded checkpoint from step {restored['step']}\n")
+        else:
+            print(f"  ⚠️  No checkpoint found at {ckpt_path}, using random params\n")
+    else:
+        print("  ⚠️  No checkpoint provided, using random params\n")
 
     # Evaluate
     print("Running evaluation...")

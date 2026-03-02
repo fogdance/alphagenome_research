@@ -1,0 +1,73 @@
+{
+  "run_id": "f587ecaa",
+  "eval_timestamp": "2026-03-02T21:01:42.996313",
+  "model": {
+    "source": "checkpoint",
+    "checkpoint_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m4/matrix_seed44/best",
+    "checkpoint_step": 20,
+    "train_run_id": "f587ecaa",
+    "git_sha": "da3301b"
+  },
+  "dataset": {
+    "split": "val",
+    "symbols": 3,
+    "samples": 11313
+  },
+  "pinball_loss": {
+    "overall": 0.049309462583542796,
+    "by_horizon": {
+      "h1": 0.04964949170714416,
+      "h5": 0.05620556145158669,
+      "h20": 0.04469377495330139,
+      "h60": 0.04668902222213895
+    }
+  },
+  "quantile_coverage": {
+    "q10": 0.0,
+    "q30": 0.0,
+    "q50": 0.0005303632988597189,
+    "q70": 1.0,
+    "q90": 1.0
+  },
+  "quantile_crossing": {
+    "rate": 0.0,
+    "count": 0
+  },
+  "ic_metrics": {
+    "ic": -0.016093613509400428,
+    "rank_ic": -0.00699809530759018,
+    "ic_by_horizon": {
+      "h1": -0.016093613509400428,
+      "h5": -0.004912988032694639,
+      "h20": 0.0016800296232436713,
+      "h60": 0.042935225487383585
+    }
+  },
+  "by_symbol": [
+    {
+      "symbol": "DCE.JM",
+      "samples": 726,
+      "pinball_loss": 0.0498652879809208,
+      "ic": 0.0017620010026620624
+    },
+    {
+      "symbol": "SHFE.AG",
+      "samples": 9383,
+      "pinball_loss": 0.0492356074324415,
+      "ic": -0.027699610841654603
+    },
+    {
+      "symbol": "CZCE.MA",
+      "samples": 1204,
+      "pinball_loss": 0.04954987258710342,
+      "ic": 0.026593382045236265
+    }
+  ],
+  "sanity_warnings": [
+    "quantile_coverage[q10] = 0.0000 < 0.02",
+    "quantile_coverage[q30] = 0.0000 < 0.02",
+    "quantile_coverage[q50] = 0.0005 < 0.02",
+    "quantile_coverage[q70] = 1.0000 > 0.98",
+    "quantile_coverage[q90] = 1.0000 > 0.98"
+  ]
+}
