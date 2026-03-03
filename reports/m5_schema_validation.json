@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-03T13:09:52.236697",
+  "timestamp": "2026-03-03T13:50:19.090786",
   "profile": "m5",
   "strict": true,
   "manifest": "src/alphatrade/schemas/contracts_manifest.yaml",
@@ -8,8 +8,8 @@
     "schema_total": 5,
     "schema_passed": 5,
     "schema_required_fail": 0,
-    "semantic_total": 16,
-    "semantic_passed": 16,
+    "semantic_total": 58,
+    "semantic_passed": 58,
     "overall": "pass"
   },
   "schema_results": [
@@ -135,6 +135,216 @@
         "check": "[baseline/seed44] eval_schema",
         "status": "pass",
         "detail": ""
+      },
+      {
+        "check": "[no_clip] config_hash_consistent",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip] seeds_complete",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed42] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed42] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed42] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed42] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed43] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed43] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed43] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed43] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed44] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed44] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed44] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[no_clip/seed44] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256] config_hash_consistent",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256] seeds_complete",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed42] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed42] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed42] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed42] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed43] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed43] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed43] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed43] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed44] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed44] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed44] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[batch_256/seed44] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000] config_hash_consistent",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000] seeds_complete",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed42] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed42] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed42] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed42] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed43] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed43] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed43] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed43] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed44] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed44] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed44] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[steps_1000/seed44] eval_schema",
+        "status": "pass",
+        "detail": ""
       }
     ],
     "by_exp": {
@@ -206,6 +416,222 @@
         },
         {
           "check": "[baseline/seed44] eval_schema",
+          "status": "pass",
+          "detail": ""
+        }
+      ],
+      "no_clip": [
+        {
+          "check": "[no_clip] config_hash_consistent",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip] seeds_complete",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed42] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed42] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed42] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed42] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed43] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed43] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed43] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed43] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed44] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed44] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed44] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip/seed44] eval_schema",
+          "status": "pass",
+          "detail": ""
+        }
+      ],
+      "batch_256": [
+        {
+          "check": "[batch_256] config_hash_consistent",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256] seeds_complete",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed42] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed42] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed42] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed42] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed43] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed43] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed43] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed43] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed44] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed44] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed44] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256/seed44] eval_schema",
+          "status": "pass",
+          "detail": ""
+        }
+      ],
+      "steps_1000": [
+        {
+          "check": "[steps_1000] config_hash_consistent",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000] seeds_complete",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed42] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed42] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed42] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed42] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed43] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed43] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed43] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed43] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed44] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed44] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed44] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000/seed44] eval_schema",
           "status": "pass",
           "detail": ""
         }

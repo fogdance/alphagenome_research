@@ -1,0 +1,119 @@
+{
+  "run": {
+    "run_id": "356fca98",
+    "git_sha": "acd0e217",
+    "created_at": "2026-03-03T13:25:48.217451",
+    "device": "cuda",
+    "seed": 42,
+    "checkpoint_dir": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m5/no_clip_seed42"
+  },
+  "dataset": {
+    "name": "m2",
+    "config_path": "configs/dataset/m2.yaml",
+    "processed_dir": "data/processed/m1_f8",
+    "symbols": 3,
+    "train_samples": 57418,
+    "val_samples": 11313,
+    "test_samples": 0,
+    "feature_dim": 8,
+    "feature_cols": [
+      "ret_1m",
+      "hl_range",
+      "co_change",
+      "vol_log1p",
+      "pos_log1p",
+      "minute_sin",
+      "minute_cos",
+      "is_session_open"
+    ],
+    "lookback": 60,
+    "horizons": [
+      1,
+      5,
+      20,
+      60
+    ],
+    "quantiles": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ]
+  },
+  "model": {
+    "type": "alphatrade_v0.2",
+    "backend": "jax",
+    "total_params": 6274774,
+    "trainable_params": 6274774,
+    "config": {
+      "lookback_length": 60,
+      "num_features": 8,
+      "stem_channels": 128,
+      "num_encoder_stages": 2,
+      "d_model": 256,
+      "num_transformer_layers": 4,
+      "horizons": [
+        1,
+        5,
+        20,
+        60
+      ],
+      "quantiles": [
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        0.9
+      ]
+    }
+  },
+  "training": {
+    "max_steps": 3,
+    "batch_size": 128,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "grad_clip": 1000000000.0,
+    "optimizer": "adamw",
+    "compile_jit": true,
+    "lr_schedule": {
+      "type": "cosine",
+      "warmup_steps": 100
+    },
+    "best_step": 3,
+    "last_step": 3,
+    "best_ckpt_step": 3
+  },
+  "loss": {
+    "train_last": 0.5575678944587708,
+    "train_best": 0.5575678944587708,
+    "val_last": 0.5197033821866753,
+    "val_best": 0.5197033821866753,
+    "best_step": 3,
+    "by_horizon": {
+      "h1": {
+        "train": 0.16835795094569525,
+        "val": 0.14331687266906995
+      },
+      "h5": {
+        "train": 0.17813908557097116,
+        "val": 0.12899744259507467
+      },
+      "h20": {
+        "train": 0.16711502770582834,
+        "val": 0.11310114544094278
+      },
+      "h60": {
+        "train": 0.1491647238532702,
+        "val": 0.13428792022587208
+      }
+    }
+  },
+  "stability": {
+    "nan_steps": 0,
+    "inf_steps": 0,
+    "grad_norm_pre_clip_max": 6.35547399520874,
+    "grad_norm_post_clip_max": 0.25019320845603943,
+    "oom_count": 0
+  }
+}

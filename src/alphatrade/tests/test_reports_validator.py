@@ -500,3 +500,205 @@ class TestM5Integration:
         ])
         # Should identify 5 items (all missing, non-strict so exit 2)
         assert "5 items" in result.stdout, f"stdout:\n{result.stdout}"
+
+
+# ---------------------------------------------------------------------------
+# M7 semantic checks
+# ---------------------------------------------------------------------------
+
+def _make_m5_leaderboard(reports_dir, experiments_data, expected_seeds=None):
+    """Create a minimal M5 leaderboard JSON.
+
+    experiments_data: list of dicts with keys: exp_id, primary_mean, primary_std, n_runs
+    """
+    if expected_seeds is None:
+        expected_seeds = [42, 43, 44]
+
+    experiments = []
+    for ed in experiments_data:
+        experiments.append({
+            "exp_id": ed["exp_id"],
+            "config_hash": f"hash_{ed['exp_id']}",
+            "seeds_done": expected_seeds,
+            "seeds_missing": [],
+            "n_runs": ed.get("n_runs", len(expected_seeds)),
+            "metrics": {
+                "primary_mean": ed["primary_mean"],
+                "primary_std": ed.get("primary_std", 0.01),
+                "primary_best": ed["primary_mean"] - 0.01,
+                "best_run_id": f"{ed['exp_id']}_s42",
+            },
+            "artifacts": {
+                "runs": [
+                    {
+                        "seed": s,
+                        "run_id": f"{ed['exp_id']}_s{s}",
+                        "train_metrics_path": os.path.join(reports_dir, f"m5_{ed['exp_id']}_seed{s}_train_metrics.json"),
+                        "eval_metrics_path": os.path.join(reports_dir, f"m5_{ed['exp_id']}_seed{s}_eval_metrics.json"),
+                    }
+                    for s in expected_seeds
+                ],
+            },
+        })
+
+    leaderboard = {
+        "schema_version": "m5_leaderboard_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "git_sha": "testsha",
+        "primary_metric": "pinball_loss.overall",
+        "expected_seeds": expected_seeds,
+        "experiments": experiments,
+    }
+    lb_path = os.path.join(reports_dir, "m5_leaderboard.json")
+    _write_json(lb_path, leaderboard)
+    return lb_path
+
+
+def _make_m7_regression_report(reports_dir, baseline_exp_id, comparisons, thresholds=None):
+    """Create a minimal M7 regression report JSON."""
+    if thresholds is None:
+        thresholds = {"improvement_pct": 1.0, "regression_pct": 5.0}
+
+    summary = {
+        "total_ablations": len(comparisons),
+        "improved": sum(1 for c in comparisons if c["verdict"] == "improved"),
+        "neutral": sum(1 for c in comparisons if c["verdict"] == "neutral"),
+        "regressed": sum(1 for c in comparisons if c["verdict"] == "regressed"),
+    }
+
+    report = {
+        "schema_version": "m7_regression_report_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "git_sha": "testsha",
+        "baseline_exp_id": baseline_exp_id,
+        "primary_metric": "pinball_loss.overall",
+        "thresholds": thresholds,
+        "baseline": {
+            "exp_id": baseline_exp_id,
+            "primary_mean": 0.134,
+            "primary_std": 0.011,
+            "n_seeds": 3,
+        },
+        "comparisons": comparisons,
+        "summary": summary,
+    }
+    rpt_path = os.path.join(reports_dir, "m7_regression_report.json")
+    _write_json(rpt_path, report)
+    return rpt_path
+
+
+class TestM7SemanticChecks:
+    """Test M7 Phase 2b regression report semantic checks."""
+
+    def test_m7_regression_report_valid(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m7_regression
+
+        reports_dir = str(tmp_path / "reports")
+
+        _make_m5_leaderboard(reports_dir, [
+            {"exp_id": "baseline", "primary_mean": 0.134},
+            {"exp_id": "no_clip", "primary_mean": 0.140},
+            {"exp_id": "batch_256", "primary_mean": 0.130},
+        ])
+
+        _make_m7_regression_report(reports_dir, "baseline", [
+            {"exp_id": "no_clip", "primary_mean": 0.140, "primary_std": 0.012, "n_seeds": 3,
+             "delta": 0.006, "delta_pct": 4.5, "verdict": "neutral"},
+            {"exp_id": "batch_256", "primary_mean": 0.130, "primary_std": 0.009, "n_seeds": 3,
+             "delta": -0.004, "delta_pct": -2.99, "verdict": "improved"},
+        ])
+
+        result = semantic_check_m7_regression(reports_dir)
+        assert result["all_pass"], f"Checks failed: {[c for c in result['checks'] if c['status'] != 'pass']}"
+
+    def test_m7_regression_report_missing_baseline(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m7_regression
+
+        reports_dir = str(tmp_path / "reports")
+
+        # Leaderboard has no "baseline" experiment
+        _make_m5_leaderboard(reports_dir, [
+            {"exp_id": "no_clip", "primary_mean": 0.140},
+        ])
+
+        _make_m7_regression_report(reports_dir, "baseline", [
+            {"exp_id": "no_clip", "primary_mean": 0.140, "primary_std": 0.012, "n_seeds": 3,
+             "delta": 0.006, "delta_pct": 4.5, "verdict": "neutral"},
+        ])
+
+        result = semantic_check_m7_regression(reports_dir)
+        assert not result["all_pass"]
+        baseline_checks = [c for c in result["checks"] if "baseline_exp_in_leaderboard" in c["check"]]
+        assert any(c["status"] == "fail" for c in baseline_checks)
+
+    def test_m7_regression_report_invalid_verdict(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m7_regression
+
+        reports_dir = str(tmp_path / "reports")
+
+        _make_m5_leaderboard(reports_dir, [
+            {"exp_id": "baseline", "primary_mean": 0.134},
+            {"exp_id": "no_clip", "primary_mean": 0.140},
+        ])
+
+        # Write report with invalid verdict manually
+        report = {
+            "schema_version": "m7_regression_report_v1",
+            "generated_at": "2026-03-03T00:00:00",
+            "git_sha": "testsha",
+            "baseline_exp_id": "baseline",
+            "primary_metric": "pinball_loss.overall",
+            "thresholds": {"improvement_pct": 1.0, "regression_pct": 5.0},
+            "baseline": {"exp_id": "baseline", "primary_mean": 0.134, "primary_std": 0.011, "n_seeds": 3},
+            "comparisons": [
+                {"exp_id": "no_clip", "primary_mean": 0.140, "primary_std": 0.012, "n_seeds": 3,
+                 "delta": 0.006, "delta_pct": 4.5, "verdict": "INVALID_VERDICT"},
+            ],
+            "summary": {"total_ablations": 1, "improved": 0, "neutral": 1, "regressed": 0},
+        }
+        _write_json(os.path.join(reports_dir, "m7_regression_report.json"), report)
+
+        result = semantic_check_m7_regression(reports_dir)
+        assert not result["all_pass"]
+        verdict_checks = [c for c in result["checks"] if "verdict_valid" in c["check"]]
+        assert any(c["status"] == "fail" for c in verdict_checks)
+
+
+class TestM7Integration:
+    """Integration tests for M7 profile."""
+
+    def test_m7_profile_loads(self, tmp_path):
+        """subprocess running --profile m7 can identify 5 items."""
+        reports_dir = str(tmp_path / "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        manifest_path = str(tmp_path / "manifest.yaml")
+
+        profiles = {
+            "m7": {
+                "description": "M7 ablation sweep test",
+                "reports_dir": reports_dir,
+                "items": [
+                    {"name": "m5_sweep_manifest", "path": "m5_sweep_manifest.json",
+                     "schema": os.path.join(schemas_dir_abs, "m5_sweep_manifest.schema.json"), "required": True},
+                    {"name": "m5_leaderboard", "path": "m5_leaderboard.json",
+                     "schema": os.path.join(schemas_dir_abs, "m5_leaderboard.schema.json"), "required": True},
+                    {"name": "m5_leaderboard_md", "path": "m5_leaderboard.md", "schema": "", "required": True},
+                    {"name": "m7_regression_report", "path": "m7_regression_report.json",
+                     "schema": os.path.join(schemas_dir_abs, "m7_regression_report.schema.json"), "required": True},
+                    {"name": "m7_regression_report_md", "path": "m7_regression_report.md", "schema": "", "required": True},
+                ],
+            }
+        }
+        _write_manifest(manifest_path, profiles)
+
+        result = _run_validator([
+            "--manifest", manifest_path,
+            "--profile", "m7",
+            "--reports-dir", reports_dir,
+            "--schemas-dir", schemas_dir_abs,
+            "--output-json", str(tmp_path / "out.json"),
+            "--output-md", str(tmp_path / "out.md"),
+        ])
+        # Should identify 5 items (all missing, non-strict so exit 2)
+        assert "5 items" in result.stdout, f"stdout:\n{result.stdout}"

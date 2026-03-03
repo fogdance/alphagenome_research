@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-03-03T13:50:41.443284",
-  "profile": "m6",
+  "timestamp": "2026-03-03T13:50:33.214058",
+  "profile": "m7",
   "strict": true,
   "manifest": "src/alphatrade/schemas/contracts_manifest.yaml",
   "reports_dir": "reports",
   "summary": {
-    "schema_total": 6,
-    "schema_passed": 6,
+    "schema_total": 5,
+    "schema_passed": 5,
     "schema_required_fail": 0,
-    "semantic_total": 58,
-    "semantic_passed": 58,
+    "semantic_total": 68,
+    "semantic_passed": 68,
     "overall": "pass"
   },
   "schema_results": [
@@ -38,27 +38,19 @@
       "required": true
     },
     {
-      "report": "reports/m5_schema_validation.json",
-      "schema": "",
+      "report": "reports/m7_regression_report.json",
+      "schema": "src/alphatrade/schemas/m7_regression_report.schema.json",
       "status": "pass",
       "error": null,
-      "name": "m5_schema_validation",
+      "name": "m7_regression_report",
       "required": true
     },
     {
-      "report": "reports/m5_schema_validation.md",
+      "report": "reports/m7_regression_report.md",
       "schema": "",
       "status": "pass",
       "error": null,
-      "name": "m5_schema_validation_md",
-      "required": true
-    },
-    {
-      "report": "reports/m6_baseline_run.md",
-      "schema": "",
-      "status": "pass",
-      "error": null,
-      "name": "m6_baseline_run",
+      "name": "m7_regression_report_md",
       "required": true
     }
   ],
@@ -645,6 +637,61 @@
         }
       ]
     },
-    "all_pass": true
+    "all_pass": true,
+    "m7_regression": {
+      "checks": [
+        {
+          "check": "regression_report_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "leaderboard_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "baseline_exp_in_leaderboard",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256] exp_in_leaderboard",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000] exp_in_leaderboard",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip] exp_in_leaderboard",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[batch_256] verdict_valid",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[steps_1000] verdict_valid",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[no_clip] verdict_valid",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "summary_counts_consistent",
+          "status": "pass",
+          "detail": ""
+        }
+      ],
+      "all_pass": true
+    }
   }
 }

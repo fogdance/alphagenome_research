@@ -1,0 +1,30 @@
+version: m7_sweep_v1
+expected_seeds: [42, 43, 44]
+primary_metric: "pinball_loss.overall"
+dataset_config: "configs/dataset/m2.yaml"
+universe: "cta_top20"
+dataset: "m2"
+
+defaults:
+  max_steps: 500
+  batch_size: 128
+  jit: 1
+  clip_norm: 1.0
+  save_every: 100
+  keep_last: 3
+  eval_split: val
+  ckpt_step: best
+
+experiments:
+  - exp_id: baseline
+    description: "Baseline (frozen from M6)"
+    overrides: {}
+  - exp_id: no_clip
+    description: "Ablation: no gradient clipping"
+    overrides: {clip_norm: 1000000000.0}
+  - exp_id: batch_256
+    description: "Ablation: double batch size"
+    overrides: {batch_size: 256}
+  - exp_id: steps_1000
+    description: "Ablation: double training steps"
+    overrides: {max_steps: 1000}

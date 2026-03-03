@@ -1,12 +1,12 @@
-# Reports Schema & Semantic Validation (profile: m6)
+# Reports Schema & Semantic Validation (profile: m7)
 
-Generated: 2026-03-03 13:50:41
+Generated: 2026-03-03 13:50:33
 Strict: True
 
 ## Phase 1: Schema Validation
 
-- Total: 6
-- Passed: 6
+- Total: 5
+- Passed: 5
 - Failed/Missing: 0
 
 | Report | Required | Status | Error |
@@ -14,9 +14,8 @@ Strict: True
 | m5_sweep_manifest | ✅ | ✅ pass | - |
 | m5_leaderboard | ✅ | ✅ pass | - |
 | m5_leaderboard_md | ✅ | ✅ pass | - |
-| m5_schema_validation | ✅ | ✅ pass | - |
-| m5_schema_validation_md | ✅ | ✅ pass | - |
-| m6_baseline_run | ✅ | ✅ pass | - |
+| m7_regression_report | ✅ | ✅ pass | - |
+| m7_regression_report_md | ✅ | ✅ pass | - |
 
 ## Phase 2: M5 Sweep Semantic Checks
 
@@ -97,6 +96,23 @@ Strict: True
 | [steps_1000/seed44] eval_schema | ✅ | - |
 
 **Semantic summary**: 58/58 checks passed
+
+## Phase 2b: M7 Regression Report Checks
+
+| Check | Status | Detail |
+|-------|--------|--------|
+| regression_report_exists | ✅ | - |
+| leaderboard_exists | ✅ | - |
+| baseline_exp_in_leaderboard | ✅ | - |
+| [batch_256] exp_in_leaderboard | ✅ | - |
+| [steps_1000] exp_in_leaderboard | ✅ | - |
+| [no_clip] exp_in_leaderboard | ✅ | - |
+| [batch_256] verdict_valid | ✅ | - |
+| [steps_1000] verdict_valid | ✅ | - |
+| [no_clip] verdict_valid | ✅ | - |
+| summary_counts_consistent | ✅ | - |
+
+**Regression checks**: 10/10 passed
 
 ## Overall
 
