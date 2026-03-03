@@ -1,0 +1,53 @@
+{
+  "schema_version": "m5_leaderboard_v1",
+  "generated_at": "2026-03-03T11:13:04.839907",
+  "git_sha": "ec2d865",
+  "primary_metric": "pinball_loss.overall",
+  "expected_seeds": [
+    42,
+    43,
+    44
+  ],
+  "experiments": [
+    {
+      "exp_id": "baseline",
+      "config_hash": "38411e79",
+      "seeds_done": [
+        42,
+        43,
+        44
+      ],
+      "seeds_missing": [],
+      "n_runs": 3,
+      "metrics": {
+        "primary_mean": 0.13417759408894567,
+        "primary_std": 0.0106307600827624,
+        "primary_best": 0.12544841894462355,
+        "best_run_id": "38a265ee"
+      },
+      "artifacts": {
+        "runs": [
+          {
+            "seed": 42,
+            "run_id": "38a265ee",
+            "train_metrics_path": "reports/m5_baseline_seed42_train_metrics.json",
+            "eval_metrics_path": "reports/m5_baseline_seed42_eval_metrics.json"
+          },
+          {
+            "seed": 43,
+            "run_id": "e2eb17a4",
+            "train_metrics_path": "reports/m5_baseline_seed43_train_metrics.json",
+            "eval_metrics_path": "reports/m5_baseline_seed43_eval_metrics.json"
+          },
+          {
+            "seed": 44,
+            "run_id": "b6c00273",
+            "train_metrics_path": "reports/m5_baseline_seed44_train_metrics.json",
+            "eval_metrics_path": "reports/m5_baseline_seed44_eval_metrics.json"
+          }
+        ]
+      },
+      "regression_flags": []
+    }
+  ]
+}

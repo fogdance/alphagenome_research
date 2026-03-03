@@ -1,0 +1,216 @@
+{
+  "timestamp": "2026-03-03T13:09:52.236697",
+  "profile": "m5",
+  "strict": true,
+  "manifest": "src/alphatrade/schemas/contracts_manifest.yaml",
+  "reports_dir": "reports",
+  "summary": {
+    "schema_total": 5,
+    "schema_passed": 5,
+    "schema_required_fail": 0,
+    "semantic_total": 16,
+    "semantic_passed": 16,
+    "overall": "pass"
+  },
+  "schema_results": [
+    {
+      "report": "reports/m5_sweep_manifest.json",
+      "schema": "src/alphatrade/schemas/m5_sweep_manifest.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m5_sweep_manifest",
+      "required": true
+    },
+    {
+      "report": "reports/m5_leaderboard.json",
+      "schema": "src/alphatrade/schemas/m5_leaderboard.schema.json",
+      "status": "pass",
+      "error": null,
+      "name": "m5_leaderboard",
+      "required": true
+    },
+    {
+      "report": "reports/m5_leaderboard.md",
+      "schema": "",
+      "status": "pass",
+      "error": null,
+      "name": "m5_leaderboard_md",
+      "required": true
+    },
+    {
+      "report": "reports/m5_schema_validation.json",
+      "schema": "",
+      "status": "pass",
+      "error": null,
+      "name": "m5_schema_validation",
+      "required": true
+    },
+    {
+      "report": "reports/m5_schema_validation.md",
+      "schema": "",
+      "status": "pass",
+      "error": null,
+      "name": "m5_schema_validation_md",
+      "required": true
+    }
+  ],
+  "semantic_results": {
+    "checks": [
+      {
+        "check": "manifest_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "run_id_unique",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline] config_hash_consistent",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline] seeds_complete",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed42] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed42] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed42] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed42] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed43] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed43] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed43] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed43] eval_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed44] train_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed44] train_schema",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed44] eval_exists",
+        "status": "pass",
+        "detail": ""
+      },
+      {
+        "check": "[baseline/seed44] eval_schema",
+        "status": "pass",
+        "detail": ""
+      }
+    ],
+    "by_exp": {
+      "baseline": [
+        {
+          "check": "[baseline] config_hash_consistent",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline] seeds_complete",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed42] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed42] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed42] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed42] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed43] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed43] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed43] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed43] eval_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed44] train_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed44] train_schema",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed44] eval_exists",
+          "status": "pass",
+          "detail": ""
+        },
+        {
+          "check": "[baseline/seed44] eval_schema",
+          "status": "pass",
+          "detail": ""
+        }
+      ]
+    },
+    "all_pass": true
+  }
+}

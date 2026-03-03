@@ -121,18 +121,17 @@ def validate_report(report_path: str, schema_path: str) -> dict:
             result["error"] = f"Report file not found: {report_path}"
             return result
 
-        if schema_path and not os.path.exists(schema_path):
+        if not schema_path:
+            # No schema — existence-only check (works for .md and other non-JSON files)
+            result["status"] = "pass"
+            return result
+
+        if not os.path.exists(schema_path):
             result["status"] = "missing_schema"
             result["error"] = f"Schema file not found: {schema_path}"
             return result
 
         report = load_json(report_path)
-
-        if not schema_path:
-            # No schema — existence-only check
-            result["status"] = "pass"
-            return result
-
         schema = load_json(schema_path)
         validate(instance=report, schema=schema)
         result["status"] = "pass"
@@ -354,6 +353,97 @@ def semantic_check_m5(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (M7 regression report)
+# ---------------------------------------------------------------------------
+
+def semantic_check_m7_regression(reports_dir: str) -> dict:
+    """Run semantic checks on M7 regression report.
+
+    Returns dict with:
+      - checks: list of individual check results
+      - all_pass: bool
+    """
+    regression_path = os.path.join(reports_dir, "m7_regression_report.json")
+    leaderboard_path = os.path.join(reports_dir, "m5_leaderboard.json")
+
+    checks = []
+
+    def add(name, passed, detail=""):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+        })
+
+    # Load files
+    if not os.path.exists(regression_path):
+        add("regression_report_exists", False, f"File not found: {regression_path}")
+        return {"checks": checks, "all_pass": False}
+    if not os.path.exists(leaderboard_path):
+        add("leaderboard_exists", False, f"File not found: {leaderboard_path}")
+        return {"checks": checks, "all_pass": False}
+
+    try:
+        regression = load_json(regression_path)
+        leaderboard = load_json(leaderboard_path)
+    except Exception as e:
+        add("json_load", False, str(e))
+        return {"checks": checks, "all_pass": False}
+
+    add("regression_report_exists", True)
+    add("leaderboard_exists", True)
+
+    # Collect leaderboard exp_ids
+    lb_exp_ids = {exp["exp_id"] for exp in leaderboard.get("experiments", [])}
+
+    # Check baseline_exp_id exists in leaderboard
+    baseline_exp_id = regression.get("baseline_exp_id", "")
+    add("baseline_exp_in_leaderboard",
+        baseline_exp_id in lb_exp_ids,
+        f"'{baseline_exp_id}' not in leaderboard exp_ids: {sorted(lb_exp_ids)}" if baseline_exp_id not in lb_exp_ids else "")
+
+    # Check each comparison exp_id exists in leaderboard
+    comparisons = regression.get("comparisons", [])
+    for comp in comparisons:
+        exp_id = comp.get("exp_id", "")
+        add(f"[{exp_id}] exp_in_leaderboard",
+            exp_id in lb_exp_ids,
+            f"'{exp_id}' not in leaderboard" if exp_id not in lb_exp_ids else "")
+
+    # Check verdicts are valid
+    valid_verdicts = {"improved", "neutral", "regressed"}
+    for comp in comparisons:
+        verdict = comp.get("verdict", "")
+        add(f"[{comp.get('exp_id', '?')}] verdict_valid",
+            verdict in valid_verdicts,
+            f"invalid verdict: '{verdict}'" if verdict not in valid_verdicts else "")
+
+    # Check summary counts match comparisons
+    summary = regression.get("summary", {})
+    expected_total = len(comparisons)
+    expected_improved = sum(1 for c in comparisons if c.get("verdict") == "improved")
+    expected_neutral = sum(1 for c in comparisons if c.get("verdict") == "neutral")
+    expected_regressed = sum(1 for c in comparisons if c.get("verdict") == "regressed")
+
+    actual_total = summary.get("total_ablations", -1)
+    actual_improved = summary.get("improved", -1)
+    actual_neutral = summary.get("neutral", -1)
+    actual_regressed = summary.get("regressed", -1)
+
+    counts_match = (actual_total == expected_total and
+                    actual_improved == expected_improved and
+                    actual_neutral == expected_neutral and
+                    actual_regressed == expected_regressed)
+    add("summary_counts_consistent", counts_match,
+        f"expected total={expected_total} improved={expected_improved} neutral={expected_neutral} regressed={expected_regressed}, "
+        f"got total={actual_total} improved={actual_improved} neutral={actual_neutral} regressed={actual_regressed}"
+        if not counts_match else "")
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {"checks": checks, "all_pass": all_pass}
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -399,8 +489,10 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
     w("")
 
     # --- Phase 2 ---
-    if profile_name == "m5":
+    if profile_name in ("m5", "m6", "m7"):
         _generate_md_phase2_m5(w, semantic_results)
+        if profile_name == "m7":
+            _generate_md_phase2_m7(w, semantic_results)
     else:
         _generate_md_phase2_m4(w, semantic_results)
 
@@ -422,7 +514,7 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
 
 def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
     """Check if all semantic checks passed."""
-    if profile_name == "m5":
+    if profile_name in ("m5", "m6", "m7"):
         # semantic_results is a dict from semantic_check_m5
         if not semantic_results:
             return True
@@ -494,6 +586,26 @@ def _generate_md_phase2_m5(w, semantic_results):
     sem_pass = sum(1 for c in checks if c["status"] == "pass")
     sem_total = len(checks)
     w(f"**Semantic summary**: {sem_pass}/{sem_total} checks passed\n")
+
+
+def _generate_md_phase2_m7(w, semantic_results):
+    """Generate Phase 2 markdown for M7 regression checks."""
+    regression_result = semantic_results.get("m7_regression")
+    if not regression_result or not regression_result.get("checks"):
+        return
+
+    w("## Phase 2b: M7 Regression Report Checks\n")
+    checks = regression_result["checks"]
+    w("| Check | Status | Detail |")
+    w("|-------|--------|--------|")
+    for c in checks:
+        icon = "\u2705" if c["status"] == "pass" else "\u274c"
+        w(f"| {c['check']} | {icon} | {c['detail'] or '-'} |")
+    w("")
+
+    sem_pass = sum(1 for c in checks if c["status"] == "pass")
+    sem_total = len(checks)
+    w(f"**Regression checks**: {sem_pass}/{sem_total} passed\n")
 
 
 # ---------------------------------------------------------------------------
@@ -571,7 +683,7 @@ def main():
     print(f"\n  Schema: {schema_pass}/{schema_total} passed ({schema_required_fail} required failures)\n")
 
     # ── Phase 2: Semantic checks ──
-    if profile_name == "m5":
+    if profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")
         semantic_results = semantic_check_m5(args.reports_dir, args.schemas_dir)
         for c in semantic_results["checks"]:
@@ -582,6 +694,23 @@ def main():
         sem_total = len(semantic_results["checks"])
         sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
         print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+
+        # M7: additional regression report checks
+        if profile_name == "m7":
+            print("Phase 2b: M7 regression report checks\n")
+            m7_result = semantic_check_m7_regression(args.reports_dir)
+            semantic_results["m7_regression"] = m7_result
+            for c in m7_result["checks"]:
+                icon = "\u2705" if c["status"] == "pass" else "\u274c"
+                detail = f" ({c['detail']})" if c["detail"] else ""
+                print(f"  {icon} {c['check']}{detail}")
+            if not m7_result["all_pass"]:
+                sem_all_pass = False
+            m7_total = len(m7_result["checks"])
+            m7_pass = sum(1 for c in m7_result["checks"] if c["status"] == "pass")
+            sem_total += m7_total
+            sem_pass += m7_pass
+            print(f"\n  Regression checks: {m7_pass}/{m7_total} passed\n")
     else:
         print("Phase 2: M4 semantic checks\n")
         semantic_results = []

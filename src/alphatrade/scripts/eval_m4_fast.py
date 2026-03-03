@@ -187,7 +187,7 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     # Convert to JAX array
     X_array = jnp.array(all_X)  # [N, 60, 8]
 
-    # Batched inference (without JIT for now, due to custom output type)
+    # Batched inference (no JIT: AlphaTradeOutput is not a JAX pytree)
     all_predictions = {h: [] for h in horizons}
 
     print(f"  Running inference...")
@@ -435,6 +435,8 @@ def main():
     }
 
     # Evaluate (BATCHED)
+    # Note: forward_t.apply is NOT jit-wrapped here because AlphaTradeOutput
+    # is a custom Python type (not a JAX pytree), which jax.jit cannot trace.
     eval_results = evaluate_model_batched(
         forward_t.apply,
         params,

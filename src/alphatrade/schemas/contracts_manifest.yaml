@@ -19,6 +19,25 @@ profiles:
       - {name: m5_leaderboard_md, path: "m5_leaderboard.md", schema: "", required: true}
       - {name: m5_schema_validation, path: "m5_schema_validation.json", schema: "", required: true}
       - {name: m5_schema_validation_md, path: "m5_schema_validation.md", schema: "", required: true}
+  m6:
+    description: "M6 baseline freeze. Frozen baseline × 3 seeds + summary."
+    reports_dir: "reports"
+    items:
+      - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
+      - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
+      - {name: m5_leaderboard_md, path: "m5_leaderboard.md", schema: "", required: true}
+      - {name: m5_schema_validation, path: "m5_schema_validation.json", schema: "", required: true}
+      - {name: m5_schema_validation_md, path: "m5_schema_validation.md", schema: "", required: true}
+      - {name: m6_baseline_run, path: "m6_baseline_run.md", schema: "", required: true}
+  m7:
+    description: "M7 ablation sweep. Baseline + ablations + regression report."
+    reports_dir: "reports"
+    items:
+      - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
+      - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
+      - {name: m5_leaderboard_md, path: "m5_leaderboard.md", schema: "", required: true}
+      - {name: m7_regression_report, path: "m7_regression_report.json", schema: "src/alphatrade/schemas/m7_regression_report.schema.json", required: true}
+      - {name: m7_regression_report_md, path: "m7_regression_report.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "reports"

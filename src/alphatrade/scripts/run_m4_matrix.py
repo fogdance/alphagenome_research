@@ -36,8 +36,8 @@ def parse_args():
                         help="Batch size (default: 128)")
     parser.add_argument("--smoke", action="store_true",
                         help="Use smoke test symbols")
-    parser.add_argument("--jit", type=int, default=0,
-                        help="Use JIT compilation (0/1, default: 0)")
+    parser.add_argument("--jit", type=int, default=1,
+                        help="Use JIT compilation (0/1, default: 1)")
     parser.add_argument("--eval-split", type=str, default="val",
                         help="Evaluation split (default: val)")
     parser.add_argument("--gpu", action="store_true", default=True,

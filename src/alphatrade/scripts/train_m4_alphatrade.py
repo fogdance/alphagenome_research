@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size (default: 128)")
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--jit", type=int, default=0, help="Use JIT compilation (0/1, default: 0; see docs/gpu_jit_issue.md)")
+    parser.add_argument("--jit", type=int, default=1, help="Use JIT compilation (0/1, default: 1)")
     parser.add_argument("--clip-norm", type=float, default=1.0)
     parser.add_argument("--smoke", action="store_true", help="Use 3 symbols for quick test")
     # Checkpoint arguments
