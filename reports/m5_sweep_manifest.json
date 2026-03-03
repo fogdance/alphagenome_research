@@ -1,8 +1,8 @@
 {
   "schema_version": "m5_sweep_manifest_v1",
-  "generated_at": "2026-03-03T13:50:16.778616",
+  "generated_at": "2026-03-03T14:03:03.859428",
   "profile": "m5",
-  "git_sha": "acd0e21",
+  "git_sha": "8892e72",
   "universe": "cta_top20",
   "dataset": "m2",
   "expected_seeds": [
@@ -98,9 +98,7 @@
       "run_id": "15de4235",
       "config_hash": "a25a1c8e",
       "train_metrics_path": "reports/m5_steps_1000_seed43_train_metrics.json",
-      "eval_metrics_path": "reports/m5_steps_1000_seed43_eval_metrics.json",
-      "train_run_md_path": "reports/m5_steps_1000_seed43_train_run.md",
-      "eval_run_md_path": "reports/m5_steps_1000_seed43_eval_run.md"
+      "eval_metrics_path": "reports/m5_steps_1000_seed43_eval_metrics.json"
     },
     {
       "exp_id": "steps_1000",
@@ -108,9 +106,7 @@
       "run_id": "4b48b79b",
       "config_hash": "a25a1c8e",
       "train_metrics_path": "reports/m5_steps_1000_seed44_train_metrics.json",
-      "eval_metrics_path": "reports/m5_steps_1000_seed44_eval_metrics.json",
-      "train_run_md_path": "reports/m5_steps_1000_seed44_train_run.md",
-      "eval_run_md_path": "reports/m5_steps_1000_seed44_eval_run.md"
+      "eval_metrics_path": "reports/m5_steps_1000_seed44_eval_metrics.json"
     }
   ]
 }

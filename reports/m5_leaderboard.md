@@ -1,6 +1,6 @@
 # M5 Leaderboard
 
-Generated: 2026-03-03T13:50:17.373144
+Generated: 2026-03-03T14:03:04.427356
 Primary metric: `pinball_loss.overall` (lower is better)
 Expected seeds: [42, 43, 44]
 

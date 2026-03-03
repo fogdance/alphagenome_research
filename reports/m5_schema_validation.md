@@ -1,6 +1,6 @@
 # Reports Schema & Semantic Validation (profile: m5)
 
-Generated: 2026-03-03 13:50:19
+Generated: 2026-03-03 14:03:06
 Strict: True
 
 ## Phase 1: Schema Validation

@@ -1,7 +1,7 @@
 {
   "schema_version": "m5_leaderboard_v1",
-  "generated_at": "2026-03-03T13:50:17.373144",
-  "git_sha": "acd0e21",
+  "generated_at": "2026-03-03T14:03:04.427356",
+  "git_sha": "8892e72",
   "primary_metric": "pinball_loss.overall",
   "expected_seeds": [
     42,

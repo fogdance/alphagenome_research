@@ -1,4 +1,5 @@
 version: m7_sweep_v1
+baseline_exp_id: baseline
 expected_seeds: [42, 43, 44]
 primary_metric: "pinball_loss.overall"
 dataset_config: "configs/dataset/m2.yaml"

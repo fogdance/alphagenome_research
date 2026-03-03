@@ -1,7 +1,7 @@
 # M7 Ablation Regression Report
 
-Generated: 2026-03-03T13:50:26.971363
-Git SHA: `acd0e21`
+Generated: 2026-03-03T14:03:06.353229
+Git SHA: `8892e72`
 Primary metric: `pinball_loss.overall` (lower is better)
 
 ## Thresholds
