@@ -1,0 +1,22 @@
+{
+  "schema_version": "m9_predictions_v1",
+  "description": "Logical schema for predictions.parquet (not JSON Schema draft-07). Validator checks column presence/types programmatically.",
+  "columns": {
+    "required": [
+      "symbol", "eob", "model_version",
+      "h1_q10", "h1_q30", "h1_q50", "h1_q70", "h1_q90",
+      "h5_q10", "h5_q30", "h5_q50", "h5_q70", "h5_q90",
+      "h20_q10", "h20_q30", "h20_q50", "h20_q70", "h20_q90",
+      "h60_q10", "h60_q30", "h60_q50", "h60_q70", "h60_q90"
+    ],
+    "types": {
+      "symbol": "string",
+      "eob": "datetime",
+      "model_version": "string",
+      "h1_q10": "float64", "h1_q30": "float64", "h1_q50": "float64", "h1_q70": "float64", "h1_q90": "float64",
+      "h5_q10": "float64", "h5_q30": "float64", "h5_q50": "float64", "h5_q70": "float64", "h5_q90": "float64",
+      "h20_q10": "float64", "h20_q30": "float64", "h20_q50": "float64", "h20_q70": "float64", "h20_q90": "float64",
+      "h60_q10": "float64", "h60_q30": "float64", "h60_q50": "float64", "h60_q70": "float64", "h60_q90": "float64"
+    }
+  }
+}

@@ -444,6 +444,102 @@ def semantic_check_m7_regression(reports_dir: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (M9 champion bundle + inference)
+# ---------------------------------------------------------------------------
+
+def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schemas") -> dict:
+    """Run semantic checks on M9 bundle manifest and predictions parquet.
+
+    Returns dict with:
+      - checks: list of individual check results
+      - all_pass: bool
+    """
+    manifest_path = os.path.join(reports_dir, "m9_model_bundle_manifest.json")
+    predictions_path = os.path.join(reports_dir, "m9_predictions.parquet")
+    predictions_schema_path = os.path.join(schemas_dir, "m9_predictions.schema.json")
+
+    checks = []
+
+    def add(name, passed, detail=""):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+        })
+
+    # Check manifest exists and has valid bundle_path
+    if not os.path.exists(manifest_path):
+        add("manifest_exists", False, f"File not found: {manifest_path}")
+        return {"checks": checks, "all_pass": False}
+
+    try:
+        manifest = load_json(manifest_path)
+    except Exception as e:
+        add("manifest_json_load", False, str(e))
+        return {"checks": checks, "all_pass": False}
+
+    add("manifest_exists", True)
+
+    bundle_path = manifest.get("bundle_path", "")
+    add("bundle_path_exists", os.path.exists(bundle_path),
+        f"bundle not found: {bundle_path}" if not os.path.exists(bundle_path) else "")
+
+    model_version = manifest.get("model_version", "")
+    add("model_version_non_empty", bool(model_version),
+        "model_version is empty" if not model_version else "")
+
+    # Check predictions parquet
+    if not os.path.exists(predictions_path):
+        add("predictions_exists", False, f"File not found: {predictions_path}")
+        all_pass = all(c["status"] == "pass" for c in checks)
+        return {"checks": checks, "all_pass": all_pass}
+
+    add("predictions_exists", True)
+
+    # Load predictions and check columns/types
+    try:
+        import pandas as pd
+        df = pd.read_parquet(predictions_path)
+    except Exception as e:
+        add("predictions_parquet_load", False, str(e)[:80])
+        all_pass = all(c["status"] == "pass" for c in checks)
+        return {"checks": checks, "all_pass": all_pass}
+
+    add("predictions_parquet_load", True)
+    add("predictions_rows_gt_0", len(df) > 0,
+        f"0 rows" if len(df) == 0 else "")
+
+    # Load logical schema for expected columns
+    expected_cols = None
+    if os.path.exists(predictions_schema_path):
+        try:
+            pred_schema = load_json(predictions_schema_path)
+            expected_cols = pred_schema.get("columns", {}).get("required", [])
+        except Exception:
+            pass
+
+    if expected_cols:
+        actual_cols = set(df.columns.tolist())
+        missing_cols = [c for c in expected_cols if c not in actual_cols]
+        add("predictions_columns_complete", len(missing_cols) == 0,
+            f"missing: {missing_cols}" if missing_cols else "")
+
+        # Check types for numeric prediction columns
+        pred_col_pattern = [c for c in expected_cols if c.startswith("h")]
+        type_errors = []
+        for col in pred_col_pattern:
+            if col in actual_cols and not pd.api.types.is_float_dtype(df[col]):
+                type_errors.append(f"{col}={df[col].dtype}")
+        add("predictions_column_types", len(type_errors) == 0,
+            f"non-float: {type_errors}" if type_errors else "")
+    else:
+        add("predictions_schema_loaded", False, f"Could not load {predictions_schema_path}")
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {"checks": checks, "all_pass": all_pass}
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -489,7 +585,9 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
     w("")
 
     # --- Phase 2 ---
-    if profile_name in ("m5", "m6", "m7"):
+    if profile_name == "m9":
+        _generate_md_phase2_m9(w, semantic_results)
+    elif profile_name in ("m5", "m6", "m7"):
         _generate_md_phase2_m5(w, semantic_results)
         if profile_name == "m7":
             _generate_md_phase2_m7(w, semantic_results)
@@ -514,7 +612,11 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
 
 def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
     """Check if all semantic checks passed."""
-    if profile_name in ("m5", "m6", "m7"):
+    if profile_name == "m9":
+        if not semantic_results:
+            return True
+        return semantic_results.get("all_pass", True)
+    elif profile_name in ("m5", "m6", "m7"):
         # semantic_results is a dict from semantic_check_m5
         if not semantic_results:
             return True
@@ -608,6 +710,27 @@ def _generate_md_phase2_m7(w, semantic_results):
     w(f"**Regression checks**: {sem_pass}/{sem_total} passed\n")
 
 
+def _generate_md_phase2_m9(w, semantic_results):
+    """Generate Phase 2 markdown for M9."""
+    w("## Phase 2: M9 Bundle + Predictions Checks\n")
+
+    if not semantic_results or not semantic_results.get("checks"):
+        w("_No M9 semantic checks run._\n")
+        return
+
+    checks = semantic_results["checks"]
+    w("| Check | Status | Detail |")
+    w("|-------|--------|--------|")
+    for c in checks:
+        icon = "\u2705" if c["status"] == "pass" else "\u274c"
+        w(f"| {c['check']} | {icon} | {c['detail'] or '-'} |")
+    w("")
+
+    sem_pass = sum(1 for c in checks if c["status"] == "pass")
+    sem_total = len(checks)
+    w(f"**M9 checks**: {sem_pass}/{sem_total} passed\n")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -683,7 +806,18 @@ def main():
     print(f"\n  Schema: {schema_pass}/{schema_total} passed ({schema_required_fail} required failures)\n")
 
     # ── Phase 2: Semantic checks ──
-    if profile_name in ("m5", "m6", "m7"):
+    if profile_name == "m9":
+        print("Phase 2: M9 bundle + predictions checks\n")
+        semantic_results = semantic_check_m9(args.reports_dir, args.schemas_dir)
+        for c in semantic_results["checks"]:
+            icon = "\u2705" if c["status"] == "pass" else "\u274c"
+            detail = f" ({c['detail']})" if c["detail"] else ""
+            print(f"  {icon} {c['check']}{detail}")
+        sem_all_pass = semantic_results["all_pass"]
+        sem_total = len(semantic_results["checks"])
+        sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+        print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+    elif profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")
         semantic_results = semantic_check_m5(args.reports_dir, args.schemas_dir)
         for c in semantic_results["checks"]:

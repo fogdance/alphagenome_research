@@ -38,6 +38,14 @@ profiles:
       - {name: m5_leaderboard_md, path: "m5_leaderboard.md", schema: "", required: true}
       - {name: m7_regression_report, path: "m7_regression_report.json", schema: "src/alphatrade/schemas/m7_regression_report.schema.json", required: true}
       - {name: m7_regression_report_md, path: "m7_regression_report.md", schema: "", required: true}
+  m9:
+    description: "M9 champion bundle + offline inference."
+    reports_dir: "reports"
+    items:
+      - {name: m9_model_bundle_manifest, path: "m9_model_bundle_manifest.json", schema: "src/alphatrade/schemas/m9_model_bundle_manifest.schema.json", required: true}
+      - {name: m9_infer_metrics, path: "m9_infer_metrics.json", schema: "src/alphatrade/schemas/m9_infer_metrics.schema.json", required: true}
+      - {name: m9_infer_metrics_md, path: "m9_infer_metrics.md", schema: "", required: true}
+      - {name: m9_predictions_parquet, path: "m9_predictions.parquet", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "reports"

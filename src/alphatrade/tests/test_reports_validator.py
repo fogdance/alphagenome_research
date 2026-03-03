@@ -664,6 +664,124 @@ class TestM7SemanticChecks:
         assert any(c["status"] == "fail" for c in verdict_checks)
 
 
+# ---------------------------------------------------------------------------
+# M9 semantic checks
+# ---------------------------------------------------------------------------
+
+def _make_m9_predictions_parquet(path, n_rows=10, missing_col=None):
+    """Create a minimal valid predictions parquet."""
+    import pandas as pd
+    import numpy as np
+
+    horizons = [1, 5, 20, 60]
+    quantiles = [10, 30, 50, 70, 90]
+
+    data = {
+        "symbol": ["DCE.JM"] * n_rows,
+        "eob": pd.date_range("2024-01-02 09:01:00", periods=n_rows, freq="1min"),
+        "model_version": ["test_v0.2"] * n_rows,
+    }
+    for h in horizons:
+        for q in quantiles:
+            col = f"h{h}_q{q}"
+            if col != missing_col:
+                data[col] = np.random.randn(n_rows).astype(np.float64)
+
+    df = pd.DataFrame(data)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    df.to_parquet(path, index=False)
+    return path
+
+
+def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
+    """Create a minimal valid M9 bundle manifest."""
+    manifest = {
+        "schema_version": "m9_model_bundle_manifest_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "git_sha": "testsha",
+        "model_version": "test_v0.2",
+        "champion_selection": {
+            "method": "leaderboard_primary_mean",
+            "exp_id": "baseline",
+            "run_id": "abc123",
+            "seed": 42,
+            "primary_mean": 0.134,
+            "primary_std": 0.011,
+            "primary_best": 0.123,
+            "config_hash": "cfghash_a",
+        },
+        "model_config": {
+            "lookback_length": 60,
+            "num_features": 8,
+            "horizons": [1, 5, 20, 60],
+            "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
+            "d_model": 256,
+            "num_transformer_layers": 4,
+        },
+        "bundle_path": bundle_path,
+        "checkpoint_source": "/tmp/fake_ckpt",
+        "dataset_config": "configs/dataset/m2.yaml",
+        "universe": "test",
+        "expected_seeds": [42, 43, 44],
+        "leaderboard_path": "reports/m5_leaderboard.json",
+    }
+    manifest_path = os.path.join(reports_dir, "m9_model_bundle_manifest.json")
+    _write_json(manifest_path, manifest)
+    return manifest_path, manifest
+
+
+class TestM9SemanticChecks:
+    """Test M9 Phase 2 semantic checks."""
+
+    def test_m9_predictions_valid(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m9
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        # Create valid bundle manifest with an existing bundle_path
+        bundle_dir = str(tmp_path / "bundle")
+        os.makedirs(bundle_dir, exist_ok=True)
+        _make_m9_bundle_manifest(reports_dir, bundle_path=bundle_dir)
+        _make_m9_predictions_parquet(os.path.join(reports_dir, "m9_predictions.parquet"))
+
+        result = semantic_check_m9(reports_dir, schemas_dir_abs)
+        assert result["all_pass"], f"Checks failed: {[c for c in result['checks'] if c['status'] != 'pass']}"
+
+    def test_m9_predictions_missing_column(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m9
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        bundle_dir = str(tmp_path / "bundle")
+        os.makedirs(bundle_dir, exist_ok=True)
+        _make_m9_bundle_manifest(reports_dir, bundle_path=bundle_dir)
+        _make_m9_predictions_parquet(
+            os.path.join(reports_dir, "m9_predictions.parquet"),
+            missing_col="h1_q10",
+        )
+
+        result = semantic_check_m9(reports_dir, schemas_dir_abs)
+        assert not result["all_pass"]
+        col_checks = [c for c in result["checks"] if "columns_complete" in c["check"]]
+        assert any(c["status"] == "fail" for c in col_checks)
+
+    def test_m9_bundle_manifest_valid(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        bundle_dir = str(tmp_path / "bundle")
+        os.makedirs(bundle_dir, exist_ok=True)
+        manifest_path, _ = _make_m9_bundle_manifest(reports_dir, bundle_path=bundle_dir)
+        schema_path = os.path.join(schemas_dir_abs, "m9_model_bundle_manifest.schema.json")
+
+        result = validate_report(manifest_path, schema_path)
+        assert result["status"] == "pass", f"Validation failed: {result.get('error')}"
+
+
 class TestM7Integration:
     """Integration tests for M7 profile."""
 

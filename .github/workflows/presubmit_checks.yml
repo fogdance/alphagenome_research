@@ -43,3 +43,6 @@ jobs:
       - name: Validate reports contracts (M7)
         if: env.REPORTS_PROFILE == 'm7'
         run: python src/alphatrade/scripts/validate_reports_schema.py --profile m7 --strict
+      - name: Validate reports contracts (M9)
+        if: env.REPORTS_PROFILE == 'm9'
+        run: python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --strict

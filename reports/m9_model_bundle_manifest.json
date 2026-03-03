@@ -1,0 +1,47 @@
+{
+  "schema_version": "m9_model_bundle_manifest_v1",
+  "generated_at": "2026-03-03T18:29:49.612194",
+  "git_sha": "22866ff",
+  "model_version": "alphatrade_v0.2_batch_256_9169f783",
+  "champion_selection": {
+    "method": "leaderboard_primary_mean",
+    "exp_id": "batch_256",
+    "run_id": "9169f783",
+    "seed": 42,
+    "primary_mean": 0.13338276147850858,
+    "primary_std": 0.011707243552556493,
+    "primary_best": 0.12310160990295235,
+    "config_hash": "f1d8a097"
+  },
+  "model_config": {
+    "lookback_length": 60,
+    "num_features": 8,
+    "stem_channels": 128,
+    "num_encoder_stages": 2,
+    "d_model": 256,
+    "num_transformer_layers": 4,
+    "horizons": [
+      1,
+      5,
+      20,
+      60
+    ],
+    "quantiles": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ]
+  },
+  "bundle_path": "artifacts/model_bundle/alphatrade_v0.2_batch_256_9169f783",
+  "checkpoint_source": "/home/v/Documents/work/1_open_source/alphagenome_research/checkpoints/m5/batch_256_seed42",
+  "dataset_config": "configs/dataset/m2.yaml",
+  "universe": "",
+  "expected_seeds": [
+    42,
+    43,
+    44
+  ],
+  "leaderboard_path": "reports/m5_leaderboard.json"
+}

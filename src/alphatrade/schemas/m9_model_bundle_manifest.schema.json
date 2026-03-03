@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m9_model_bundle_manifest_v1",
+  "title": "M9 Model Bundle Manifest Schema",
+  "description": "Provenance record for the champion model bundle",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "git_sha", "model_version", "champion_selection", "model_config", "bundle_path", "checkpoint_source", "dataset_config", "universe", "expected_seeds", "leaderboard_path"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "m9_model_bundle_manifest_v1"
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "git_sha": {
+      "type": "string"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "e.g. alphatrade_v0.2_batch256_9169f783"
+    },
+    "champion_selection": {
+      "type": "object",
+      "required": ["method", "exp_id", "run_id", "seed", "primary_mean", "primary_std", "primary_best", "config_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {"type": "string"},
+        "exp_id": {"type": "string"},
+        "run_id": {"type": "string"},
+        "seed": {"type": "integer"},
+        "primary_mean": {"type": "number"},
+        "primary_std": {"type": "number"},
+        "primary_best": {"type": "number"},
+        "config_hash": {"type": "string"}
+      }
+    },
+    "model_config": {
+      "type": "object",
+      "required": ["lookback_length", "num_features", "horizons", "quantiles", "d_model", "num_transformer_layers"],
+      "properties": {
+        "lookback_length": {"type": "integer"},
+        "num_features": {"type": "integer"},
+        "horizons": {"type": "array", "items": {"type": "integer"}},
+        "quantiles": {"type": "array", "items": {"type": "number"}},
+        "d_model": {"type": "integer"},
+        "num_transformer_layers": {"type": "integer"}
+      }
+    },
+    "bundle_path": {
+      "type": "string",
+      "description": "Relative path to bundle directory"
+    },
+    "checkpoint_source": {
+      "type": "string",
+      "description": "Original checkpoint directory"
+    },
+    "dataset_config": {
+      "type": "string"
+    },
+    "universe": {
+      "type": "string"
+    },
+    "expected_seeds": {
+      "type": "array",
+      "items": {"type": "integer"}
+    },
+    "leaderboard_path": {
+      "type": "string"
+    }
+  }
+}
