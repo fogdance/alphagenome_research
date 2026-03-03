@@ -227,6 +227,133 @@ def semantic_check_m4(eval_path: str, train_path: str) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (M5 sweep)
+# ---------------------------------------------------------------------------
+
+def semantic_check_m5(reports_dir: str, schemas_dir: str = "src/alphatrade/schemas") -> dict:
+    """Run semantic checks on M5 sweep manifest runs.
+
+    Returns dict with:
+      - checks: list of individual check results
+      - by_exp: per-experiment details
+      - all_pass: bool
+    """
+    manifest_path = os.path.join(reports_dir, "m5_sweep_manifest.json")
+    train_schema_path = os.path.join(schemas_dir, "m2_train_metrics.schema.json")
+    eval_schema_path = os.path.join(schemas_dir, "m4_eval_metrics.schema.json")
+
+    checks = []
+
+    def add(name, passed, detail=""):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+        })
+
+    # Load manifest
+    if not os.path.exists(manifest_path):
+        add("manifest_exists", False, f"File not found: {manifest_path}")
+        return {"checks": checks, "by_exp": {}, "all_pass": False}
+
+    try:
+        manifest = load_json(manifest_path)
+    except Exception as e:
+        add("manifest_json_load", False, str(e))
+        return {"checks": checks, "by_exp": {}, "all_pass": False}
+
+    add("manifest_exists", True)
+
+    expected_seeds = set(manifest.get("expected_seeds", []))
+    runs = manifest.get("runs", [])
+
+    # Load schemas for validation
+    train_schema = None
+    eval_schema = None
+    if os.path.exists(train_schema_path):
+        train_schema = load_json(train_schema_path)
+    if os.path.exists(eval_schema_path):
+        eval_schema = load_json(eval_schema_path)
+
+    # Check run_id uniqueness
+    run_ids = [r["run_id"] for r in runs]
+    duplicates = [rid for rid in set(run_ids) if run_ids.count(rid) > 1]
+    add("run_id_unique", len(duplicates) == 0,
+        f"duplicates: {duplicates}" if duplicates else "")
+
+    # Group by exp_id
+    from collections import defaultdict
+    exp_runs: dict[str, list[dict]] = defaultdict(list)
+    for run in runs:
+        exp_runs[run["exp_id"]].append(run)
+
+    by_exp = {}
+
+    for exp_id, exp_run_list in exp_runs.items():
+        exp_checks = []
+
+        def add_exp(name, passed, detail=""):
+            exp_checks.append({
+                "check": name,
+                "status": "pass" if passed else "fail",
+                "detail": detail,
+            })
+
+        # Config hash consistency
+        config_hashes = {r["config_hash"] for r in exp_run_list}
+        add_exp(f"[{exp_id}] config_hash_consistent",
+                len(config_hashes) == 1,
+                f"found {len(config_hashes)} distinct hashes: {config_hashes}" if len(config_hashes) > 1 else "")
+
+        # Seed coverage
+        seeds_present = {r["seed"] for r in exp_run_list}
+        missing_seeds = expected_seeds - seeds_present
+        add_exp(f"[{exp_id}] seeds_complete",
+                len(missing_seeds) == 0,
+                f"missing seeds: {sorted(missing_seeds)}" if missing_seeds else "")
+
+        # Per-run file checks
+        for run in exp_run_list:
+            run_label = f"[{exp_id}/seed{run['seed']}]"
+
+            # Train metrics exists + schema
+            train_path = run["train_metrics_path"]
+            train_exists = os.path.exists(train_path)
+            add_exp(f"{run_label} train_exists", train_exists,
+                    f"not found: {train_path}" if not train_exists else "")
+            if train_exists and train_schema:
+                try:
+                    train_data = load_json(train_path)
+                    validate(instance=train_data, schema=train_schema)
+                    add_exp(f"{run_label} train_schema", True)
+                except ValidationError as e:
+                    add_exp(f"{run_label} train_schema", False, str(e.message)[:80])
+                except Exception as e:
+                    add_exp(f"{run_label} train_schema", False, str(e)[:80])
+
+            # Eval metrics exists + schema
+            eval_path = run["eval_metrics_path"]
+            eval_exists = os.path.exists(eval_path)
+            add_exp(f"{run_label} eval_exists", eval_exists,
+                    f"not found: {eval_path}" if not eval_exists else "")
+            if eval_exists and eval_schema:
+                try:
+                    eval_data = load_json(eval_path)
+                    validate(instance=eval_data, schema=eval_schema)
+                    add_exp(f"{run_label} eval_schema", True)
+                except ValidationError as e:
+                    add_exp(f"{run_label} eval_schema", False, str(e.message)[:80])
+                except Exception as e:
+                    add_exp(f"{run_label} eval_schema", False, str(e)[:80])
+
+        by_exp[exp_id] = exp_checks
+        checks.extend(exp_checks)
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {"checks": checks, "by_exp": by_exp, "all_pass": all_pass}
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -272,6 +399,47 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
     w("")
 
     # --- Phase 2 ---
+    if profile_name == "m5":
+        _generate_md_phase2_m5(w, semantic_results)
+    else:
+        _generate_md_phase2_m4(w, semantic_results)
+
+    # --- Overall ---
+    schema_ok = all(r["status"] == "pass" for r in schema_results if r.get("required"))
+    sem_ok = _semantic_all_pass(semantic_results, profile_name)
+
+    w("## Overall\n")
+    schema_verdict = "\u2705 pass" if schema_ok else "\u274c fail"
+    sem_verdict = "\u2705 pass" if sem_ok else "\u274c fail"
+    w(f"- Schema (required): {schema_verdict}")
+    w(f"- Semantic: {sem_verdict}")
+    overall = "\u2705 ALL PASS" if (schema_ok and sem_ok) else "\u274c FAIL"
+    w(f"- **Overall: {overall}**")
+    w("")
+
+    return "\n".join(lines)
+
+
+def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
+    """Check if all semantic checks passed."""
+    if profile_name == "m5":
+        # semantic_results is a dict from semantic_check_m5
+        if not semantic_results:
+            return True
+        return semantic_results.get("all_pass", True)
+    else:
+        # semantic_results is a list of {seed, checks} dicts
+        if not semantic_results:
+            return True
+        return all(
+            c["status"] == "pass"
+            for sr in semantic_results
+            for c in sr["checks"]
+        )
+
+
+def _generate_md_phase2_m4(w, semantic_results):
+    """Generate Phase 2 markdown for M4."""
     w("## Phase 2: M4 Semantic Checks\n")
 
     if not semantic_results:
@@ -294,24 +462,38 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
         sem_total = len(all_checks)
         w(f"**Semantic summary**: {sem_pass}/{sem_total} checks passed\n")
 
-    # --- Overall ---
-    schema_ok = all(r["status"] == "pass" for r in schema_results if r.get("required"))
-    sem_ok = all(
-        c["status"] == "pass"
-        for sr in semantic_results
-        for c in sr["checks"]
-    ) if semantic_results else True
 
-    w("## Overall\n")
-    schema_verdict = "\u2705 pass" if schema_ok else "\u274c fail"
-    sem_verdict = "\u2705 pass" if sem_ok else "\u274c fail"
-    w(f"- Schema (required): {schema_verdict}")
-    w(f"- Semantic: {sem_verdict}")
-    overall = "\u2705 ALL PASS" if (schema_ok and sem_ok) else "\u274c FAIL"
-    w(f"- **Overall: {overall}**")
-    w("")
+def _generate_md_phase2_m5(w, semantic_results):
+    """Generate Phase 2 markdown for M5 sweep."""
+    w("## Phase 2: M5 Sweep Semantic Checks\n")
 
-    return "\n".join(lines)
+    if not semantic_results or not semantic_results.get("checks"):
+        w("_No M5 sweep semantic checks run._\n")
+        return
+
+    checks = semantic_results["checks"]
+    by_exp = semantic_results.get("by_exp", {})
+
+    if by_exp:
+        for exp_id, exp_checks in by_exp.items():
+            w(f"### Experiment: {exp_id}\n")
+            w("| Check | Status | Detail |")
+            w("|-------|--------|--------|")
+            for c in exp_checks:
+                icon = "\u2705" if c["status"] == "pass" else "\u274c"
+                w(f"| {c['check']} | {icon} | {c['detail'] or '-'} |")
+            w("")
+    else:
+        w("| Check | Status | Detail |")
+        w("|-------|--------|--------|")
+        for c in checks:
+            icon = "\u2705" if c["status"] == "pass" else "\u274c"
+            w(f"| {c['check']} | {icon} | {c['detail'] or '-'} |")
+        w("")
+
+    sem_pass = sum(1 for c in checks if c["status"] == "pass")
+    sem_total = len(checks)
+    w(f"**Semantic summary**: {sem_pass}/{sem_total} checks passed\n")
 
 
 # ---------------------------------------------------------------------------
@@ -389,37 +571,49 @@ def main():
     print(f"\n  Schema: {schema_pass}/{schema_total} passed ({schema_required_fail} required failures)\n")
 
     # ── Phase 2: Semantic checks ──
-    print("Phase 2: M4 semantic checks\n")
-    semantic_results = []
-    seed_pairs = discover_m4_seed_pairs(args.reports_dir)
-
-    for sp in seed_pairs:
-        print(f"  Seed {sp['seed']}:")
-        checks = semantic_check_m4(sp["eval_path"], sp["train_path"])
-        for c in checks:
+    if profile_name == "m5":
+        print("Phase 2: M5 sweep semantic checks\n")
+        semantic_results = semantic_check_m5(args.reports_dir, args.schemas_dir)
+        for c in semantic_results["checks"]:
             icon = "\u2705" if c["status"] == "pass" else "\u274c"
             detail = f" ({c['detail']})" if c["detail"] else ""
-            print(f"    {icon} {c['check']}{detail}")
-        semantic_results.append({
-            "seed": sp["seed"],
-            "eval_path": sp["eval_path"],
-            "train_path": sp["train_path"],
-            "checks": checks,
-        })
+            print(f"  {icon} {c['check']}{detail}")
+        sem_all_pass = semantic_results["all_pass"]
+        sem_total = len(semantic_results["checks"])
+        sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+        print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+    else:
+        print("Phase 2: M4 semantic checks\n")
+        semantic_results = []
+        seed_pairs = discover_m4_seed_pairs(args.reports_dir)
 
-    if not seed_pairs:
-        print("  No M4 eval\u2194train seed pairs found.")
+        for sp in seed_pairs:
+            print(f"  Seed {sp['seed']}:")
+            checks = semantic_check_m4(sp["eval_path"], sp["train_path"])
+            for c in checks:
+                icon = "\u2705" if c["status"] == "pass" else "\u274c"
+                detail = f" ({c['detail']})" if c["detail"] else ""
+                print(f"    {icon} {c['check']}{detail}")
+            semantic_results.append({
+                "seed": sp["seed"],
+                "eval_path": sp["eval_path"],
+                "train_path": sp["train_path"],
+                "checks": checks,
+            })
 
-    sem_all_pass = all(
-        c["status"] == "pass"
-        for sr in semantic_results
-        for c in sr["checks"]
-    ) if semantic_results else True
-    sem_total = sum(len(sr["checks"]) for sr in semantic_results)
-    sem_pass = sum(
-        1 for sr in semantic_results for c in sr["checks"] if c["status"] == "pass"
-    )
-    print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+        if not seed_pairs:
+            print("  No M4 eval\u2194train seed pairs found.")
+
+        sem_all_pass = all(
+            c["status"] == "pass"
+            for sr in semantic_results
+            for c in sr["checks"]
+        ) if semantic_results else True
+        sem_total = sum(len(sr["checks"]) for sr in semantic_results)
+        sem_pass = sum(
+            1 for sr in semantic_results for c in sr["checks"] if c["status"] == "pass"
+        )
+        print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
 
     # ── Determine pass/fail ──
     if strict:

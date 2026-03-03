@@ -11,17 +11,14 @@ profiles:
       - {name: m4_eval_metrics_seed43, path: "m4_eval_metrics_seed43.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
       - {name: m4_eval_metrics_seed44, path: "m4_eval_metrics_seed44.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
   m5:
-    description: "M5 ablation study. 3-seed baseline + ablation variants."
+    description: "M5 sweep study. sweep_manifest + leaderboard + validation outputs."
     reports_dir: "reports"
     items:
-      - {name: m5_train_metrics_seed42, path: "m5_train_metrics_seed42.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
-      - {name: m5_train_metrics_seed43, path: "m5_train_metrics_seed43.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
-      - {name: m5_train_metrics_seed44, path: "m5_train_metrics_seed44.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
-      - {name: m5_eval_metrics_seed42, path: "m5_eval_metrics_seed42.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
-      - {name: m5_eval_metrics_seed43, path: "m5_eval_metrics_seed43.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
-      - {name: m5_eval_metrics_seed44, path: "m5_eval_metrics_seed44.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
-      - {name: m5_ablation_table, path: "m5_ablation_table.json", schema: "src/alphatrade/schemas/m5_ablation_table.schema.json", required: true}
-      - {name: m5_matrix_summary, path: "m5_matrix_summary.json", schema: "", required: true}
+      - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
+      - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
+      - {name: m5_leaderboard_md, path: "m5_leaderboard.md", schema: "", required: true}
+      - {name: m5_schema_validation, path: "m5_schema_validation.json", schema: "", required: true}
+      - {name: m5_schema_validation_md, path: "m5_schema_validation.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "reports"

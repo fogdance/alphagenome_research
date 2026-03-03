@@ -21,7 +21,7 @@ Validator 通过 `contracts_manifest.yaml` 中的 profile 隔离不同里程碑�
 | Profile | 用途 | Required | CI 门禁 |
 |---------|------|----------|---------|
 | `m4` | 主线门禁，3-seed train+eval | 全部 required | 是 |
-| `m5` | Ablation study，3-seed baseline + variants | 全部 required | 是（M5 阶段） |
+| `m5` | Sweep study，sweep_manifest + leaderboard + validation | 全部 required | 是（M5 阶段，env 开关） |
 | `legacy_m2_m3` | 历史留档 | 全部 optional | 否 |
 
 ### Manifest 路径
@@ -113,7 +113,8 @@ src/alphatrade/schemas/m{milestone}_{type}.schema.json
 | m2_universe_sweep | `m2_universe_sweep_v1` | v1 |
 | m2_t1_dataloader_check | `m2_t1_dataloader_check_v1` | v1 |
 | m4_eval_metrics | `m4_eval_metrics_v1` | v1 |
-| m5_ablation_table | `m5_ablation_table_v1` | v1 |
+| m5_sweep_manifest | `m5_sweep_manifest_v1` | v1 |
+| m5_leaderboard | `m5_leaderboard_v1` | v1 |
 
 ---
 

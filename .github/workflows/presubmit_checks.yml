@@ -35,5 +35,8 @@ jobs:
         run: python -m hatch run check:all
       - name: Unit tests
         run: python -m hatch test
-      - name: Validate reports contracts
+      - name: Validate reports contracts (M4)
         run: python src/alphatrade/scripts/validate_reports_schema.py --profile m4 --strict
+      - name: Validate reports contracts (M5)
+        if: env.REPORTS_PROFILE == 'm5'
+        run: python src/alphatrade/scripts/validate_reports_schema.py --profile m5 --strict

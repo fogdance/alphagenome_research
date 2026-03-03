@@ -2,7 +2,7 @@
 
 **AlphaTrade 的唯一大目标
 
-运行环境: conda 的alphatrade
+运行环境: conda 的 alphatrade_cuda12
 
 > 借鉴 AlphaGenome 的工程化思想（稳定训练、强表达、可扩展 trunk），但做成**严格因果**的期货多周期预测器：输入 1min 因果特征窗口 → 输出多个 horizon 的“未来涨跌/收益分布（分位数）”，并且能用统一评估框架持续迭代。
 ---

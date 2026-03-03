@@ -347,3 +347,156 @@ class TestIntegrationStrict:
             "--output-md", str(tmp_path / "out.md"),
         ])
         assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+
+
+# ---------------------------------------------------------------------------
+# M5 semantic checks
+# ---------------------------------------------------------------------------
+
+def _make_m5_sweep_manifest(reports_dir, seeds, exp_ids=None, config_hash="cfghash_a"):
+    """Create a minimal sweep manifest and its referenced run files."""
+    if exp_ids is None:
+        exp_ids = ["baseline"]
+
+    runs = []
+    for exp_id in exp_ids:
+        for seed in seeds:
+            run_id = f"{exp_id}_s{seed}"
+            train_path = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_train.json")
+            eval_path = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_eval.json")
+
+            train_data = dict(_TRAIN_METRICS_VALID)
+            train_data["run"] = dict(train_data["run"])
+            train_data["run"]["seed"] = seed
+            train_data["run"]["run_id"] = run_id
+            _write_json(train_path, train_data)
+
+            eval_data = dict(_EVAL_METRICS_VALID)
+            eval_data["run_id"] = run_id
+            eval_data["model"] = dict(eval_data["model"])
+            eval_data["model"]["train_run_id"] = run_id
+            _write_json(eval_path, eval_data)
+
+            runs.append({
+                "exp_id": exp_id,
+                "seed": seed,
+                "run_id": run_id,
+                "config_hash": config_hash,
+                "train_metrics_path": train_path,
+                "eval_metrics_path": eval_path,
+            })
+
+    manifest = {
+        "schema_version": "m5_sweep_manifest_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "profile": "m5",
+        "git_sha": "testsha",
+        "universe": "test",
+        "dataset": "test_ds",
+        "expected_seeds": list(seeds),
+        "primary_metric": "pinball_loss.overall",
+        "runs": runs,
+    }
+    manifest_path = os.path.join(reports_dir, "m5_sweep_manifest.json")
+    _write_json(manifest_path, manifest)
+    return manifest_path, manifest
+
+
+class TestM5SemanticChecks:
+    """Test M5 Phase 2 semantic checks."""
+
+    def test_m5_strict_pass(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m5
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        _make_m5_sweep_manifest(reports_dir, seeds=[42, 43, 44])
+
+        result = semantic_check_m5(reports_dir, schemas_dir_abs)
+        assert result["all_pass"], f"Checks failed: {[c for c in result['checks'] if c['status'] != 'pass']}"
+
+    def test_m5_missing_seed_strict_fail(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m5
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        # Create manifest expecting seeds [42, 43, 44] but only provide [42, 43]
+        manifest_path, manifest = _make_m5_sweep_manifest(reports_dir, seeds=[42, 43])
+        # Overwrite manifest to expect 3 seeds
+        manifest["expected_seeds"] = [42, 43, 44]
+        _write_json(manifest_path, manifest)
+
+        result = semantic_check_m5(reports_dir, schemas_dir_abs)
+        assert not result["all_pass"]
+        seed_checks = [c for c in result["checks"] if "seeds_complete" in c["check"]]
+        assert any(c["status"] == "fail" for c in seed_checks)
+
+    def test_m5_missing_eval_strict_fail(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m5
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        _make_m5_sweep_manifest(reports_dir, seeds=[42, 43, 44])
+
+        # Delete one eval file
+        os.remove(os.path.join(reports_dir, "m5_baseline_seed44_eval.json"))
+
+        result = semantic_check_m5(reports_dir, schemas_dir_abs)
+        assert not result["all_pass"]
+        eval_checks = [c for c in result["checks"] if "eval_exists" in c["check"] and c["status"] == "fail"]
+        assert len(eval_checks) == 1
+
+    def test_m5_config_hash_mismatch(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m5
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        manifest_path, manifest = _make_m5_sweep_manifest(reports_dir, seeds=[42, 43, 44])
+
+        # Tamper one run's config_hash
+        manifest["runs"][2]["config_hash"] = "different_hash"
+        _write_json(manifest_path, manifest)
+
+        result = semantic_check_m5(reports_dir, schemas_dir_abs)
+        assert not result["all_pass"]
+        hash_checks = [c for c in result["checks"] if "config_hash" in c["check"]]
+        assert any(c["status"] == "fail" for c in hash_checks)
+
+
+class TestM5Integration:
+    """Integration tests for M5 profile."""
+
+    def test_m5_profile_loads(self, tmp_path):
+        """subprocess running --profile m5 can identify 5 items."""
+        reports_dir = str(tmp_path / "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        manifest_path = str(tmp_path / "manifest.yaml")
+
+        profiles = {
+            "m5": {
+                "description": "M5 sweep test",
+                "reports_dir": reports_dir,
+                "items": [
+                    {"name": "m5_sweep_manifest", "path": "m5_sweep_manifest.json",
+                     "schema": os.path.join(schemas_dir_abs, "m5_sweep_manifest.schema.json"), "required": True},
+                    {"name": "m5_leaderboard", "path": "m5_leaderboard.json",
+                     "schema": os.path.join(schemas_dir_abs, "m5_leaderboard.schema.json"), "required": True},
+                    {"name": "m5_leaderboard_md", "path": "m5_leaderboard.md", "schema": "", "required": True},
+                    {"name": "m5_schema_validation", "path": "m5_schema_validation.json", "schema": "", "required": True},
+                    {"name": "m5_schema_validation_md", "path": "m5_schema_validation.md", "schema": "", "required": True},
+                ],
+            }
+        }
+        _write_manifest(manifest_path, profiles)
+
+        result = _run_validator([
+            "--manifest", manifest_path,
+            "--profile", "m5",
+            "--reports-dir", reports_dir,
+            "--schemas-dir", schemas_dir_abs,
+            "--output-json", str(tmp_path / "out.json"),
+            "--output-md", str(tmp_path / "out.md"),
+        ])
+        # Should identify 5 items (all missing, non-strict so exit 2)
+        assert "5 items" in result.stdout, f"stdout:\n{result.stdout}"

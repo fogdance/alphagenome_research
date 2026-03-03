@@ -1,17 +1,28 @@
 # GPU 训练崩溃问题排查报告
 
-**日期**: 2026-03-02
-**环境**: RTX 4060 Ti 16GB / Driver 580.105.08 / CUDA 13.0
-**软件**: JAX 0.9.0.1 + jax-cuda13-plugin 0.9.0.1 + cuDNN 9.19 / Haiku / Flax
-**conda env**: alphatrade
+**日期**: 2026-03-02 (排查) / 2026-03-03 (解决)
+**环境**: RTX 4060 Ti 16GB / Driver 580.105.08
+**conda env**: `alphatrade_cuda12` (JAX 0.9.1 + jax-cuda12-plugin)
 
 ---
 
-## 当前决策
+## 已解决
 
-**单脚本默认 CPU**（train/eval 脚本顶部 fallback `JAX_PLATFORMS=cpu`）。
+**2026-03-03**: 切换到 `alphatrade_cuda12` 环境（CUDA 12 plugin 替代 CUDA 13 plugin）后，所有 GPU 问题已解决：
+- `python script.py` 直接运行 GPU 训练：**通过**
+- GPU + JIT=1：**通过**
+- 不再需要 `python -c` workaround 或 `XLA_FLAGS` hack
 
-**Matrix runner 默认 GPU**（`run_m4_matrix.py` 的 `--gpu` 默认开启）。Matrix runner 内部用 `python -c` + shell 层 `XLA_FLAGS` 调子进程，自动绕过 CUDA 初始化 bug，无需手动设环境变量。
+**运行方式**:
+```bash
+conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH python src/alphatrade/scripts/train_m4_alphatrade.py --smoke --max-steps 3
+```
+
+---
+
+## 历史记录（旧 `alphatrade` env，jax-cuda13-plugin）
+
+**旧环境**: JAX 0.9.0.1 + jax-cuda13-plugin 0.9.0.1 + cuDNN 9.19 / CUDA 13.0
 
 ## 症状
 
