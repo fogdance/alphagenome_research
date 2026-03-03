@@ -553,7 +553,9 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 
 ### sweep 配置中 defaults / overrides 支持的参数
 
-以下参数通过 `run_m5_sweep.py` 传递给 `train_m4_alphatrade.py`：
+以下参数通过 `run_m5_sweep.py` 传递给 `train_m4_alphatrade.py` / `eval_m4_fast.py`：
+
+**训练参数（`_TRAIN_PARAM_MAP`）：**
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -563,10 +565,23 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 | `clip_norm` | 1.0 | 梯度裁剪范数 |
 | `save_every` | 100 | Checkpoint 保存间隔 |
 | `keep_last` | 3 | 保留最近 N 个 checkpoint |
+| `learning_rate` | *config YAML* | 学习率（仅在 overrides 中设置时传递，覆盖 config YAML） |
+| `weight_decay` | *config YAML* | 权重衰减（同上） |
+| `val_every` | *config YAML* | 验证间隔（同上） |
+
+**评估参数（`_EVAL_PARAM_MAP`）：**
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `batch_size` | 128 | 评估 Batch size |
 | `eval_split` | val | 评估数据集划分 |
 | `ckpt_step` | best | 评估用的 checkpoint（best/last） |
 
-> **注意**: `learning_rate`、`weight_decay` 等参数当前未通过 sweep overrides 传递。如需支持新参数，需修改 `run_m5_sweep.py` 中的 `run_single_train()` 函数。
+> **添加新参数**：只需两步——
+> 1. 在 `train_m4_alphatrade.py` 的 `parse_args()` 中添加 CLI 参数
+> 2. 在 `run_m5_sweep.py` 的 `_TRAIN_PARAM_MAP`（或 `_EVAL_PARAM_MAP`）中添加一行 `(yaml_key, cli_flag, default_or_None)`
+>
+> 如果 `default_or_None` 设为 `None`，则该参数仅在 sweep overrides 中显式设置时才传递，训练脚本使用自身或 config YAML 的默认值。
 
 ### 回归判定阈值
 
