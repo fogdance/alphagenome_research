@@ -86,7 +86,7 @@ def get_git_sha() -> str:
 
 
 class M3Dataset:
-    """M3 dataset - loads M2 data and converts to JAX arrays."""
+    """M3 dataset - pre-materializes all windows into contiguous numpy arrays for GPU efficiency."""
 
     def __init__(self, symbols: List[str], processed_root: str, split: str = "train"):
         self.symbols = symbols
@@ -94,9 +94,9 @@ class M3Dataset:
         self.split = split
         self.features = FEATURE_COLS
 
-        # Load bars and indices
-        self.bars_dict = {}
-        self.indices = []
+        # Phase 1: Load bars and collect indices
+        bars_dict = {}
+        raw_indices = []
 
         print(f"\nLoading {split} data...")
         for symbol in symbols:
@@ -113,7 +113,7 @@ class M3Dataset:
             # Extract features and handle NaN
             feature_data = bars_df[self.features].values.astype(np.float32)
             feature_data = np.nan_to_num(feature_data, nan=0.0, posinf=0.0, neginf=0.0)
-            self.bars_dict[symbol] = feature_data
+            bars_dict[symbol] = feature_data
 
             # Load index
             index_path = symbol_dir / f"index_{split}.parquet"
@@ -122,68 +122,86 @@ class M3Dataset:
                 continue
 
             index_df = pd.read_parquet(index_path)
+            n_before = len(raw_indices)
 
-            # Store indices
+            # Store indices (vectorized read)
             for _, row in index_df.iterrows():
-                self.indices.append({
-                    "symbol": symbol,
-                    "x_start": int(row["x_start"]),
-                    "x_end": int(row["x_end"]),
-                    "y_h1": float(row["y_h1"]),
-                    "y_h5": float(row["y_h5"]),
-                    "y_h20": float(row["y_h20"]),
-                    "y_h60": float(row["y_h60"]),
-                })
+                raw_indices.append((
+                    symbol,
+                    int(row["x_start"]),
+                    int(row["x_end"]),
+                    float(row["y_h1"]),
+                    float(row["y_h5"]),
+                    float(row["y_h20"]),
+                    float(row["y_h60"]),
+                ))
 
-            print(f"  {symbol}: {len(bars_df):,} bars, {len(index_df):,} samples")
+            print(f"  {symbol}: {len(bars_df):,} bars, {len(raw_indices) - n_before:,} samples")
 
-        print(f"Total {split} samples: {len(self.indices):,}")
+        n = len(raw_indices)
+        print(f"Total {split} samples: {n:,}")
+
+        # Phase 2: Pre-materialize all windows into contiguous arrays
+        # This eliminates per-batch Python loops and dict lookups
+        if n > 0:
+            lookback = raw_indices[0][2] - raw_indices[0][1] + 1  # x_end - x_start + 1
+            n_features = len(self.features)
+            print(f"Pre-materializing {n:,} windows ({lookback}x{n_features})...", end=" ", flush=True)
+
+            self.all_x = np.empty((n, lookback, n_features), dtype=np.float32)
+            self.all_y = np.empty((n, 4), dtype=np.float32)
+
+            for i, (symbol, x_start, x_end, yh1, yh5, yh20, yh60) in enumerate(raw_indices):
+                self.all_x[i] = bars_dict[symbol][x_start:x_end+1]
+                self.all_y[i, 0] = yh1
+                self.all_y[i, 1] = yh5
+                self.all_y[i, 2] = yh20
+                self.all_y[i, 3] = yh60
+
+            mem_mb = (self.all_x.nbytes + self.all_y.nbytes) / (1024 * 1024)
+            print(f"done ({mem_mb:.1f} MB)")
+        else:
+            self.all_x = np.empty((0, 60, len(self.features)), dtype=np.float32)
+            self.all_y = np.empty((0, 4), dtype=np.float32)
+
+        # Free bars_dict — no longer needed
+        del bars_dict
 
     def __len__(self):
-        return len(self.indices)
+        return len(self.all_x)
 
-    def get_batch(self, indices: List[int]):
-        """Get a batch of samples as JAX arrays."""
-        batch_x = []
-        batch_y = []
-
-        for idx in indices:
-            entry = self.indices[idx]
-            symbol = entry["symbol"]
-            x_start = entry["x_start"]
-            x_end = entry["x_end"]
-
-            # Slice window
-            x = self.bars_dict[symbol][x_start:x_end+1]  # [L, F]
-
-            # Labels (returns for each horizon)
-            y = np.array([
-                entry["y_h1"],
-                entry["y_h5"],
-                entry["y_h20"],
-                entry["y_h60"]
-            ], dtype=np.float32)
-
-            batch_x.append(x)
-            batch_y.append(y)
-
-        # Stack to batch
-        batch_x = np.stack(batch_x, axis=0)  # [B, L, F]
-        batch_y = np.stack(batch_y, axis=0)  # [B, H]
-
-        return jnp.array(batch_x), jnp.array(batch_y)
+    def get_batch(self, indices):
+        """Get a batch of samples as JAX arrays (numpy fancy index → device_put)."""
+        return jax.device_put((self.all_x[indices], self.all_y[indices]))
 
 
 def create_batches(dataset: M3Dataset, batch_size: int, shuffle: bool = False):
-    """Create batches from dataset."""
-    indices = list(range(len(dataset)))
+    """Create batches with 1-step prefetch for GPU overlap."""
+    import threading
+    import queue
 
+    n = len(dataset)
+    indices = np.arange(n)
     if shuffle:
         np.random.shuffle(indices)
 
-    for i in range(0, len(indices), batch_size):
-        batch_indices = indices[i:i+batch_size]
-        yield dataset.get_batch(batch_indices)
+    def _producer(q):
+        for i in range(0, n, batch_size):
+            batch_idx = indices[i:i+batch_size]
+            q.put(dataset.get_batch(batch_idx))
+        q.put(None)  # sentinel
+
+    q = queue.Queue(maxsize=2)
+    t = threading.Thread(target=_producer, args=(q,), daemon=True)
+    t.start()
+
+    while True:
+        item = q.get()
+        if item is None:
+            break
+        yield item
+
+    t.join()
 
 
 def make_train_step(config: schemas.AlphaTradeConfig, optimizer, use_jit: bool = True):
