@@ -14,6 +14,7 @@ AlphaTrade 源码保留在 `alphagenome_research/src/alphatrade` 中；训练、
 alphatrade_runs/<run-name>/
 ├── reports/
 ├── checkpoints/
+├── cache/windows/
 └── artifacts/
 ```
 

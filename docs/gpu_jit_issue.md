@@ -63,27 +63,32 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH python src/alphatrade/scri
 
 ## GPU 使用方式
 
-### 推荐：Matrix Runner（默认 GPU）
+### 推荐：M5/M4 Runner（默认 GPU）
 
 ```bash
-conda run -n alphatrade python src/alphatrade/scripts/run_m4_matrix.py \
+conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
+  python src/alphatrade/scripts/run_m5_sweep.py \
+    --sweep-config configs/sweep/m5.yaml --smoke --resume
+
+conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
+  python src/alphatrade/scripts/run_m4_matrix.py \
     --seeds 42 43 44 --max-steps 500 --smoke
 ```
 
-内部自动用 `python -c` workaround + `XLA_FLAGS` 调子进程。如需强制 CPU 可加 `--no-gpu`。
+内部统一通过 `alphatrade.gpu_launcher` 用 `python -c` workaround + `XLA_FLAGS` 调 train/eval 子进程。如需强制 CPU 可加 `--no-gpu`，但正式训练/评估应使用 GPU；GPU 失败时先定位根因。
 
 ### 手动单脚本（需 shell 层设环境变量）
 
 ```bash
 XLA_FLAGS="--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=" \
 JAX_PLATFORMS=cuda \
-conda run -n alphatrade python -c "
+conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH python -c "
 import sys; sys.argv = ['train', '--smoke', '--max-steps', '1000', '--save-every', '100', '--seed', '42']
 from alphatrade.scripts.train_m4_alphatrade import main; main()
 "
 ```
 
-**注1**: 之前小规模 JIT 测试通过，但全量数据 train_step JIT 仍报 `INTERNAL: the requested functionality is not supported`（CUDA graph capture 失败）。`python -c` workaround 仅解决 autotuner 崩溃，不解决 command buffer 问题。GPU+JIT=0 是当前唯一可用的 GPU 模式。
+**注1**: 当前 `alphatrade_cuda12` 环境下，M4/M5 smoke 已验证 GPU+JIT=1 可跑通。若后续全量训练再次遇到 `INTERNAL: the requested functionality is not supported` 或 CUDA graph capture 相关错误，先定位 JAX/CUDA/XLA 环境；可用 `--jit 0` 做对照排查，但正式训练/评估不应静默回退 CPU。
 
 ## 后续排查方向
 

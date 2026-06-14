@@ -72,6 +72,7 @@ Mainline scripts write to:
 
 - `$ALPHATRADE_RUNS_ROOT/reports`
 - `$ALPHATRADE_RUNS_ROOT/checkpoints`
+- `$ALPHATRADE_RUNS_ROOT/cache/windows`
 - `$ALPHATRADE_RUNS_ROOT/artifacts`
 
 Use a separate root per experiment round, for example

@@ -3,7 +3,9 @@
 M4 Training Script - AlphaTrade v0.2 (JAX)
 
 Long training runs with improved stability tracking.
-Defaults: CPU backend, JIT=0, steps=1000, batch=128.
+Direct script defaults: CPU backend unless JAX_PLATFORMS is set externally,
+JIT=1, steps=1000, batch=128.
+Use run_m5_sweep.py or run_m4_matrix.py for the unified GPU launcher.
 
 GPU usage: set env before running:
     XLA_FLAGS="--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=" \
@@ -31,7 +33,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-import pandas as pd
 import yaml
 from flax.training import checkpoints as flax_ckpt
 
@@ -42,7 +43,7 @@ from alphatrade.core import losses as loss_lib
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
 from alphatrade import runtime_paths
-from alphatrade.training import training
+from alphatrade import window_cache
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
 
@@ -66,6 +67,10 @@ def parse_args():
                         help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
     parser.add_argument("--reports-dir", type=str, default=None,
                         help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--window-cache", type=str, default="auto", choices=["auto", "refresh", "off"],
+                        help="Window cache mode (default: auto)")
+    parser.add_argument("--window-cache-dir", type=str, default=None,
+                        help="Window cache directory (default: <output-root>/cache/windows)")
     # Checkpoint arguments
     parser.add_argument("--ckpt-dir", type=str, default=None, help="Checkpoint directory (default: <output-root>/checkpoints/m4/<run_id>)")
     parser.add_argument("--save-every", type=int, default=100, help="Save checkpoint every N steps (default: 100)")
@@ -97,86 +102,32 @@ def get_git_sha() -> str:
 
 
 class M3Dataset:
-    """M3 dataset - pre-materializes all windows into contiguous numpy arrays for GPU efficiency."""
+    """M3 dataset backed by the shared materialized-window cache."""
 
-    def __init__(self, symbols: List[str], processed_root: str, split: str = "train"):
+    def __init__(
+        self,
+        symbols: List[str],
+        processed_root: str,
+        split: str = "train",
+        cache_dir: str | os.PathLike[str] | None = None,
+        cache_mode: str = "auto",
+    ):
         self.symbols = symbols
         self.processed_root = processed_root
         self.split = split
         self.features = FEATURE_COLS
-
-        # Phase 1: Load bars and collect indices
-        bars_dict = {}
-        raw_indices = []
-
-        print(f"\nLoading {split} data...")
-        for symbol in symbols:
-            symbol_dir = Path(processed_root) / symbol
-
-            # Load bars
-            bars_path = symbol_dir / "bars.parquet"
-            if not bars_path.exists():
-                print(f"  ⚠️  {symbol}: bars.parquet not found, skipping")
-                continue
-
-            bars_df = pd.read_parquet(bars_path)
-
-            # Extract features and handle NaN
-            feature_data = bars_df[self.features].values.astype(np.float32)
-            feature_data = np.nan_to_num(feature_data, nan=0.0, posinf=0.0, neginf=0.0)
-            bars_dict[symbol] = feature_data
-
-            # Load index
-            index_path = symbol_dir / f"index_{split}.parquet"
-            if not index_path.exists():
-                print(f"  ⚠️  {symbol}: index_{split}.parquet not found, skipping")
-                continue
-
-            index_df = pd.read_parquet(index_path)
-            n_before = len(raw_indices)
-
-            # Store indices (vectorized read)
-            for _, row in index_df.iterrows():
-                raw_indices.append((
-                    symbol,
-                    int(row["x_start"]),
-                    int(row["x_end"]),
-                    float(row["y_h1"]),
-                    float(row["y_h5"]),
-                    float(row["y_h20"]),
-                    float(row["y_h60"]),
-                ))
-
-            print(f"  {symbol}: {len(bars_df):,} bars, {len(raw_indices) - n_before:,} samples")
-
-        n = len(raw_indices)
-        print(f"Total {split} samples: {n:,}")
-
-        # Phase 2: Pre-materialize all windows into contiguous arrays
-        # This eliminates per-batch Python loops and dict lookups
-        if n > 0:
-            lookback = raw_indices[0][2] - raw_indices[0][1] + 1  # x_end - x_start + 1
-            n_features = len(self.features)
-            print(f"Pre-materializing {n:,} windows ({lookback}x{n_features})...", end=" ", flush=True)
-
-            self.all_x = np.empty((n, lookback, n_features), dtype=np.float32)
-            self.all_y = np.empty((n, 4), dtype=np.float32)
-
-            for i, (symbol, x_start, x_end, yh1, yh5, yh20, yh60) in enumerate(raw_indices):
-                self.all_x[i] = bars_dict[symbol][x_start:x_end+1]
-                self.all_y[i, 0] = yh1
-                self.all_y[i, 1] = yh5
-                self.all_y[i, 2] = yh20
-                self.all_y[i, 3] = yh60
-
-            mem_mb = (self.all_x.nbytes + self.all_y.nbytes) / (1024 * 1024)
-            print(f"done ({mem_mb:.1f} MB)")
-        else:
-            self.all_x = np.empty((0, 60, len(self.features)), dtype=np.float32)
-            self.all_y = np.empty((0, 4), dtype=np.float32)
-
-        # Free bars_dict — no longer needed
-        del bars_dict
+        self.cached = window_cache.load_or_build(
+            symbols=symbols,
+            processed_root=processed_root,
+            split=split,
+            features=self.features,
+            cache_dir=cache_dir,
+            mode=cache_mode,
+            mmap=False,
+        )
+        self.all_x = self.cached.x
+        self.all_y = self.cached.y
+        self.cache_metadata = self.cached.metadata
 
     def __len__(self):
         return len(self.all_x)
@@ -338,6 +289,11 @@ def main():
     output_root = runtime_paths.resolve_output_root(args.output_root)
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
     checkpoints_root = runtime_paths.checkpoints_dir(args.output_root)
+    window_cache_dir = (
+        Path(args.window_cache_dir).expanduser().resolve()
+        if args.window_cache_dir
+        else runtime_paths.cache_dir(args.output_root) / "windows"
+    )
 
     # Use args directly (no override from config)
     max_steps = args.max_steps
@@ -364,11 +320,24 @@ def main():
     print(f"Seed: {seed}")
     print(f"Output root: {output_root}")
     print(f"Reports dir: {reports_dir}")
+    print(f"Window cache: {args.window_cache} ({window_cache_dir})")
     print(f"{'='*60}")
 
     # Load datasets
-    train_dataset = M3Dataset(symbols, config_dict['paths']['processed_dir'], "train")
-    val_dataset = M3Dataset(symbols, config_dict['paths']['processed_dir'], "val")
+    train_dataset = M3Dataset(
+        symbols,
+        config_dict['paths']['processed_dir'],
+        "train",
+        cache_dir=window_cache_dir,
+        cache_mode=args.window_cache,
+    )
+    val_dataset = M3Dataset(
+        symbols,
+        config_dict['paths']['processed_dir'],
+        "val",
+        cache_dir=window_cache_dir,
+        cache_mode=args.window_cache,
+    )
 
     # Create AlphaTrade config
     # Note: lookback=60 is too short for 6 stages (requires 64x downsample)
@@ -494,9 +463,16 @@ def main():
                 if artifacts_path.exists():
                     with open(artifacts_path, 'r') as f:
                         artifacts = json.load(f)
+                    run_id = artifacts.get("run_id", run_id)
                     best_step = artifacts.get("best_step", 0)
                     best_ckpt_step = artifacts.get("best_ckpt_step", 0)
-                    print(f"  Restored best_step={best_step}, best_ckpt_step={best_ckpt_step} from artifacts.json")
+                    best_val_loss = artifacts.get("best_val_loss", best_val_loss)
+                    print(
+                        "  Restored "
+                        f"run_id={run_id}, best_step={best_step}, "
+                        f"best_ckpt_step={best_ckpt_step}, best_val_loss={best_val_loss} "
+                        "from artifacts.json"
+                    )
             else:
                 print(f"⚠️ No checkpoint found in {resume_ckpt_dir}, starting fresh")
         else:
@@ -591,6 +567,7 @@ def main():
         "config_path": args.config,
         "seed": seed,
         "best_step": best_step,
+        "best_val_loss": float(best_val_loss),
         "best_ckpt_step": best_ckpt_step,
         "last_step": last_step,
         "model_config": {
@@ -629,7 +606,13 @@ def main():
             "feature_cols": FEATURE_COLS,
             "lookback": 60,
             "horizons": [1, 5, 20, 60],
-            "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9]
+            "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
+            "window_cache": {
+                "mode": args.window_cache,
+                "cache_dir": str(window_cache_dir),
+                "train": train_dataset.cache_metadata,
+                "val": val_dataset.cache_metadata,
+            },
         },
         "model": {
             "type": "alphatrade_v0.2",

@@ -77,6 +77,7 @@ export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/default"
 export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
 export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
 export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
+export CACHE="$ALPHATRADE_RUNS_ROOT/cache"
 ```
 
 ### 数据
@@ -101,6 +102,7 @@ alphatrade_runs/
 └── default/
     ├── reports/                     # metrics、leaderboard、schema validation
     ├── checkpoints/                 # 训练 checkpoint
+    ├── cache/windows/               # 训练/评估窗口缓存
     └── artifacts/model_bundle/      # 最终模型 bundle
 ```
 
@@ -110,6 +112,8 @@ alphatrade_runs/
 ```bash
 export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round1"
 ```
+
+M4/M5 训练评估默认通过统一 GPU launcher 启动子进程：清理 `LD_LIBRARY_PATH`、设置 `JAX_PLATFORMS=cuda` 和 JAX CUDA `XLA_FLAGS`。如果 GPU 后端不能初始化，应停止并先定位 CUDA/JAX 环境，而不是静默退回 CPU。
 
 ---
 
@@ -585,9 +589,11 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 | `clip_norm` | 1.0 | 梯度裁剪范数 |
 | `save_every` | 100 | Checkpoint 保存间隔 |
 | `keep_last` | 3 | 保留最近 N 个 checkpoint |
+| `window_cache` | auto | 窗口缓存模式：auto/refresh/off |
 | `learning_rate` | *config YAML* | 学习率（仅在 overrides 中设置时传递，覆盖 config YAML） |
 | `weight_decay` | *config YAML* | 权重衰减（同上） |
 | `val_every` | *config YAML* | 验证间隔（同上） |
+| `window_cache_dir` | `<output-root>/cache/windows` | 显式指定窗口缓存目录 |
 
 **评估参数（`_EVAL_PARAM_MAP`）：**
 
@@ -596,6 +602,8 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 | `batch_size` | 128 | 评估 Batch size |
 | `eval_split` | val | 评估数据集划分 |
 | `ckpt_step` | best | 评估用的 checkpoint（best/last） |
+| `window_cache` | auto | 窗口缓存模式：auto/refresh/off |
+| `window_cache_dir` | `<output-root>/cache/windows` | 显式指定窗口缓存目录 |
 
 > **添加新参数**：只需两步——
 > 1. 在 `train_m4_alphatrade.py` 的 `parse_args()` 中添加 CLI 参数
@@ -645,6 +653,7 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 
 - **安全**: 在同一轮内中断后恢复（配置未变）
 - **安全**: 添加新 experiment 但不修改 defaults 和已有 experiment 的 overrides
+- **安全**: 训练 JSON 已完成但评估 JSON 缺失时，`--resume` 会只补跑 eval
 - **不安全**: 修改了 defaults 或已有 experiment 的 overrides → 必须不带 `--resume`
 
 ### Q: 如何添加新的可调参数（如 learning_rate）？

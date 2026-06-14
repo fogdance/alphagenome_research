@@ -95,3 +95,12 @@ def artifacts_dir(
     return resolve_child_dir(
         output_root=output_root, explicit_dir=explicit_dir, child_name="artifacts"
     )
+
+
+def cache_dir(
+    output_root: str | os.PathLike[str] | None = None,
+    explicit_dir: str | os.PathLike[str] | None = None,
+) -> Path:
+    return resolve_child_dir(
+        output_root=output_root, explicit_dir=explicit_dir, child_name="cache"
+    )

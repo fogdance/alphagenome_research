@@ -51,6 +51,7 @@ A successful `run_iteration.py` execution produces:
 | Per-run train metrics | `$ALPHATRADE_RUNS_ROOT/reports/m5_{exp_id}_seed{seed}_train_metrics.json` | One per (exp_id, seed) |
 | Per-run eval metrics | `$ALPHATRADE_RUNS_ROOT/reports/m5_{exp_id}_seed{seed}_eval_metrics.json` | One per (exp_id, seed) |
 | Per-run markdown | `$ALPHATRADE_RUNS_ROOT/reports/m5_{exp_id}_seed{seed}_{train,eval}_run.md` | Optional human-readable |
+| Window cache | `$ALPHATRADE_RUNS_ROOT/cache/windows/windows_<fingerprint>/` | Shared train/eval materialized windows |
 
 All of the above are validated by the gate step. Missing required files cause `--strict` to fail.
 
@@ -112,7 +113,7 @@ python src/alphatrade/scripts/run_iteration.py \
 
 ### `--resume` safety boundary
 
-`--resume` skips a run if its output files (`m5_{exp_id}_seed{seed}_{train,eval}_metrics.json`) already exist and are valid JSON. It does **not** check whether the existing outputs match the current `config_hash`.
+`--resume` skips a run if its train and eval output files (`m5_{exp_id}_seed{seed}_{train,eval}_metrics.json`) already exist and are valid JSON. If train metrics exist but eval metrics are missing, it reuses the train metrics and runs only eval. It does **not** check whether the existing outputs match the current `config_hash`.
 
 **Rule:** if you change `defaults:` or an experiment's `overrides:`, you **must** run without `--resume` (or delete stale output files) to ensure results reflect the new config. Using `--resume` after a config change will silently reuse stale results.
 

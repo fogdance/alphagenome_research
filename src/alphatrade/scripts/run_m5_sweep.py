@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import yaml
+from alphatrade import gpu_launcher
 from alphatrade import runtime_paths
 
 
@@ -125,6 +126,33 @@ def is_run_complete(exp_id: str, seed: int, reports_dir: str) -> bool:
     return True
 
 
+def get_run_state(exp_id: str, seed: int, reports_dir: str) -> dict:
+    """Return readable train/eval state for finer resume handling."""
+    train_path, eval_path = _run_file_paths(exp_id, seed, reports_dir)
+
+    def _readable_json(path: str) -> bool:
+        if not os.path.exists(path):
+            return False
+        try:
+            with open(path) as f:
+                json.load(f)
+            return True
+        except (json.JSONDecodeError, OSError):
+            return False
+
+    train_complete = _readable_json(train_path)
+    eval_complete = _readable_json(eval_path)
+    run_id = _extract_run_id(train_path) if train_complete else None
+    return {
+        "train_path": train_path,
+        "eval_path": eval_path,
+        "train_complete": train_complete,
+        "eval_complete": eval_complete,
+        "complete": train_complete and eval_complete,
+        "run_id": run_id,
+    }
+
+
 def _extract_run_id(metrics_path: str) -> str:
     """Read run_id from a metrics JSON file."""
     with open(metrics_path) as f:
@@ -132,30 +160,9 @@ def _extract_run_id(metrics_path: str) -> str:
     return data.get("run", {}).get("run_id", "unknown")
 
 
-# ---------------------------------------------------------------------------
-# GPU workaround (same as run_m4_matrix.py)
-# ---------------------------------------------------------------------------
-
-_BASE_ENV = {k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"}
-_GPU_ENV = {
-    **_BASE_ENV,
-    "JAX_PLATFORMS": "cuda",
-    "XLA_FLAGS": "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=",
-}
-
-
 def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
     """Return (cmd, env) for subprocess."""
-    if gpu:
-        argv_str = json.dumps(["run"] + cli_args)
-        code = (
-            f"import sys; sys.argv = {argv_str}; "
-            f"from alphatrade.scripts.{module} import main; main()"
-        )
-        return [sys.executable, "-c", code], _GPU_ENV
-    else:
-        script = f"src/alphatrade/scripts/{module}.py"
-        return [sys.executable, script] + cli_args, None
+    return gpu_launcher.build_module_cmd(module, cli_args, gpu=gpu)
 
 
 # ---------------------------------------------------------------------------
@@ -177,16 +184,20 @@ _TRAIN_PARAM_MAP = [
     ("clip_norm",      "--clip-norm",      1.0),
     ("save_every",     "--save-every",     100),
     ("keep_last",      "--keep-last",      3),
+    ("window_cache",   "--window-cache",   "auto"),
     # Parameters that only pass when explicitly set (override config YAML defaults)
     ("learning_rate",  "--learning-rate",  None),
     ("weight_decay",   "--weight-decay",   None),
     ("val_every",      "--val-every",      None),
+    ("window_cache_dir", "--window-cache-dir", None),
 ]
 
 _EVAL_PARAM_MAP = [
     ("batch_size",     "--batch-size",     128),
     ("eval_split",     "--split",          "val"),
     ("ckpt_step",      "--ckpt-step",      "best"),
+    ("window_cache",   "--window-cache",   "auto"),
+    ("window_cache_dir", "--window-cache-dir", None),
 ]
 
 
@@ -465,10 +476,13 @@ def main():
         exp_id = r["exp_id"]
         seed = r["seed"]
 
-        # Resume check
-        if args.resume and is_run_complete(exp_id, seed, str(reports_dir)):
-            train_path, eval_path = _run_file_paths(exp_id, seed, str(reports_dir))
-            run_id = _extract_run_id(train_path)
+        run_state = get_run_state(exp_id, seed, str(reports_dir)) if args.resume else None
+
+        # Resume check: fully complete run.
+        if run_state and run_state["complete"]:
+            train_path = run_state["train_path"]
+            eval_path = run_state["eval_path"]
+            run_id = run_state["run_id"]
             print(f"[SKIP] {exp_id} seed={seed} — already complete (run_id={run_id})")
             completed_runs.append({
                 "exp_id": exp_id,
@@ -483,14 +497,25 @@ def main():
             continue
 
         try:
-            # Train
-            train_info = run_single_train(
-                r, str(output_root), str(reports_dir), str(checkpoints_dir),
-                args.smoke, args.gpu
-            )
-            if train_info is None:
-                print(f"[SKIP] {exp_id} seed={seed} — training failed, skipping eval")
-                continue
+            if run_state and run_state["train_complete"]:
+                print(
+                    f"[RESUME] {exp_id} seed={seed} — train complete, "
+                    "running missing eval only"
+                )
+                train_info = {
+                    "run_id": run_state["run_id"],
+                    "train_metrics_path": run_state["train_path"],
+                    "train_md_path": None,
+                }
+            else:
+                # Train
+                train_info = run_single_train(
+                    r, str(output_root), str(reports_dir), str(checkpoints_dir),
+                    args.smoke, args.gpu
+                )
+                if train_info is None:
+                    print(f"[SKIP] {exp_id} seed={seed} — training failed, skipping eval")
+                    continue
 
             # Eval
             eval_info = run_single_eval(

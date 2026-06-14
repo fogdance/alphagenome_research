@@ -14,7 +14,6 @@ Usage:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from datetime import datetime
@@ -23,9 +22,10 @@ from typing import List, Dict, Optional
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import runtime_paths
+from alphatrade import gpu_launcher
+from alphatrade import runtime_paths
 
 
 def parse_args():
@@ -54,34 +54,13 @@ def parse_args():
     return parser.parse_args()
 
 
-# ---------------------------------------------------------------------------
-# GPU workaround helpers (see docs/gpu_jit_issue.md)
-# ---------------------------------------------------------------------------
-
-_BASE_ENV = {k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"}
-_GPU_ENV = {
-    **_BASE_ENV,
-    "JAX_PLATFORMS": "cuda",
-    "XLA_FLAGS": "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=",
-}
-
-
 def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
     """Return (cmd, env) for subprocess.
 
     When gpu=True, use ``python -c`` import trick to avoid JAX 0.9 CUDA
     plugin init-order crash (docs/gpu_jit_issue.md).
     """
-    if gpu:
-        argv_str = json.dumps(["run"] + cli_args)
-        code = (
-            f"import sys; sys.argv = {argv_str}; "
-            f"from alphatrade.scripts.{module} import main; main()"
-        )
-        return [sys.executable, "-c", code], _GPU_ENV
-    else:
-        script = f"src/alphatrade/scripts/{module}.py"
-        return [sys.executable, script] + cli_args, None   # inherit env
+    return gpu_launcher.build_module_cmd(module, cli_args, gpu=gpu)
 
 
 # ---------------------------------------------------------------------------

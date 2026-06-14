@@ -19,12 +19,11 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-import pandas as pd
 import yaml
 from flax.training import checkpoints as flax_ckpt
 from scipy.stats import spearmanr
@@ -35,7 +34,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
 from alphatrade import runtime_paths
-from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+from alphatrade import window_cache
+from data_pipeline.feature_schema import FEATURE_COLS
 
 
 def parse_args():
@@ -56,6 +56,10 @@ def parse_args():
                         help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
     parser.add_argument("--reports-dir", type=str, default=None,
                         help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--window-cache", type=str, default="auto", choices=["auto", "refresh", "off"],
+                        help="Window cache mode (default: auto)")
+    parser.add_argument("--window-cache-dir", type=str, default=None,
+                        help="Window cache directory (default: <output-root>/cache/windows)")
     return parser.parse_args()
 
 
@@ -71,67 +75,35 @@ def load_train_metrics(metrics_path: str) -> dict:
 
 
 class M4EvalDataset:
-    """Dataset for M4 evaluation with batch loading support."""
+    """Dataset for M4 evaluation backed by shared cached windows."""
 
-    def __init__(self, symbols: List[str], processed_dir: str, split: str):
+    def __init__(
+        self,
+        symbols: List[str],
+        processed_dir: str,
+        split: str,
+        cache_dir: str | os.PathLike[str] | None = None,
+        cache_mode: str = "auto",
+    ):
         self.symbols = symbols
         self.processed_dir = processed_dir
         self.split = split
-        self.data = []
-        self.symbol_indices = []
-
-        print(f"Loading {split} data...")
-        for symbol in symbols:
-            symbol_dir = Path(processed_dir) / symbol
-            bars_path = symbol_dir / "bars.parquet"
-            index_path = symbol_dir / f"index_{split}.parquet"
-
-            if not bars_path.exists() or not index_path.exists():
-                continue
-
-            bars_df = pd.read_parquet(bars_path)
-            index_df = pd.read_parquet(index_path)
-
-            for _, row in index_df.iterrows():
-                x_start = row['x_start']
-                x_end = row['x_end']
-
-                X = bars_df.iloc[x_start:x_end][FEATURE_COLS].values.astype(np.float32)
-
-                # Get targets for all horizons
-                targets = {}
-                for h in [1, 5, 20, 60]:
-                    y_col = f'y_h{h}'
-                    if y_col in row:
-                        targets[h] = row[y_col]
-
-                self.data.append({
-                    'X': X,
-                    'targets': targets,
-                    'symbol': symbol
-                })
-                self.symbol_indices.append(symbol)
-
-        print(f"Total samples: {len(self.data):,}\n")
+        self.cached = window_cache.load_or_build(
+            symbols=symbols,
+            processed_root=processed_dir,
+            split=split,
+            features=FEATURE_COLS,
+            cache_dir=cache_dir,
+            mode=cache_mode,
+            mmap=True,
+        )
+        self.x = self.cached.x
+        self.y = self.cached.y
+        self.sample_symbols = self.cached.symbols
+        self.cache_metadata = self.cached.metadata
 
     def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx]
-
-    def get_all_data(self):
-        """Get all data as arrays for batched processing."""
-        all_X = []
-        all_targets = []
-        all_symbols = []
-
-        for sample in self.data:
-            all_X.append(sample['X'])
-            all_targets.append(sample['targets'])
-            all_symbols.append(sample['symbol'])
-
-        return np.array(all_X), all_targets, all_symbols
+        return len(self.x)
 
 
 def pinball_loss(y_true: np.ndarray, y_pred: np.ndarray, quantiles: List[float]) -> float:
@@ -177,20 +149,18 @@ def calculate_ic_metrics(y_true: np.ndarray, y_pred_median: np.ndarray) -> Dict[
 
 def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset,
                            horizons: List[int], quantiles: List[float], batch_size: int = 128) -> Dict:
-    """Evaluate model on dataset with batched inference (FAST VERSION)."""
+    """Evaluate model with streamed host→device batches."""
 
-    print(f"Running batched evaluation (batch_size={batch_size})...")
+    print(f"Running streamed batched evaluation (batch_size={batch_size})...")
 
-    # Get all data
-    all_X, all_targets, all_symbols = dataset.get_all_data()
-    N = len(all_X)
+    N = len(dataset)
+    y_all = np.asarray(dataset.y)
+    all_symbols = np.asarray(dataset.sample_symbols)
+    horizon_to_idx = {h: i for i, h in enumerate(window_cache.HORIZONS)}
 
-    print(f"  Loaded {N:,} samples into memory")
-    print(f"  Data shape: {all_X.shape}")
+    print(f"  Samples: {N:,}")
+    print(f"  Data shape: {dataset.x.shape}")
     print(f"  Batches: {(N + batch_size - 1) // batch_size}")
-
-    # Convert to JAX array
-    X_array = jnp.array(all_X)  # [N, 60, 8]
 
     # Batched inference (no JIT: AlphaTradeOutput is not a JAX pytree)
     all_predictions = {h: [] for h in horizons}
@@ -198,9 +168,10 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     print(f"  Running inference...")
     for i in range(0, N, batch_size):
         if i % (batch_size * 10) == 0:
-            print(f"    Progress: {i}/{N} ({100*i//N}%)")
+            pct = 0 if N == 0 else 100 * i // N
+            print(f"    Progress: {i}/{N} ({pct}%)")
 
-        X_batch = X_array[i:i+batch_size]  # [B, 60, 8]
+        X_batch = jax.device_put(dataset.x[i:i+batch_size])
         rng = jax.random.PRNGKey(0)
         output, _ = model_apply_fn(params, state, rng, X_batch)
 
@@ -230,8 +201,7 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
         if len(all_predictions[h]) == 0:
             continue
 
-        # Get targets for this horizon
-        y_true = np.array([t[h] for t in all_targets if h in t])
+        y_true = y_all[:, horizon_to_idx[h]]
         y_pred = all_predictions[h][:len(y_true)]  # [N, Q]
 
         # Pinball loss
@@ -250,7 +220,7 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
 
     # Quantile coverage (use first horizon)
     h_first = horizons[0]
-    y_true_first = np.array([t[h_first] for t in all_targets if h_first in t])
+    y_true_first = y_all[:, horizon_to_idx[h_first]]
     y_pred_first = all_predictions[h_first][:len(y_true_first)]
     coverage = calculate_quantile_coverage(y_true_first, y_pred_first, quantiles)
 
@@ -282,7 +252,7 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
 
             # Get predictions and targets for this symbol
             y_pred_symbol = all_predictions[h][indices]
-            y_true_symbol = np.array([all_targets[i][h] for i in indices if h in all_targets[i]])
+            y_true_symbol = y_all[indices, horizon_to_idx[h]]
 
             if len(y_true_symbol) > 0:
                 pb_loss = pinball_loss(y_true_symbol, y_pred_symbol[:len(y_true_symbol)], quantiles)
@@ -292,7 +262,7 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
             # IC for this symbol
             h_first = horizons[0]
             y_pred_symbol = all_predictions[h_first][indices]
-            y_true_symbol = np.array([all_targets[i][h_first] for i in indices if h_first in all_targets[i]])
+            y_true_symbol = y_all[indices, horizon_to_idx[h_first]]
 
             if len(y_true_symbol) > 0:
                 y_pred_median = y_pred_symbol[:len(y_true_symbol), median_idx]
@@ -328,6 +298,11 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
 def main():
     args = parse_args()
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    window_cache_dir = (
+        Path(args.window_cache_dir).expanduser().resolve()
+        if args.window_cache_dir
+        else runtime_paths.cache_dir(args.output_root) / "windows"
+    )
     train_metrics_path = args.train_metrics or str(reports_dir / "m4_train_metrics.json")
 
     # Load training metrics
@@ -341,6 +316,7 @@ def main():
     print(f"Split: {args.split}")
     print(f"Batch size: {args.batch_size}")
     print(f"Reports dir: {reports_dir}")
+    print(f"Window cache: {args.window_cache} ({window_cache_dir})")
     print(f"Train metrics: {train_metrics_path}")
     print(f"{'='*60}\n")
 
@@ -356,7 +332,13 @@ def main():
             symbols = yaml.safe_load(f)['candidates']
 
     # Load dataset
-    dataset = M4EvalDataset(symbols, config_dict['paths']['processed_dir'], args.split)
+    dataset = M4EvalDataset(
+        symbols,
+        config_dict['paths']['processed_dir'],
+        args.split,
+        cache_dir=window_cache_dir,
+        cache_mode=args.window_cache,
+    )
 
     # Create model
     model_config = train_metrics['model']['config']
@@ -476,7 +458,14 @@ def main():
         "dataset": {
             "split": args.split,
             "symbols": len(symbols),
-            "samples": len(dataset)
+            "samples": len(dataset),
+            "eval_mode": "streamed_batches",
+            "batch_size": args.batch_size,
+            "window_cache": {
+                "mode": args.window_cache,
+                "cache_dir": str(window_cache_dir),
+                **dataset.cache_metadata,
+            },
         },
         **eval_results
     }
