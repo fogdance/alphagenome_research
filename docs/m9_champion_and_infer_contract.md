@@ -1,4 +1,4 @@
-# M9 Champion Bundle + Offline Batch Inference Contract
+# M9 Champion Bundle + Offline Inference + Backtest Contract
 
 **Status**: Active
 **Created**: 2026-03-03
@@ -8,7 +8,7 @@
 
 ## 1. Objective
 
-Select the champion model from the M5 leaderboard, package it into a reproducible bundle, and provide offline batch inference that outputs `predictions.parquet`.
+Select the champion model from the M5 leaderboard, package it into a reproducible bundle, provide offline batch inference that outputs stable `predictions.parquet`, and hand predictions to a lightweight backtest report.
 
 ## 2. Champion Selection Rule
 
@@ -33,6 +33,8 @@ Self-contained directory under `$ALPHATRADE_RUNS_ROOT/artifacts/model_bundle/<mo
 
 Also writes `$ALPHATRADE_RUNS_ROOT/reports/m9_model_bundle_manifest.json` (same content, validated by m9 profile).
 
+The manifest includes `bundle_format_version`, `prediction_schema_version`, `bundle_id`, and a `bundle_files` SHA256 manifest so a deployed bundle can be checked for accidental mutation.
+
 ## 4. predictions.parquet Format
 
 Wide format — one row per (symbol, eob):
@@ -50,7 +52,17 @@ Wide format — one row per (symbol, eob):
 
 Directly slice `bars.parquet` by `eob` timestamp range (not relying on pre-built index files). Create sliding windows with lookback=60, stride=1. Only needs `data/processed/m1_f8/{symbol}/bars.parquet`.
 
-## 6. Reproduction
+## 6. Backtest Handoff
+
+`backtest_predictions.py` consumes `m9_predictions.parquet`, aligns `(symbol, eob)` to `data/processed/m1_f8/{symbol}/bars.parquet`, uses one prediction column such as `h20_q50` as a deterministic direction signal, and writes:
+
+- `$ALPHATRADE_RUNS_ROOT/reports/m9_backtest_metrics.json`
+- `$ALPHATRADE_RUNS_ROOT/reports/m9_backtest_metrics.md`
+- `$ALPHATRADE_RUNS_ROOT/reports/m9_backtest_trades.parquet`
+
+This is intentionally a minimal integration contract, not a full execution simulator.
+
+## 7. Reproduction
 
 ```bash
 export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/default"
@@ -68,12 +80,19 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
   --start 2024-01-02 --end 2024-01-04 \
   --smoke
 
-# 3. Validate M9 gate
+# 3. Backtest predictions handoff
+conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
+  python src/alphatrade/scripts/backtest_predictions.py \
+  --predictions "$ALPHATRADE_RUNS_ROOT/reports/m9_predictions.parquet" \
+  --data-dir data/processed/m1_f8 \
+  --horizon 20 --quantile 0.5
+
+# 4. Validate M9 gate
 conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
   python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --strict
 ```
 
-## 7. Required Reports (M9 Profile)
+## 8. Required Reports (M9 Profile)
 
 | Report | Path | Schema |
 |--------|------|--------|
@@ -81,5 +100,9 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 | m9_infer_metrics | `$ALPHATRADE_RUNS_ROOT/reports/m9_infer_metrics.json` | `m9_infer_metrics.schema.json` |
 | m9_infer_metrics_md | `$ALPHATRADE_RUNS_ROOT/reports/m9_infer_metrics.md` | existence-only |
 | m9_predictions_parquet | `$ALPHATRADE_RUNS_ROOT/reports/m9_predictions.parquet` | existence-only + semantic check |
+| m9_backtest_metrics | `$ALPHATRADE_RUNS_ROOT/reports/m9_backtest_metrics.json` | `m9_backtest_metrics.schema.json` |
+| m9_backtest_metrics_md | `$ALPHATRADE_RUNS_ROOT/reports/m9_backtest_metrics.md` | existence-only |
 
 All items are required. Profile defined in `src/alphatrade/schemas/contracts_manifest.yaml` under `m9`.
+
+`m9_infer_metrics.json` records the actual `batch_size` and JAX backend used for inference (`jax_backend`) so GPU runs can be audited from artifacts.

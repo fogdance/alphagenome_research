@@ -46,6 +46,8 @@ profiles:
       - {name: m9_infer_metrics, path: "m9_infer_metrics.json", schema: "src/alphatrade/schemas/m9_infer_metrics.schema.json", required: true}
       - {name: m9_infer_metrics_md, path: "m9_infer_metrics.md", schema: "", required: true}
       - {name: m9_predictions_parquet, path: "m9_predictions.parquet", schema: "", required: true}
+      - {name: m9_backtest_metrics, path: "m9_backtest_metrics.json", schema: "src/alphatrade/schemas/m9_backtest_metrics.schema.json", required: true}
+      - {name: m9_backtest_metrics_md, path: "m9_backtest_metrics.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"

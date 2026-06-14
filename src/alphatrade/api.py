@@ -508,6 +508,31 @@ def create_service_from_train_state(
   )
 
 
+def create_service_from_bundle(bundle_dir: str) -> AlphaTradeService:
+  """Creates a prediction service from an M9 model bundle.
+
+  Args:
+    bundle_dir: Path to a directory containing bundle_manifest.json,
+      model_config.json, and best/ Flax checkpoint files.
+
+  Returns:
+    AlphaTradeService instance ready for single-window API inference.
+  """
+  from alphatrade import inference
+
+  predictor = inference.AlphaTradeBundlePredictor(bundle_dir)
+  train_state = {
+      "params": predictor.params,
+      "state": predictor.state,
+      "forward": predictor.forward,
+  }
+  return create_service_from_train_state(
+      train_state=train_state,
+      config=predictor.config,
+      model_version=predictor.model_version,
+  )
+
+
 # Example usage functions
 def example_request() -> Dict[str, Any]:
   """Returns an example prediction request.

@@ -8,13 +8,16 @@ Phase 2: Semantic checks (M4 eval↔train cross-validation)
 
 import argparse
 import glob
+import hashlib
 import json
 import os
 import re
 import sys
 import warnings
 from datetime import datetime
+from pathlib import Path
 
+from alphatrade import prediction_schema
 from alphatrade import runtime_paths
 
 try:
@@ -48,6 +51,15 @@ def parse_args():
 def load_json(file_path: str) -> dict:
     with open(file_path, 'r') as f:
         return json.load(f)
+
+
+def sha256_file(path: Path) -> str:
+    """Return sha256 for a file without loading it all into memory."""
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def load_manifest(manifest_path: str) -> dict | None:
@@ -460,7 +472,7 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
     """
     manifest_path = os.path.join(reports_dir, "m9_model_bundle_manifest.json")
     predictions_path = os.path.join(reports_dir, "m9_predictions.parquet")
-    predictions_schema_path = os.path.join(schemas_dir, "m9_predictions.schema.json")
+    backtest_path = os.path.join(reports_dir, "m9_backtest_metrics.json")
 
     checks = []
 
@@ -491,6 +503,34 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
     model_version = manifest.get("model_version", "")
     add("model_version_non_empty", bool(model_version),
         "model_version is empty" if not model_version else "")
+    add("prediction_schema_version_current",
+        manifest.get("prediction_schema_version") == prediction_schema.PREDICTION_SCHEMA_VERSION,
+        f"got {manifest.get('prediction_schema_version')!r}" if manifest.get("prediction_schema_version") != prediction_schema.PREDICTION_SCHEMA_VERSION else "")
+
+    bundle_files = manifest.get("bundle_files", [])
+    if bundle_files and os.path.exists(bundle_path):
+        file_errors = []
+        bundle_root = Path(bundle_path).resolve()
+        for item in bundle_files:
+            rel_path = item.get("path", "")
+            path = (bundle_root / rel_path).resolve()
+            if not path.is_relative_to(bundle_root):
+                file_errors.append(f"path:{rel_path}")
+                continue
+            if not path.exists():
+                file_errors.append(f"missing:{rel_path}")
+                continue
+            if path.stat().st_size != item.get("size_bytes"):
+                file_errors.append(f"size:{rel_path}")
+                continue
+            digest = sha256_file(path)
+            if digest != item.get("sha256"):
+                file_errors.append(f"sha256:{rel_path}")
+        add("bundle_files_match_manifest", len(file_errors) == 0,
+            f"errors: {file_errors[:5]}" if file_errors else "")
+    else:
+        add("bundle_files_present", bool(bundle_files),
+            "bundle_files is empty" if not bundle_files else "")
 
     # Check predictions parquet
     if not os.path.exists(predictions_path):
@@ -513,31 +553,42 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
     add("predictions_rows_gt_0", len(df) > 0,
         f"0 rows" if len(df) == 0 else "")
 
-    # Load logical schema for expected columns
-    expected_cols = None
-    if os.path.exists(predictions_schema_path):
-        try:
-            pred_schema = load_json(predictions_schema_path)
-            expected_cols = pred_schema.get("columns", {}).get("required", [])
-        except Exception:
-            pass
+    issues = prediction_schema.validate_prediction_frame(
+        df,
+        expected_model_version=model_version or None,
+    )
+    missing_issue = next((issue for issue in issues if issue.field == "columns"), None)
+    add("predictions_columns_complete", missing_issue is None,
+        missing_issue.message if missing_issue else "")
+    other_issues = [f"{issue.field}: {issue.message}" for issue in issues if issue.field != "columns"]
+    add("predictions_schema_invariants", len(other_issues) == 0,
+        "; ".join(other_issues[:5]) if other_issues else "")
 
-    if expected_cols:
-        actual_cols = set(df.columns.tolist())
-        missing_cols = [c for c in expected_cols if c not in actual_cols]
-        add("predictions_columns_complete", len(missing_cols) == 0,
-            f"missing: {missing_cols}" if missing_cols else "")
+    # Check backtest handoff metrics if present.
+    if not os.path.exists(backtest_path):
+        add("backtest_metrics_exists", False, f"File not found: {backtest_path}")
+        all_pass = all(c["status"] == "pass" for c in checks)
+        return {"checks": checks, "all_pass": all_pass}
 
-        # Check types for numeric prediction columns
-        pred_col_pattern = [c for c in expected_cols if c.startswith("h")]
-        type_errors = []
-        for col in pred_col_pattern:
-            if col in actual_cols and not pd.api.types.is_float_dtype(df[col]):
-                type_errors.append(f"{col}={df[col].dtype}")
-        add("predictions_column_types", len(type_errors) == 0,
-            f"non-float: {type_errors}" if type_errors else "")
-    else:
-        add("predictions_schema_loaded", False, f"Could not load {predictions_schema_path}")
+    add("backtest_metrics_exists", True)
+    try:
+        backtest = load_json(backtest_path)
+    except Exception as e:
+        add("backtest_metrics_json_load", False, str(e))
+        all_pass = all(c["status"] == "pass" for c in checks)
+        return {"checks": checks, "all_pass": all_pass}
+
+    add("backtest_n_predictions_matches",
+        backtest.get("data", {}).get("n_predictions") == len(df),
+        f"backtest={backtest.get('data', {}).get('n_predictions')} predictions={len(df)}")
+    add("backtest_n_matched_gt_0",
+        backtest.get("data", {}).get("n_matched", 0) > 0,
+        f"n_matched={backtest.get('data', {}).get('n_matched')}")
+    bt_versions = set(backtest.get("model_versions", []))
+    pred_versions = set(df["model_version"].astype(str).unique().tolist())
+    add("backtest_model_versions_match_predictions",
+        bt_versions == pred_versions,
+        f"backtest={sorted(bt_versions)} predictions={sorted(pred_versions)}" if bt_versions != pred_versions else "")
 
     all_pass = all(c["status"] == "pass" for c in checks)
     return {"checks": checks, "all_pass": all_pass}

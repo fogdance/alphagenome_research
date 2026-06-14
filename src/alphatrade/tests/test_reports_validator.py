@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import textwrap
+import hashlib
 
 import pytest
 import yaml
@@ -695,11 +696,27 @@ def _make_m9_predictions_parquet(path, n_rows=10, missing_col=None):
 
 def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
     """Create a minimal valid M9 bundle manifest."""
+    os.makedirs(bundle_path, exist_ok=True)
+    payload_path = os.path.join(bundle_path, "model_config.json")
+    payload = {
+        "lookback_length": 60,
+        "num_features": 8,
+        "horizons": [1, 5, 20, 60],
+        "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
+        "d_model": 256,
+        "num_transformer_layers": 4,
+    }
+    _write_json(payload_path, payload)
+    with open(payload_path, "rb") as f:
+        payload_sha = hashlib.sha256(f.read()).hexdigest()
     manifest = {
         "schema_version": "m9_model_bundle_manifest_v1",
+        "bundle_format_version": "alphatrade_model_bundle_v1",
+        "prediction_schema_version": "m9_predictions_v1",
         "generated_at": "2026-03-03T00:00:00",
         "git_sha": "testsha",
         "model_version": "test_v0.2",
+        "bundle_id": "bundle1234567890",
         "champion_selection": {
             "method": "leaderboard_primary_mean",
             "exp_id": "baseline",
@@ -710,15 +727,15 @@ def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
             "primary_best": 0.123,
             "config_hash": "cfghash_a",
         },
-        "model_config": {
-            "lookback_length": 60,
-            "num_features": 8,
-            "horizons": [1, 5, 20, 60],
-            "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
-            "d_model": 256,
-            "num_transformer_layers": 4,
-        },
+        "model_config": payload,
         "bundle_path": bundle_path,
+        "bundle_files": [
+            {
+                "path": "model_config.json",
+                "size_bytes": os.path.getsize(payload_path),
+                "sha256": payload_sha,
+            }
+        ],
         "checkpoint_source": "/tmp/fake_ckpt",
         "dataset_config": "configs/dataset/m2.yaml",
         "universe": "test",
@@ -728,6 +745,98 @@ def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
     manifest_path = os.path.join(reports_dir, "m9_model_bundle_manifest.json")
     _write_json(manifest_path, manifest)
     return manifest_path, manifest
+
+
+def _make_m9_infer_metrics(reports_dir):
+    """Create a minimal valid M9 inference metrics report."""
+    report = {
+        "schema_version": "m9_infer_metrics_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "git_sha": "testsha",
+        "model_version": "test_v0.2",
+        "bundle_path": os.path.join(reports_dir, "bundle"),
+        "inference": {
+            "symbols": ["DCE.JM"],
+            "n_symbols": 1,
+            "time_range": {"start": "2024-01-02", "end": "2024-01-02"},
+            "n_samples": 10,
+            "n_predictions": 200,
+            "batch_size": 8,
+            "jax_backend": "gpu",
+            "missing_symbols": [],
+            "duration_seconds": 1.25,
+            "samples_per_second": 8.0,
+        },
+        "output": {
+            "predictions_path": os.path.join(reports_dir, "m9_predictions.parquet"),
+            "predictions_rows": 10,
+            "predictions_columns": 23,
+        },
+    }
+    report_path = os.path.join(reports_dir, "m9_infer_metrics.json")
+    _write_json(report_path, report)
+    return report_path, report
+
+
+def _make_m9_backtest_metrics(reports_dir, n_predictions=10, n_matched=10):
+    """Create a minimal valid M9 backtest metrics report."""
+    report = {
+        "schema_version": "m9_backtest_metrics_v1",
+        "generated_at": "2026-03-03T00:00:00",
+        "git_sha": "testsha",
+        "predictions_path": os.path.join(reports_dir, "m9_predictions.parquet"),
+        "data_dir": "data/processed/m1_f8",
+        "model_versions": ["test_v0.2"],
+        "config": {
+            "horizon": 20,
+            "quantile": 0.5,
+            "signal_column": "h20_q50",
+            "threshold": 0.0,
+            "cost_bps": 0.0,
+        },
+        "data": {
+            "n_predictions": n_predictions,
+            "n_matched": n_matched,
+            "n_symbols": 1,
+            "missing_symbols": [],
+            "skipped": {
+                "missing_eob": 0,
+                "insufficient_future": 0,
+                "invalid_close": 0,
+            },
+        },
+        "performance": {
+            "sum_gross_log_return": 0.1,
+            "sum_net_log_return": 0.1,
+            "mean_gross_log_return": 0.01,
+            "mean_net_log_return": 0.01,
+            "win_rate": 0.6,
+            "direction_hit_rate": 0.6,
+            "mean_turnover": 0.2,
+            "sharpe_like": 1.0,
+        },
+        "by_symbol": [
+            {
+                "symbol": "DCE.JM",
+                "n_samples": n_matched,
+                "sum_gross_log_return": 0.1,
+                "sum_net_log_return": 0.1,
+                "mean_gross_log_return": 0.01,
+                "mean_net_log_return": 0.01,
+                "win_rate": 0.6,
+                "direction_hit_rate": 0.6,
+                "mean_turnover": 0.2,
+                "sharpe_like": 1.0,
+            }
+        ],
+        "output": {
+            "trades_path": os.path.join(reports_dir, "m9_backtest_trades.parquet"),
+            "trades_rows": n_matched,
+        },
+    }
+    report_path = os.path.join(reports_dir, "m9_backtest_metrics.json")
+    _write_json(report_path, report)
+    return report_path, report
 
 
 class TestM9SemanticChecks:
@@ -744,6 +853,7 @@ class TestM9SemanticChecks:
         os.makedirs(bundle_dir, exist_ok=True)
         _make_m9_bundle_manifest(reports_dir, bundle_path=bundle_dir)
         _make_m9_predictions_parquet(os.path.join(reports_dir, "m9_predictions.parquet"))
+        _make_m9_backtest_metrics(reports_dir)
 
         result = semantic_check_m9(reports_dir, schemas_dir_abs)
         assert result["all_pass"], f"Checks failed: {[c for c in result['checks'] if c['status'] != 'pass']}"
@@ -761,6 +871,7 @@ class TestM9SemanticChecks:
             os.path.join(reports_dir, "m9_predictions.parquet"),
             missing_col="h1_q10",
         )
+        _make_m9_backtest_metrics(reports_dir)
 
         result = semantic_check_m9(reports_dir, schemas_dir_abs)
         assert not result["all_pass"]
@@ -779,6 +890,30 @@ class TestM9SemanticChecks:
         schema_path = os.path.join(schemas_dir_abs, "m9_model_bundle_manifest.schema.json")
 
         result = validate_report(manifest_path, schema_path)
+        assert result["status"] == "pass", f"Validation failed: {result.get('error')}"
+
+    def test_m9_infer_metrics_valid(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        report_path, _ = _make_m9_infer_metrics(reports_dir)
+        schema_path = os.path.join(schemas_dir_abs, "m9_infer_metrics.schema.json")
+
+        result = validate_report(report_path, schema_path)
+        assert result["status"] == "pass", f"Validation failed: {result.get('error')}"
+
+    def test_m9_backtest_metrics_valid(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        report_path, _ = _make_m9_backtest_metrics(reports_dir)
+        schema_path = os.path.join(schemas_dir_abs, "m9_backtest_metrics.schema.json")
+
+        result = validate_report(report_path, schema_path)
         assert result["status"] == "pass", f"Validation failed: {result.get('error')}"
 
 

@@ -21,8 +21,10 @@ import importlib
 
 _LAZY_EXPORTS = {
     'api': 'alphatrade.api',
+    'inference': 'alphatrade.inference',
     'losses': 'alphatrade.core.losses',
     'model': 'alphatrade.core.model',
+    'prediction_schema': 'alphatrade.prediction_schema',
     'quality_metrics': 'alphatrade.quality_metrics',
     'runtime_paths': 'alphatrade.runtime_paths',
     'schemas': 'alphatrade.core.schemas',

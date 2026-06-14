@@ -26,7 +26,7 @@
     },
     "inference": {
       "type": "object",
-      "required": ["symbols", "n_symbols", "time_range", "n_samples", "n_predictions", "missing_symbols", "duration_seconds", "samples_per_second"],
+      "required": ["symbols", "n_symbols", "time_range", "n_samples", "n_predictions", "batch_size", "jax_backend", "missing_symbols", "duration_seconds", "samples_per_second"],
       "additionalProperties": false,
       "properties": {
         "symbols": {
@@ -53,6 +53,13 @@
         "n_predictions": {
           "type": "integer",
           "minimum": 0
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "jax_backend": {
+          "type": "string"
         },
         "missing_symbols": {
           "type": "array",

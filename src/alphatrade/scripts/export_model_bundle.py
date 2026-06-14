@@ -14,13 +14,16 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
+from alphatrade import prediction_schema
 from alphatrade import runtime_paths
 
 
@@ -42,6 +45,12 @@ def parse_args():
                         help="Output directory for bundles (default: <artifacts-dir>/model_bundle)")
     parser.add_argument("--output-manifest", type=str, default=None,
                         help="Path for the reports manifest copy (default: <reports-dir>/m9_model_bundle_manifest.json)")
+    parser.add_argument("--model-version", type=str, default=None,
+                        help="Override model_version directory/name")
+    parser.add_argument("--overwrite", action="store_true", default=True,
+                        help="Overwrite an existing bundle with the same model_version (default)")
+    parser.add_argument("--no-overwrite", action="store_false", dest="overwrite",
+                        help="Fail if the target bundle directory already exists")
     return parser.parse_args()
 
 
@@ -52,6 +61,68 @@ def get_git_sha() -> str:
         ).decode().strip()
     except Exception:
         return "unknown"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def bundle_file_manifest(bundle_dir: Path) -> list[dict]:
+    """Return content hashes for all versioned bundle payload files."""
+    files = []
+    for path in sorted(bundle_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel_path = path.relative_to(bundle_dir).as_posix()
+        if rel_path == "bundle_manifest.json":
+            continue
+        files.append(
+            {
+                "path": rel_path,
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+        )
+    return files
+
+
+def compute_bundle_id(model_version: str, files: list[dict]) -> str:
+    payload = json.dumps(
+        {"model_version": model_version, "files": files},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def validate_model_version(model_version: str) -> str:
+    """Validate model_version is a single safe directory name."""
+    if not model_version or model_version.strip() != model_version:
+        sys.exit(f"ERROR: invalid model_version: {model_version!r}")
+    if model_version in (".", ".."):
+        sys.exit(f"ERROR: invalid model_version: {model_version!r}")
+    if "/" in model_version or "\\" in model_version:
+        sys.exit("ERROR: model_version must not contain path separators")
+    return model_version
+
+
+def prepare_bundle_dir(output_dir: str, model_version: str, overwrite: bool) -> Path:
+    """Create an empty target bundle directory."""
+    model_version = validate_model_version(model_version)
+    bundle_dir = Path(output_dir).expanduser().resolve() / model_version
+    if bundle_dir.exists():
+        if not overwrite:
+            sys.exit(f"ERROR: bundle already exists: {bundle_dir}")
+        if bundle_dir.is_dir():
+            shutil.rmtree(bundle_dir)
+        else:
+            bundle_dir.unlink()
+    bundle_dir.mkdir(parents=True, exist_ok=False)
+    return bundle_dir
 
 
 def select_champion(leaderboard: dict, exp_id_override: str | None, run_id_override: str | None) -> dict:
@@ -157,37 +228,39 @@ def main():
         model_config = artifacts.get("model_config", {})
 
     # Construct model_version
-    model_version = f"alphatrade_v0.2_{exp_id}_{run_id}"
+    model_version = validate_model_version(args.model_version or f"alphatrade_v0.2_{exp_id}_{run_id}")
     print(f"\nModel version: {model_version}")
 
     # Create bundle directory
-    bundle_dir = os.path.join(output_dir, model_version)
-    os.makedirs(bundle_dir, exist_ok=True)
+    bundle_dir = prepare_bundle_dir(output_dir, model_version, args.overwrite)
 
     # Copy best/ checkpoint dir
-    dest_best = os.path.join(bundle_dir, "best")
-    if os.path.exists(dest_best):
-        shutil.rmtree(dest_best)
+    dest_best = bundle_dir / "best"
     shutil.copytree(best_ckpt_dir, dest_best)
     print(f"  Copied best/ checkpoint")
 
     # Copy artifacts.json
-    shutil.copy2(artifacts_json_path, os.path.join(bundle_dir, "artifacts.json"))
+    shutil.copy2(artifacts_json_path, bundle_dir / "artifacts.json")
     print(f"  Copied artifacts.json")
 
     # Write model_config.json
-    model_config_path = os.path.join(bundle_dir, "model_config.json")
-    with open(model_config_path, 'w') as f:
+    model_config_path = bundle_dir / "model_config.json"
+    with model_config_path.open("w", encoding="utf-8") as f:
         json.dump(model_config, f, indent=2)
     print(f"  Wrote model_config.json")
+    bundle_files = bundle_file_manifest(bundle_dir)
+    bundle_id = compute_bundle_id(model_version, bundle_files)
 
     # Build bundle manifest
     git_sha = get_git_sha()
     bundle_manifest = {
         "schema_version": "m9_model_bundle_manifest_v1",
+        "bundle_format_version": "alphatrade_model_bundle_v1",
+        "prediction_schema_version": prediction_schema.PREDICTION_SCHEMA_VERSION,
         "generated_at": datetime.now().isoformat(),
         "git_sha": git_sha,
         "model_version": model_version,
+        "bundle_id": bundle_id,
         "champion_selection": {
             "method": "leaderboard_primary_mean",
             "exp_id": exp_id,
@@ -199,7 +272,8 @@ def main():
             "config_hash": exp["config_hash"],
         },
         "model_config": model_config,
-        "bundle_path": bundle_dir,
+        "bundle_path": str(bundle_dir),
+        "bundle_files": bundle_files,
         "checkpoint_source": checkpoint_dir,
         "dataset_config": train_metrics.get("dataset", {}).get("config_path", ""),
         "universe": leaderboard.get("universe", ""),
@@ -208,8 +282,8 @@ def main():
     }
 
     # Write bundle_manifest.json inside bundle
-    bundle_manifest_path = os.path.join(bundle_dir, "bundle_manifest.json")
-    with open(bundle_manifest_path, 'w') as f:
+    bundle_manifest_path = bundle_dir / "bundle_manifest.json"
+    with bundle_manifest_path.open("w", encoding="utf-8") as f:
         json.dump(bundle_manifest, f, indent=2)
     print(f"  Wrote bundle_manifest.json")
 

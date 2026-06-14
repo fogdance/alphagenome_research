@@ -4,12 +4,20 @@
   "title": "M9 Model Bundle Manifest Schema",
   "description": "Provenance record for the champion model bundle",
   "type": "object",
-  "required": ["schema_version", "generated_at", "git_sha", "model_version", "champion_selection", "model_config", "bundle_path", "checkpoint_source", "dataset_config", "universe", "expected_seeds", "leaderboard_path"],
+  "required": ["schema_version", "bundle_format_version", "prediction_schema_version", "generated_at", "git_sha", "model_version", "bundle_id", "champion_selection", "model_config", "bundle_path", "bundle_files", "checkpoint_source", "dataset_config", "universe", "expected_seeds", "leaderboard_path"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
       "const": "m9_model_bundle_manifest_v1"
+    },
+    "bundle_format_version": {
+      "type": "string",
+      "const": "alphatrade_model_bundle_v1"
+    },
+    "prediction_schema_version": {
+      "type": "string",
+      "const": "m9_predictions_v1"
     },
     "generated_at": {
       "type": "string",
@@ -21,6 +29,10 @@
     "model_version": {
       "type": "string",
       "description": "e.g. alphatrade_v0.2_batch256_9169f783"
+    },
+    "bundle_id": {
+      "type": "string",
+      "description": "Stable content hash prefix for this exported bundle"
     },
     "champion_selection": {
       "type": "object",
@@ -52,6 +64,19 @@
     "bundle_path": {
       "type": "string",
       "description": "Relative path to bundle directory"
+    },
+    "bundle_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "size_bytes", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string"},
+          "size_bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "minLength": 64, "maxLength": 64}
+        }
+      }
     },
     "checkpoint_source": {
       "type": "string",

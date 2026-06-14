@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m9_backtest_metrics_v1",
+  "title": "M9 Backtest Metrics Schema",
+  "description": "Lightweight backtest metrics for stable prediction parquet outputs",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "git_sha", "predictions_path", "data_dir", "model_versions", "config", "data", "performance", "by_symbol", "output"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "m9_backtest_metrics_v1"
+    },
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "predictions_path": {"type": "string"},
+    "data_dir": {"type": "string"},
+    "model_versions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "config": {
+      "type": "object",
+      "required": ["horizon", "quantile", "signal_column", "threshold", "cost_bps"],
+      "additionalProperties": false,
+      "properties": {
+        "horizon": {"type": "integer", "minimum": 1},
+        "quantile": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "signal_column": {"type": "string"},
+        "threshold": {"type": "number", "minimum": 0},
+        "cost_bps": {"type": "number", "minimum": 0}
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": ["n_predictions", "n_matched", "n_symbols", "missing_symbols", "skipped"],
+      "additionalProperties": false,
+      "properties": {
+        "n_predictions": {"type": "integer", "minimum": 0},
+        "n_matched": {"type": "integer", "minimum": 0},
+        "n_symbols": {"type": "integer", "minimum": 0},
+        "missing_symbols": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "skipped": {
+          "type": "object",
+          "required": ["missing_eob", "insufficient_future", "invalid_close"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_eob": {"type": "integer", "minimum": 0},
+            "insufficient_future": {"type": "integer", "minimum": 0},
+            "invalid_close": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "required": ["sum_gross_log_return", "sum_net_log_return", "mean_gross_log_return", "mean_net_log_return", "win_rate", "direction_hit_rate", "mean_turnover", "sharpe_like"],
+      "additionalProperties": false,
+      "properties": {
+        "sum_gross_log_return": {"type": "number"},
+        "sum_net_log_return": {"type": "number"},
+        "mean_gross_log_return": {"type": "number"},
+        "mean_net_log_return": {"type": "number"},
+        "win_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "direction_hit_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_turnover": {"type": "number", "minimum": 0},
+        "sharpe_like": {"type": "number"}
+      }
+    },
+    "by_symbol": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "n_samples", "sum_gross_log_return", "sum_net_log_return", "mean_gross_log_return", "mean_net_log_return", "win_rate", "direction_hit_rate", "mean_turnover", "sharpe_like"],
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {"type": "string"},
+          "n_samples": {"type": "integer", "minimum": 0},
+          "sum_gross_log_return": {"type": "number"},
+          "sum_net_log_return": {"type": "number"},
+          "mean_gross_log_return": {"type": "number"},
+          "mean_net_log_return": {"type": "number"},
+          "win_rate": {"type": "number", "minimum": 0, "maximum": 1},
+          "direction_hit_rate": {"type": "number", "minimum": 0, "maximum": 1},
+          "mean_turnover": {"type": "number", "minimum": 0},
+          "sharpe_like": {"type": "number"}
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["trades_path", "trades_rows"],
+      "additionalProperties": false,
+      "properties": {
+        "trades_path": {"type": "string"},
+        "trades_rows": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

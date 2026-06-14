@@ -396,7 +396,7 @@ $RUN python src/alphatrade/scripts/gen_m6_baseline_report.py
 
 ## 6. 第四阶段：导出最终模型 → 批量推理
 
-**目标**: 将 leaderboard 排名第一的实验导出为可部署的 model bundle，运行批量推理。
+**目标**: 将 leaderboard 排名第一的实验导出为可部署的 model bundle，运行批量推理，并生成回测接入报告。
 
 ### 6.1 导出 champion bundle
 
@@ -408,16 +408,17 @@ $RUN python src/alphatrade/scripts/export_model_bundle.py
 
 ```bash
 $RUN python src/alphatrade/scripts/export_model_bundle.py \
-  --exp-id batch_256 --run-id 9169f783
+  --exp-id batch_256 --run-id 9169f783 \
+  --model-version alphatrade_v0.2_batch_256_9169f783
 ```
 
 输出：
 - `$ARTIFACTS/model_bundle/alphatrade_v0.2_<exp_id>_<run_id>/` — 模型 bundle
-- `$REPORTS/m9_model_bundle_manifest.json` — 溯源记录
+- `$REPORTS/m9_model_bundle_manifest.json` — 溯源记录，包含 bundle/schema 版本和文件 SHA256 清单
 
 ### 6.2 批量推理
 
-`batch_infer_offline.py` 默认清理 `LD_LIBRARY_PATH`，避免 JAX CUDA 插件加载到错误版本的 cuSPARSE/cuDNN。确实需要保留该变量时，设置 `ALPHATRADE_KEEP_LD_LIBRARY_PATH=1`。
+`batch_infer_offline.py` 默认清理 `LD_LIBRARY_PATH`，避免 JAX CUDA 插件加载到错误版本的 cuSPARSE/cuDNN。确实需要保留该变量时，设置 `ALPHATRADE_KEEP_LD_LIBRARY_PATH=1`。默认设备为 GPU；如 JAX 无法初始化 GPU，脚本会直接失败，先定位 CUDA/JAX 环境问题。
 
 ```bash
 # Smoke test（快速验证）
@@ -438,9 +439,24 @@ $RUN python src/alphatrade/scripts/batch_infer_offline.py \
 
 输出：
 - `$REPORTS/m9_predictions.parquet` — 宽表格式预测（symbol × eob × 20 prediction columns）
-- `$REPORTS/m9_infer_metrics.json` + `.md` — 推理统计
+- `$REPORTS/m9_infer_metrics.json` + `.md` — 推理统计，包含实际 `batch_size` 和 `jax_backend`
 
-### 6.3 最终门禁
+### 6.3 回测接入
+
+```bash
+$RUN python src/alphatrade/scripts/backtest_predictions.py \
+  --predictions "$REPORTS/m9_predictions.parquet" \
+  --data-dir data/processed/m1_f8 \
+  --horizon 20 \
+  --quantile 0.5 \
+  --cost-bps 0.0
+```
+
+输出：
+- `$REPORTS/m9_backtest_metrics.json` + `.md` — 固定 schema 的回测接入报告
+- `$REPORTS/m9_backtest_trades.parquet` — 每个预测样本的方向、realized return 和净收益
+
+### 6.4 最终门禁
 
 ```bash
 $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --strict
@@ -566,6 +582,11 @@ $RUN python src/alphatrade/scripts/batch_infer_offline.py \
   --symbols DCE.JM,SHFE.AG,CZCE.MA \
   --start 2024-01-02 --end 2024-12-31
 
+$RUN python src/alphatrade/scripts/backtest_predictions.py \
+  --predictions "$REPORTS/m9_predictions.parquet" \
+  --data-dir data/processed/m1_f8 \
+  --horizon 20 --quantile 0.5
+
 $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --strict
 
 # ✅ 全流程完成
@@ -689,3 +710,4 @@ symbol | eob | model_version | h1_q10 | h1_q30 | h1_q50 | h1_q70 | h1_q90 | h5_q
 | Schema 验证 | `validate_reports_schema.py` | {profile}_schema_validation.json |
 | 导出 champion | `export_model_bundle.py` | artifacts/model_bundle/ under `ALPHATRADE_RUNS_ROOT` |
 | 批量推理 | `batch_infer_offline.py` | m9_predictions.parquet |
+| 回测接入 | `backtest_predictions.py` | m9_backtest_metrics.json, m9_backtest_trades.parquet |

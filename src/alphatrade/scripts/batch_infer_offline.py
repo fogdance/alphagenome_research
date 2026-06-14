@@ -16,11 +16,43 @@ Usage:
 """
 
 import os as _os
+import sys as _sys
+
+_DEFAULT_XLA_FLAGS = "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer="
 
 if "ALPHATRADE_KEEP_LD_LIBRARY_PATH" not in _os.environ:
     _os.environ.pop("LD_LIBRARY_PATH", None)
+
+
+def _requested_device_before_jax_import(argv: list[str]) -> str:
+    for i, arg in enumerate(argv):
+        if arg == "--device" and i + 1 < len(argv):
+            return _normalize_requested_device(argv[i + 1])
+        if arg.startswith("--device="):
+            return _normalize_requested_device(arg.split("=", 1)[1])
+    return _normalize_requested_device(_os.environ.get("ALPHATRADE_DEVICE", "gpu"))
+
+
+def _normalize_requested_device(value: str) -> str:
+    value = value.lower()
+    if value in ("gpu", "cuda", "auto"):
+        return "gpu"
+    if value == "cpu":
+        return "cpu"
+    return "gpu"
+
+
+_requested_device = _requested_device_before_jax_import(_sys.argv)
 if "JAX_PLATFORMS" not in _os.environ:
-    _os.environ["JAX_PLATFORMS"] = "cpu"
+    if _requested_device in ("gpu", "cuda"):
+        _os.environ["JAX_PLATFORMS"] = "cuda"
+        _os.environ.setdefault("XLA_FLAGS", _DEFAULT_XLA_FLAGS)
+        _os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+    elif _requested_device == "cpu":
+        _os.environ["JAX_PLATFORMS"] = "cpu"
+elif _requested_device in ("gpu", "cuda"):
+    _os.environ.setdefault("XLA_FLAGS", _DEFAULT_XLA_FLAGS)
+    _os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
 
 import argparse
 import json
@@ -32,16 +64,14 @@ from datetime import datetime
 from pathlib import Path
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from flax.training import checkpoints as flax_ckpt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from alphatrade import prediction_schema
 from alphatrade import runtime_paths
-from alphatrade.core import model as model_lib
-from alphatrade.core import schemas
+from alphatrade.inference import AlphaTradeBundlePredictor, load_bundle_metadata
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
 
@@ -65,6 +95,8 @@ def parse_args():
                         help="Output parquet path (default: <reports-dir>/m9_predictions.parquet)")
     parser.add_argument("--batch-size", type=int, default=256,
                         help="Batch size for inference")
+    parser.add_argument("--device", choices=["gpu", "cpu"], default=None,
+                        help="JAX device policy (default: gpu; cpu is for tests/debug only)")
     parser.add_argument("--smoke", action="store_true",
                         help="Smoke mode: limit to first 2 symbols, max 100 samples")
     parser.add_argument("--output-metrics", type=str, default=None,
@@ -83,21 +115,17 @@ def get_git_sha() -> str:
         return "unknown"
 
 
-def load_bundle(bundle_dir: str) -> dict:
-    """Load bundle manifest and model config."""
-    manifest_path = os.path.join(bundle_dir, "bundle_manifest.json")
-    if not os.path.exists(manifest_path):
-        sys.exit(f"ERROR: bundle_manifest.json not found in {bundle_dir}")
-    with open(manifest_path, 'r') as f:
-        manifest = json.load(f)
+def _is_date_only(value: str) -> bool:
+    return len(value) == 10 and value[4] == "-" and value[7] == "-"
 
-    model_config_path = os.path.join(bundle_dir, "model_config.json")
-    if not os.path.exists(model_config_path):
-        sys.exit(f"ERROR: model_config.json not found in {bundle_dir}")
-    with open(model_config_path, 'r') as f:
-        model_config = json.load(f)
 
-    return {"manifest": manifest, "model_config": model_config}
+def _eob_range_mask(eob: pd.Series, start: str, end: str):
+    eob_ts = pd.to_datetime(eob)
+    start_ts = pd.to_datetime(start)
+    end_ts = pd.to_datetime(end)
+    if _is_date_only(end):
+        return (eob_ts >= start_ts) & (eob_ts < end_ts + pd.Timedelta(days=1))
+    return (eob_ts >= start_ts) & (eob_ts <= end_ts)
 
 
 def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end: str):
@@ -107,8 +135,9 @@ def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end:
         windows: np.ndarray of shape [N, lookback, features]
         eob_timestamps: list of eob timestamps for each window
     """
-    # Filter by eob range
-    mask = (bars_df["eob"] >= start) & (bars_df["eob"] <= end)
+    # Date-only end values are treated as inclusive calendar days, matching CLI
+    # examples such as --start 2024-01-02 --end 2024-01-04.
+    mask = _eob_range_mask(bars_df["eob"], start, end)
 
     # We need lookback bars before the start of the range, so find earliest
     # valid window start index
@@ -159,13 +188,23 @@ def main():
     print(f"Reports:     {reports_dir}\n")
 
     # Load bundle
-    bundle = load_bundle(args.bundle)
-    manifest = bundle["manifest"]
-    model_config_dict = bundle["model_config"]
+    try:
+        metadata = load_bundle_metadata(args.bundle)
+    except Exception as e:
+        sys.exit(f"ERROR: failed to load bundle metadata: {e}")
+    manifest = metadata["manifest"]
+    model_config_dict = metadata["model_config"]
     model_version = manifest["model_version"]
 
     print(f"Model version: {model_version}")
     print(f"Bundle: {args.bundle}")
+    print(f"JAX backend: {jax.default_backend()}")
+    device_policy = args.device or _requested_device
+    if device_policy in ("gpu", "cuda") and jax.default_backend() != "gpu":
+        sys.exit(
+            "ERROR: GPU inference requested but JAX did not initialize the GPU "
+            f"backend (got {jax.default_backend()!r})."
+        )
 
     # Parse symbols
     symbols = [s.strip() for s in args.symbols.split(",")]
@@ -173,59 +212,18 @@ def main():
         symbols = symbols[:2]
         print(f"SMOKE mode: limited to {symbols}")
 
-    # Build model config — pass all known fields from bundle config
-    config_kwargs = {
-        "lookback_length": model_config_dict["lookback_length"],
-        "num_features": model_config_dict["num_features"],
-        "horizons": model_config_dict["horizons"],
-        "quantiles": model_config_dict["quantiles"],
-        "d_model": model_config_dict["d_model"],
-        "num_transformer_layers": model_config_dict["num_transformer_layers"],
-    }
-    # Optional fields that may be present in full config
-    for key in ("stem_channels", "num_encoder_stages"):
-        if key in model_config_dict:
-            config_kwargs[key] = model_config_dict[key]
-    alphatrade_config = schemas.AlphaTradeConfig(**config_kwargs)
-
-    lookback = alphatrade_config.lookback_length
-    horizons = alphatrade_config.horizons
-    quantiles = alphatrade_config.quantiles
+    lookback = int(model_config_dict["lookback_length"])
+    horizons = [int(h) for h in model_config_dict["horizons"]]
+    quantiles = [float(q) for q in model_config_dict["quantiles"]]
 
     print(f"Lookback: {lookback}, Horizons: {horizons}, Quantiles: {quantiles}")
 
-    # Initialize model
-    print("\nInitializing model...")
-
-    def forward(x):
-        model = model_lib.AlphaTrade(alphatrade_config)
-        return model(x)
-
-    import haiku as hk
-    forward_t = hk.transform_with_state(lambda x: forward(x))
-
-    rng = jax.random.PRNGKey(42)
-    dummy_x = jnp.zeros((1, lookback, alphatrade_config.num_features), dtype=jnp.float32)
-    params, state = forward_t.init(rng, dummy_x)
-
-    # Restore checkpoint
-    import optax
-    dummy_optimizer = optax.adam(1e-3)
-    opt_state = dummy_optimizer.init(params)
-
-    ckpt_path = str(Path(args.bundle).resolve() / "best")
-    if not os.path.exists(ckpt_path):
-        sys.exit(f"ERROR: best/ checkpoint not found in bundle: {ckpt_path}")
-
-    print(f"Loading checkpoint from: {ckpt_path}")
-    ckpt_state = {"params": params, "state": state, "opt_state": opt_state, "step": 0}
-    restored = flax_ckpt.restore_checkpoint(ckpt_path, ckpt_state)
-    if restored["step"] == 0:
-        sys.exit(f"ERROR: No checkpoint found at {ckpt_path}")
-
-    params = restored["params"]
-    state = restored["state"]
-    print(f"  Loaded checkpoint from step {int(restored['step'])}\n")
+    print("\nLoading bundle predictor...")
+    try:
+        predictor = AlphaTradeBundlePredictor(args.bundle)
+    except Exception as e:
+        sys.exit(f"ERROR: failed to initialize predictor: {e}")
+    print(f"  Loaded checkpoint from step {predictor.checkpoint_step}\n")
 
     # Build sliding windows for each symbol
     print("Loading data and building windows...")
@@ -233,6 +231,7 @@ def main():
     all_eobs = []
     all_symbols_list = []
     missing_symbols = []
+    processed_symbols = []
 
     for symbol in symbols:
         bars_path = os.path.join(args.data_dir, symbol, "bars.parquet")
@@ -248,17 +247,20 @@ def main():
             print(f"  {symbol}: 0 windows in range [{args.start}, {args.end}]")
             continue
 
-        if args.smoke and len(all_windows) > 0:
-            # In smoke mode, limit total samples to 100
+        if args.smoke:
+            # In smoke mode, limit total samples to 100 across all symbols.
             remaining = 100 - sum(w.shape[0] for w in all_windows)
             if remaining <= 0:
                 break
             windows = windows[:remaining]
             eobs = eobs[:remaining]
+            if len(windows) == 0:
+                break
 
         all_windows.append(windows)
         all_eobs.extend(eobs)
         all_symbols_list.extend([symbol] * len(eobs))
+        processed_symbols.append(symbol)
         print(f"  {symbol}: {len(eobs)} windows")
 
     if not all_windows:
@@ -272,21 +274,18 @@ def main():
     print(f"Running inference (batch_size={args.batch_size})...")
     t_start = time.time()
 
-    X_array = jnp.array(X_all)
     all_predictions = {h: [] for h in horizons}
 
     for i in range(0, N, args.batch_size):
         if i % (args.batch_size * 10) == 0:
             print(f"  Progress: {i}/{N} ({100*i//N}%)")
 
-        X_batch = X_array[i:i + args.batch_size]
-        rng = jax.random.PRNGKey(0)
-        output, _ = forward_t.apply(params, state, rng, X_batch)
+        X_batch = X_all[i:i + args.batch_size]
+        batch_predictions = predictor.predict_arrays(X_batch)
 
         for h in horizons:
-            if h in output.log_return_quantiles:
-                preds = np.array(output.log_return_quantiles[h])
-                all_predictions[h].append(preds)
+            if h in batch_predictions:
+                all_predictions[h].append(batch_predictions[h])
 
     print(f"  Progress: {N}/{N} (100%)")
     t_end = time.time()
@@ -300,19 +299,23 @@ def main():
 
     # Build wide-format DataFrame
     print("Building predictions DataFrame...")
-    rows = {
-        "symbol": all_symbols_list,
-        "eob": all_eobs,
-        "model_version": [model_version] * N,
-    }
-
-    for h in horizons:
-        preds = all_predictions[h]
-        for qi, q in enumerate(quantiles):
-            col_name = f"h{h}_q{int(q * 100)}"
-            rows[col_name] = preds[:, qi].astype(np.float64)
-
-    df = pd.DataFrame(rows)
+    df = prediction_schema.build_prediction_frame(
+        symbols=all_symbols_list,
+        eobs=all_eobs,
+        model_version=model_version,
+        predictions_by_horizon=all_predictions,
+        horizons=horizons,
+        quantiles=quantiles,
+    )
+    schema_issues = prediction_schema.validate_prediction_frame(
+        df,
+        horizons=horizons,
+        quantiles=quantiles,
+        expected_model_version=model_version,
+    )
+    if schema_issues:
+        details = "; ".join(f"{issue.field}: {issue.message}" for issue in schema_issues)
+        sys.exit(f"ERROR: prediction schema validation failed: {details}")
 
     # Write parquet
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -328,11 +331,13 @@ def main():
         "model_version": model_version,
         "bundle_path": args.bundle,
         "inference": {
-            "symbols": [s for s in symbols if s not in missing_symbols],
-            "n_symbols": len(symbols) - len(missing_symbols),
+            "symbols": processed_symbols,
+            "n_symbols": len(processed_symbols),
             "time_range": {"start": args.start, "end": args.end},
             "n_samples": N,
             "n_predictions": N * len(horizons) * len(quantiles),
+            "batch_size": args.batch_size,
+            "jax_backend": jax.default_backend(),
             "missing_symbols": missing_symbols,
             "duration_seconds": round(duration, 2),
             "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
@@ -357,10 +362,12 @@ def main():
         f.write("## Model\n\n")
         f.write(f"- Model version: `{model_version}`\n")
         f.write(f"- Bundle: `{args.bundle}`\n")
+        f.write(f"- JAX backend: `{jax.default_backend()}`\n")
         f.write(f"- Git SHA: {git_sha}\n\n")
         f.write("## Inference\n\n")
-        f.write(f"- Symbols: {len(symbols) - len(missing_symbols)}\n")
+        f.write(f"- Symbols: {len(processed_symbols)}\n")
         f.write(f"- Time range: {args.start} to {args.end}\n")
+        f.write(f"- Batch size: {args.batch_size}\n")
         f.write(f"- Samples: {N:,}\n")
         f.write(f"- Predictions: {N * len(horizons) * len(quantiles):,}\n")
         f.write(f"- Duration: {duration:.1f}s\n")
