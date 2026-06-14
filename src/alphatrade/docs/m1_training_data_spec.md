@@ -29,7 +29,7 @@ M1 要解决的问题：
     - `data/processed/m1/{symbol}/bars.parquet`（canonical）
     - `data/processed/m1/{symbol}/index_{train,val,test}.parquet`（样本索引）
     - `data/processed/m1/_stats/*.json`（标准化统计与数据集指纹）
-    - `reports/m1_*.md / reports/m1_*.json`（质量与训练报告）
+    - `$ALPHATRADE_RUNS_ROOT/reports/m1_*.md / $ALPHATRADE_RUNS_ROOT/reports/m1_*.json`（质量与训练报告）
 
 ### Out-of-scope（先不做）
 - continuous->real 的 roll 规则建模（可作为 M0.2 / M2）
@@ -237,8 +237,8 @@ M1 要求输出 dataset 指纹（写入 metrics.json / stats.json）：
 整体（至少）：
 - 能一条命令生成全量 index（或分批执行但可复现）
 - 能跑 smoke train 产出：
-    - `reports/m1_train_metrics.json`
-    - `reports/m1_train_run.md`
+    - `$ALPHATRADE_RUNS_ROOT/reports/m1_train_metrics.json`
+    - `$ALPHATRADE_RUNS_ROOT/reports/m1_train_run.md`
 
 ---
 

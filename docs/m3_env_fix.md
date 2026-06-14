@@ -121,7 +121,7 @@ python src/alphatrade/scripts/train_m3_alphatrade.py \
 
 # 5. 验证 schema
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 

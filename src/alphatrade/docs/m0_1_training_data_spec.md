@@ -108,7 +108,7 @@ Archive Reader 的职责：
 
 ## 6. 可复现性与版本记录（必须写入 metrics）
 
-训练输出 `reports/m0_1_train_metrics.json` 至少包含：
+训练输出 `$ALPHATRADE_RUNS_ROOT/reports/m0_1_train_metrics.json` 至少包含：
 - run：run_id / git_sha / created_at / device / seed
 - dataset：name / config_path / lookback / stride / horizons / features / symbols / 每个 symbol 样本数
 - train/val：loss last + best
@@ -120,7 +120,7 @@ Archive Reader 的职责：
 ## 7. 验收标准（M0.1）
 
 - 一条命令跑完 baseline 训练，稳定产出：
-    - `reports/m0_1_train_metrics.json`
-    - `reports/m0_1_train_run.md`
+    - `$ALPHATRADE_RUNS_ROOT/reports/m0_1_train_metrics.json`
+    - `$ALPHATRADE_RUNS_ROOT/reports/m0_1_train_run.md`
 - dataloader 在线切片工作正常（不物化窗口）
 - train/val loss 正常收敛（smoke 200~1000 steps 即可）

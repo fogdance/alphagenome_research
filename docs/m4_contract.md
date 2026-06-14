@@ -20,7 +20,7 @@ M4 产出两类报告：
 
 ### 1. Training Reports（训练报告）
 
-**文件名**: `reports/m4_train_metrics.json`
+**文件名**: `$ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json`
 
 **Schema**: 复用 `m2_train_metrics.schema.json`
 
@@ -32,7 +32,7 @@ M4 产出两类报告：
 
 ### 2. Evaluation Reports（评估报告）
 
-**文件名**: `reports/m4_eval_metrics.json`
+**文件名**: `$ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json`
 
 **Schema**: 新增 `m4_eval_metrics.schema.json`
 
@@ -58,10 +58,10 @@ train_m4_alphatrade.py
 **验证**:
 ```bash
 # 训练 run_id
-train_run_id=$(jq -r '.run.run_id' reports/m4_train_metrics.json)
+train_run_id=$(jq -r '.run.run_id' $ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json)
 
 # 评估 run_id
-eval_run_id=$(jq -r '.run_id' reports/m4_eval_metrics.json)
+eval_run_id=$(jq -r '.run_id' $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json)
 
 # 必须相等
 [ "$train_run_id" = "$eval_run_id" ] && echo "✅ run_id 一致"
@@ -179,7 +179,7 @@ python src/alphatrade/scripts/run_m4_matrix.py \
 ```bash
 # 评估指定 run_id
 python src/alphatrade/scripts/eval_m4.py \
-  --train-metrics reports/m4_train_metrics.json \
+  --train-metrics $ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json \
   --dataset-config configs/dataset/m2.yaml \
   --split val
 
@@ -196,7 +196,7 @@ python src/alphatrade/scripts/eval_m4.py \
 ```bash
 # 验证所有 M4 报告
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 
@@ -250,27 +250,27 @@ python src/alphatrade/scripts/validate_reports_schema.py \
 ### 必须产出
 
 1. **训练报告**:
-   - `reports/m4_train_metrics.json`
-   - `reports/m4_train_run.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_train_run.md`
 
 2. **评估报告**:
-   - `reports/m4_eval_metrics.json`
-   - `reports/m4_eval_run.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_eval_run.md`
 
 3. **验证报告**:
-   - `reports/m4_schema_validation.json`
-   - `reports/m4_schema_validation.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_schema_validation.json`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_schema_validation.md`
 
 ### 可选产出
 
 4. **Matrix 汇总** (如果运行 matrix):
-   - `reports/m4_matrix_summary.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/m4_matrix_summary.md`
 
 5. **任务总结**:
-   - `reports/M4_T0_SUMMARY.md`
-   - `reports/M4_T1_SUMMARY.md`
-   - `reports/M4_T2_SUMMARY.md`
-   - `reports/M4_T3_SUMMARY.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/M4_T0_SUMMARY.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/M4_T1_SUMMARY.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/M4_T2_SUMMARY.md`
+   - `$ALPHATRADE_RUNS_ROOT/reports/M4_T3_SUMMARY.md`
 
 ---
 
@@ -348,7 +348,7 @@ rank_ic = spearmanr(y_true, y_pred_q50).correlation
 
 ```bash
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 
@@ -362,8 +362,8 @@ Validating m4_eval_metrics... ✅ pass
 
 ```bash
 # 提取 run_id
-train_run_id=$(jq -r '.run.run_id' reports/m4_train_metrics.json)
-eval_run_id=$(jq -r '.run_id' reports/m4_eval_metrics.json)
+train_run_id=$(jq -r '.run.run_id' $ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json)
+eval_run_id=$(jq -r '.run_id' $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json)
 
 # 验证
 if [ "$train_run_id" = "$eval_run_id" ]; then
@@ -378,9 +378,9 @@ fi
 
 ```bash
 # 检查必须字段
-jq -e '.pinball_loss.overall' reports/m4_eval_metrics.json
-jq -e '.quantile_coverage.q50' reports/m4_eval_metrics.json
-jq -e '.by_symbol | length > 0' reports/m4_eval_metrics.json
+jq -e '.pinball_loss.overall' $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json
+jq -e '.quantile_coverage.q50' $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json
+jq -e '.by_symbol | length > 0' $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json
 ```
 
 ---

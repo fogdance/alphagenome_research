@@ -41,7 +41,7 @@ python src/alphatrade/scripts/train_m3_alphatrade.py \
 
 ```bash
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 
@@ -93,7 +93,7 @@ src/alphatrade/schemas/
 ### 输出 (运行后生成)
 
 ```
-reports/
+$ALPHATRADE_RUNS_ROOT/reports/
 ├── m3_train_metrics.json            # 训练指标 (JSON)
 ├── m3_train_run.md                  # 训练报告 (Markdown)
 └── M3_FINAL_ACCEPTANCE.md           # 最终验收 (待生成)
@@ -220,7 +220,7 @@ python -c "import pandas as pd; df = pd.read_parquet('data/processed/m1_f8/DCE.J
 ```bash
 # 验证 M3 输出
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 
 # 预期输出:
@@ -231,13 +231,13 @@ python src/alphatrade/scripts/validate_reports_schema.py \
 
 ```bash
 # 检查 metrics JSON
-cat reports/m3_train_metrics.json | python -m json.tool | head -20
+cat "$ALPHATRADE_RUNS_ROOT/reports/m3_train_metrics.json" | python -m json.tool | head -20
 
 # 检查关键字段
-python -c "import json; m = json.load(open('reports/m3_train_metrics.json')); print(f\"Model: {m['model']['type']}\"); print(f\"Backend: {m['model']['backend']}\"); print(f\"Params: {m['model']['total_params']:,}\")"
+python -c "import json, os; m = json.load(open(os.path.join(os.environ['ALPHATRADE_RUNS_ROOT'], 'reports/m3_train_metrics.json'))); print(f\"Model: {m['model']['type']}\"); print(f\"Backend: {m['model']['backend']}\"); print(f\"Params: {m['model']['total_params']:,}\")"
 
 # 检查 markdown 报告
-head -30 reports/m3_train_run.md
+head -30 "$ALPHATRADE_RUNS_ROOT/reports/m3_train_run.md"
 ```
 
 ---
@@ -432,9 +432,9 @@ python -c "import jax; print(jax.devices())"
 
 - **M3 Training Contract**: `docs/m3_training_contract.md`
 - **M3 Environment Fix**: `docs/m3_env_fix.md`
-- **M3 T1+T2 Summary**: `reports/M3_T1_T2_SUMMARY.md`
-- **M2 Final Acceptance**: `reports/M2_FINAL_ACCEPTANCE.md`
-- **M1 Final Summary**: `reports/M1_FINAL_SUMMARY.md`
+- **M3 T1+T2 Summary**: `$ALPHATRADE_RUNS_ROOT/reports/M3_T1_T2_SUMMARY.md`
+- **M2 Final Acceptance**: `$ALPHATRADE_RUNS_ROOT/reports/M2_FINAL_ACCEPTANCE.md`
+- **M1 Final Summary**: `$ALPHATRADE_RUNS_ROOT/reports/M1_FINAL_SUMMARY.md`
 
 ---
 

@@ -83,7 +83,7 @@ for i in range(0, N, batch_size):  # 89 次循环 (batch_size=128)
 
 ```bash
 python src/alphatrade/scripts/eval_m4.py \
-  --train-metrics reports/m4_train_metrics.json \
+  --train-metrics $ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json \
   --dataset-config configs/dataset/m2.yaml \
   --split val
 ```
@@ -94,7 +94,7 @@ python src/alphatrade/scripts/eval_m4.py \
 
 ```bash
 python src/alphatrade/scripts/eval_m4_fast.py \
-  --train-metrics reports/m4_train_metrics.json \
+  --train-metrics $ALPHATRADE_RUNS_ROOT/reports/m4_train_metrics.json \
   --dataset-config configs/dataset/m2.yaml \
   --split val \
   --batch-size 128
@@ -126,13 +126,13 @@ python src/alphatrade/scripts/eval_m4_fast.py \
 
 ```bash
 # 对比 JSON 输出
-diff reports/m4_eval_metrics.json reports/m4_eval_metrics_fast.json
+diff $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json $ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics_fast.json
 
 # 对比关键指标
 python -c "
 import json
-slow = json.load(open('reports/m4_eval_metrics.json'))
-fast = json.load(open('reports/m4_eval_metrics_fast.json'))
+slow = json.load(open('$ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics.json'))
+fast = json.load(open('$ALPHATRADE_RUNS_ROOT/reports/m4_eval_metrics_fast.json'))
 
 print('Pinball Loss:')
 print(f\"  Slow: {slow['pinball_loss']['overall']:.6f}\")

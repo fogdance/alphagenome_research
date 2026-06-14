@@ -26,7 +26,7 @@ M2 任务已验收通过，为防止后续修改导致 JSON 字段/路径漂移�
 
 **用途**: 训练 metrics 输出（m2_train_metrics_v1）
 
-**对应报告**: `reports/m2_train_metrics.json`
+**对应报告**: `$ALPHATRADE_RUNS_ROOT/reports/m2_train_metrics.json`
 
 **核心字段**:
 - `run`: 运行元信息（run_id, git_sha, created_at, device, seed）
@@ -42,7 +42,7 @@ M2 任务已验收通过，为防止后续修改导致 JSON 字段/路径漂移�
 
 **用途**: Universe 批量评估输出
 
-**对应报告**: `reports/m2_universe_sweep.json`
+**对应报告**: `$ALPHATRADE_RUNS_ROOT/reports/m2_universe_sweep.json`
 
 **核心字段**:
 - `timestamp`: 时间戳
@@ -57,7 +57,7 @@ M2 任务已验收通过，为防止后续修改导致 JSON 字段/路径漂移�
 
 **用途**: Dataloader 验证输出
 
-**对应报告**: `reports/m2_t1_dataloader_check.json`
+**对应报告**: `$ALPHATRADE_RUNS_ROOT/reports/m2_t1_dataloader_check.json`
 
 **核心字段**:
 - `timestamp`: 时间戳
@@ -75,7 +75,7 @@ M2 任务已验收通过，为防止后续修改导致 JSON 字段/路径漂移�
 
 ```bash
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 
@@ -95,8 +95,8 @@ Exit code: 2
 
 ### 生成的报告
 
-- `reports/m2_schema_validation.json` - 机器可读
-- `reports/m2_schema_validation.md` - 人类可读
+- `$ALPHATRADE_RUNS_ROOT/reports/m2_schema_validation.json` - 机器可读
+- `$ALPHATRADE_RUNS_ROOT/reports/m2_schema_validation.md` - 人类可读
 
 ---
 
@@ -219,7 +219,7 @@ Error: 123 is not of type 'string'
 **错误**:
 ```
 ⚠️ missing_report
-Error: Report file not found: reports/xxx.json
+Error: Report file not found: $ALPHATRADE_RUNS_ROOT/reports/xxx.json
 ```
 
 **解决**:
@@ -274,8 +274,8 @@ python src/alphatrade/scripts/validate_reports_schema.py
 ### 相关文档
 
 - `docs/m2_training_data_spec.md` - M2 训练数据规范
-- `reports/M2_FINAL_ACCEPTANCE.md` - M2 最终验收报告
-- `reports/M2_T*_SUMMARY.md` - M2 各子任务总结
+- `$ALPHATRADE_RUNS_ROOT/reports/M2_FINAL_ACCEPTANCE.md` - M2 最终验收报告
+- `$ALPHATRADE_RUNS_ROOT/reports/M2_T*_SUMMARY.md` - M2 各子任务总结
 
 ---
 

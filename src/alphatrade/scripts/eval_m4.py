@@ -466,7 +466,7 @@ def main():
     print(f"{'='*60}")
     print(f"\nNext: Validate schema")
     print(f"  python src/alphatrade/scripts/validate_reports_schema.py \\")
-    print(f"    --reports-dir reports --schemas-dir src/alphatrade/schemas\n")
+    print(f"    --reports-dir {reports_dir} --schemas-dir src/alphatrade/schemas\n")
 
 
 if __name__ == "__main__":

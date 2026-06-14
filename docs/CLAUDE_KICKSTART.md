@@ -38,4 +38,4 @@ python src/alphatrade/scripts/validate_reports_schema.py --profile m4 --strict
 | `docs/reports_governance.md` | 治理规则 + 变更流程         |
 | `docs/Milestone.md` | 里程碑定义               |
 | `src/alphatrade/scripts/validate_reports_schema.py` | Validator 脚本        |
-| `reports/` | 所有实验报告输出，重点是FINAL报告 |
+| `$ALPHATRADE_RUNS_ROOT/reports/` | 所有实验报告输出，重点是FINAL报告 |

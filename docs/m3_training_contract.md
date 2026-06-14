@@ -124,14 +124,14 @@ M3 使用真实的 AlphaTrade v0.2 (JAX) 模型进行训练，替换 M2 的 Simp
 
 ### 1. Metrics JSON
 
-**文件名**: `reports/m3_train_metrics.json`
+**文件名**: `$ALPHATRADE_RUNS_ROOT/reports/m3_train_metrics.json`
 
 **Schema**: `src/alphatrade/schemas/m2_train_metrics.schema.json`
 
 **验证命令**:
 ```bash
 python src/alphatrade/scripts/validate_reports_schema.py \
-  --reports-dir reports \
+  --reports-dir "$ALPHATRADE_RUNS_ROOT/reports" \
   --schemas-dir src/alphatrade/schemas
 ```
 
@@ -139,7 +139,7 @@ python src/alphatrade/scripts/validate_reports_schema.py \
 
 ### 2. Run Markdown
 
-**文件名**: `reports/m3_train_run.md`
+**文件名**: `$ALPHATRADE_RUNS_ROOT/reports/m3_train_run.md`
 
 **内容**:
 - 运行命令（可复制）
@@ -297,7 +297,7 @@ python src/alphatrade/scripts/validate_reports_schema.py \
 
 - `docs/m2_reports_contract.md` - M2 reports schema 契约
 - `docs/m2_training_data_spec.md` - M2 训练数据规范
-- `reports/M2_FINAL_ACCEPTANCE.md` - M2 最终验收报告
+- `$ALPHATRADE_RUNS_ROOT/reports/M2_FINAL_ACCEPTANCE.md` - M2 最终验收报告
 
 ### Schema 文件
 

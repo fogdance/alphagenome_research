@@ -8,11 +8,11 @@
 
 | # | name | path | schema | required |
 |---|------|------|--------|----------|
-| 1 | m5_sweep_manifest | `reports/m5_sweep_manifest.json` | `m5_sweep_manifest.schema.json` | yes |
-| 2 | m5_leaderboard | `reports/m5_leaderboard.json` | `m5_leaderboard.schema.json` | yes |
-| 3 | m5_leaderboard_md | `reports/m5_leaderboard.md` | (existence only) | yes |
-| 4 | m5_schema_validation | `reports/m5_schema_validation.json` | (existence only) | yes |
-| 5 | m5_schema_validation_md | `reports/m5_schema_validation.md` | (existence only) | yes |
+| 1 | m5_sweep_manifest | `$ALPHATRADE_RUNS_ROOT/reports/m5_sweep_manifest.json` | `m5_sweep_manifest.schema.json` | yes |
+| 2 | m5_leaderboard | `$ALPHATRADE_RUNS_ROOT/reports/m5_leaderboard.json` | `m5_leaderboard.schema.json` | yes |
+| 3 | m5_leaderboard_md | `$ALPHATRADE_RUNS_ROOT/reports/m5_leaderboard.md` | (existence only) | yes |
+| 4 | m5_schema_validation | `$ALPHATRADE_RUNS_ROOT/reports/m5_schema_validation.json` | (existence only) | yes |
+| 5 | m5_schema_validation_md | `$ALPHATRADE_RUNS_ROOT/reports/m5_schema_validation.md` | (existence only) | yes |
 
 ---
 
@@ -32,8 +32,8 @@ M5 不再硬编码 seed 文件名。Run 产物路径由 `m5_sweep_manifest.json`
 
 示例 run 产物路径:
 ```
-reports/m5_baseline_seed42_train_metrics.json
-reports/m5_baseline_seed42_eval_metrics.json
+$ALPHATRADE_RUNS_ROOT/reports/m5_baseline_seed42_train_metrics.json
+$ALPHATRADE_RUNS_ROOT/reports/m5_baseline_seed42_eval_metrics.json
 ```
 
 validator 通过 sweep_manifest 中声明的路径动态发现并校验每个 run。

@@ -69,10 +69,10 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 
 | Report | Path | Schema |
 |--------|------|--------|
-| m5_sweep_manifest | `reports/m5_sweep_manifest.json` | `m5_sweep_manifest.schema.json` |
-| m5_leaderboard | `reports/m5_leaderboard.json` | `m5_leaderboard.schema.json` |
-| m5_leaderboard_md | `reports/m5_leaderboard.md` | existence-only |
-| m7_regression_report | `reports/m7_regression_report.json` | `m7_regression_report.schema.json` |
-| m7_regression_report_md | `reports/m7_regression_report.md` | existence-only |
+| m5_sweep_manifest | `$ALPHATRADE_RUNS_ROOT/reports/m5_sweep_manifest.json` | `m5_sweep_manifest.schema.json` |
+| m5_leaderboard | `$ALPHATRADE_RUNS_ROOT/reports/m5_leaderboard.json` | `m5_leaderboard.schema.json` |
+| m5_leaderboard_md | `$ALPHATRADE_RUNS_ROOT/reports/m5_leaderboard.md` | existence-only |
+| m7_regression_report | `$ALPHATRADE_RUNS_ROOT/reports/m7_regression_report.json` | `m7_regression_report.schema.json` |
+| m7_regression_report_md | `$ALPHATRADE_RUNS_ROOT/reports/m7_regression_report.md` | existence-only |
 
 All items are required. Profile defined in `src/alphatrade/schemas/contracts_manifest.yaml` under `m7`.
