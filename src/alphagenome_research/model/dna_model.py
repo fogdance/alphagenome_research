@@ -14,7 +14,7 @@
 
 """Implementation of alphagenome DNAModel interface."""
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 import dataclasses
 import functools
 import os
@@ -48,13 +48,14 @@ from alphagenome_research.model.variant_scoring import gene_mask_extractor
 from alphagenome_research.model.variant_scoring import polyadenylation
 from alphagenome_research.model.variant_scoring import splice_junction
 from alphagenome_research.model.variant_scoring import variant_scoring
+from alphagenome_research.model.variant_scoring.calibration import calibration
 import anndata
 import chex
 import haiku as hk
 import huggingface_hub
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float, Float32, Int32, PyTree, Shaped  # pylint: disable=g-importing-member, g-multiple-import
+from jaxtyping import Array, ArrayLike, Bool, Float, Float32, Int32, PyTree, Shaped  # pylint: disable=g-importing-member, g-multiple-import
 import jmp
 import kagglehub
 from kagglehub import auth as kaggle_auth
@@ -99,10 +100,11 @@ JunctionsApplyFn = Callable[
 
 def extract_predictions(
     predictions: BatchPrediction,
+    requested_outputs: Collection[dna_output.OutputType],
 ) -> Mapping[dna_output.OutputType, BatchPrediction]:
   """Extracts predictions from the model predictions."""
   results = {}
-  for output_type in dna_output.OutputType:
+  for output_type in requested_outputs:
     match output_type:
       case dna_output.OutputType.ATAC:
         prediction = predictions.get('atac', {}).get('predictions_1bp')
@@ -150,19 +152,30 @@ def extract_predictions(
 
 
 @typing.jaxtyped
+@chex.dataclass(frozen=True)
+class _SpliceJunctionVariantMasks:
+  """Container for splicing masks used by predict_variant."""
+
+  splice_sites: Bool[ArrayLike, 'B S 5'] | None
+  reference_genes: Bool[ArrayLike, 'B S 1']
+  indel_masks: variant_scoring.IndelMask
+
+
+@typing.jaxtyped
 def _predict(
     params: hk.Params,
     state: hk.State,
     sequences: Float32[Array, 'B S 4'],
     organism_indices: Int32[Array, 'B'],
     *,
+    requested_outputs: Collection[dna_output.OutputType],
     strand_reindexing: Mapping[dna_output.OutputType, Int32[Array, '_']],
     negative_strand_mask: Bool[Array, 'B'],
     apply_fn: ApplyFn,
 ) -> Mapping[dna_output.OutputType, BatchPrediction]:
   """Maps predictions to output types and optionally reverse complements."""
   predictions = apply_fn(params, state, sequences, organism_indices)
-  predictions = extract_predictions(predictions)
+  predictions = extract_predictions(predictions, requested_outputs)
   predictions = augmentation.reverse_complement(
       predictions,
       negative_strand_mask,
@@ -178,11 +191,12 @@ def _predict_variant(
     state: hk.State,
     reference_sequences: Float32[Array, 'B S 4'],
     alternate_sequences: Float32[Array, 'B S 4'],
-    splice_sites: Bool[Array, 'B S 5'] | None,
+    splice_junction_masks: _SpliceJunctionVariantMasks,
     organism_indices: Int32[Array, 'B'],
     strand_reindexing: Mapping[dna_output.OutputType, Int32[Array, '_']],
     negative_strand_mask: Bool[Array, 'B'],
     *,
+    requested_outputs: Collection[dna_output.OutputType],
     apply_fn: ApplyFn,
     junctions_apply_fn: JunctionsApplyFn,
     num_splice_sites: int,
@@ -207,11 +221,41 @@ def _predict_variant(
       alternate_sequences,
       organism_indices,
   )
+  reference_splice_sites = (
+      reference_predictions['splice_sites_classification']['predictions']
+      * splice_junction_masks.reference_genes
+  )
+  alternate_splice_sites = alternate_predictions['splice_sites_classification'][
+      'predictions'
+  ]
+
+  reference_trunk = reference_predictions['embeddings_1bp']
+  alternate_trunk = alternate_predictions['embeddings_1bp']
+
+  def _align_alt(x):
+    return jax.vmap(variant_scoring.align_alternate)(
+        x, splice_junction_masks.indel_masks
+    )
+
+  is_indel = jnp.any(splice_junction_masks.indel_masks.variant_is_indel)
+
+  alternate_trunk = jax.lax.cond(
+      is_indel, _align_alt, lambda x: x, alternate_trunk
+  )
+
+  if alternate_splice_sites is not None:
+    alternate_splice_sites = jax.lax.cond(
+        is_indel, _align_alt, lambda x: x, alternate_splice_sites
+    )
+    alternate_splice_sites = (
+        alternate_splice_sites * splice_junction_masks.reference_genes
+    )
+
   # Get union of splice site positions across ref and alt.
   ref_and_alt_splice_site_positions = splicing.generate_splice_site_positions(
-      ref=reference_predictions['splice_sites_classification']['predictions'],
-      alt=alternate_predictions['splice_sites_classification']['predictions'],
-      splice_sites=splice_sites,
+      ref=reference_splice_sites,
+      alt=alternate_splice_sites,
+      splice_sites=splice_junction_masks.splice_sites,
       k=num_splice_sites,
       pad_to_length=num_splice_sites,
       threshold=splice_site_threshold,
@@ -219,21 +263,21 @@ def _predict_variant(
   reference_predictions['splice_sites_junction'] = junctions_apply_fn(
       params,
       state,
-      reference_predictions['embeddings_1bp'],
+      reference_trunk,
       ref_and_alt_splice_site_positions,
       organism_indices,
   )
   alternate_predictions['splice_sites_junction'] = junctions_apply_fn(
       params,
       state,
-      alternate_predictions['embeddings_1bp'],
+      alternate_trunk,
       ref_and_alt_splice_site_positions,
       organism_indices,
   )
 
   def _extract_and_rc(predictions):
     return augmentation.reverse_complement(
-        extract_predictions(predictions),
+        extract_predictions(predictions, requested_outputs),
         negative_strand_mask,
         strand_reindexing=strand_reindexing,
         sequence_length=sequence_length,
@@ -338,6 +382,9 @@ class AlphaGenomeModel(dna_model.DnaModel):
       pas_gtfs: Mapping[dna_model.Organism, pd.DataFrame] | None = None,
       num_splice_sites: int = 512,
       splice_site_threshold: float = 0.1,
+      calibration_scorers: (
+          Mapping[dna_model.Organism, calibration.CalibrationScorer] | None
+      ) = None,
       device: jax.Device | None = None,
   ):
     """Initializes the AlphaGenomeModel.
@@ -364,6 +411,8 @@ class AlphaGenomeModel(dna_model.DnaModel):
       num_splice_sites: The maximum number of splice sites that are extracted
         from the splice site classification predictions.
       splice_site_threshold: The threshold to use for splice site prediction.
+      calibration_scorers: Optional mapping of organism to CalibrationScorer. If
+        not provided, calibration will not be available.
       device: Optional device to use for model prediction. If None, the first
         local device will be used.
     """
@@ -382,8 +431,12 @@ class AlphaGenomeModel(dna_model.DnaModel):
     self._one_hot_encoder = one_hot_encoder.DNAOneHotEncoder()
     self._fasta_extractors = fasta_extractors or {}
     self._splice_site_extractors = splice_site_extractors or {}
+    self._calibration_scorers = calibration_scorers or {}
 
-    self._predict = jax.jit(functools.partial(_predict, apply_fn=apply_fn))
+    self._predict = jax.jit(
+        functools.partial(_predict, apply_fn=apply_fn),
+        static_argnames=['requested_outputs'],
+    )
     self._predict_variant = jax.jit(
         functools.partial(
             _predict_variant,
@@ -391,7 +444,8 @@ class AlphaGenomeModel(dna_model.DnaModel):
             junctions_apply_fn=jax.jit(junctions_apply_fn),
             num_splice_sites=num_splice_sites,
             splice_site_threshold=splice_site_threshold,
-        )
+        ),
+        static_argnames=['requested_outputs'],
     )
 
     # Metadata for each organism without padding.
@@ -412,6 +466,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
       )
 
     self._variant_scorers = {}
+    self._gene_mask_extractors = {}
 
     for organism in metadata.keys():
       self._variant_scorers[organism]: dict[
@@ -425,6 +480,16 @@ class AlphaGenomeModel(dna_model.DnaModel):
           ),
       }
       if (gtf := gtfs.get(organism)) is not None:
+        self._gene_mask_extractors[organism] = (
+            gene_mask_extractor.GeneMaskExtractor(
+                gtf=gtf,
+                gene_query_type=(
+                    gene_mask_extractor.GeneQueryType.VARIANT_OVERLAPPING
+                ),
+                gene_mask_type=gene_mask_extractor.GeneMaskType.BODY,
+            )
+        )
+
         gene_scorer = gene_mask.GeneVariantScorer(
             gene_mask_extractor=gene_mask_extractor.GeneMaskExtractor(
                 gtf=gtf,
@@ -442,7 +507,9 @@ class AlphaGenomeModel(dna_model.DnaModel):
         ] = gene_scorer
         self._variant_scorers[organism][
             variant_scorers_lib.BaseVariantScorer.GENE_MASK_SPLICING
-        ] = gene_scorer
+        ] = gene_mask.GeneVariantScorer(
+            gene_mask_extractor=self._gene_mask_extractors[organism]
+        )
         self._variant_scorers[organism][
             variant_scorers_lib.BaseVariantScorer.SPLICE_JUNCTION
         ] = splice_junction.SpliceJunctionVariantScorer(gtf)
@@ -487,6 +554,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
       interval: genome.Interval | None = None,
   ) -> dna_output.Output:
     """Predicts the sequence."""
+    requested_outputs = tuple(set(requested_outputs))
     if ontology_terms is not None:
       ontology_terms = set(
           ontology.from_curie(o) if isinstance(o, str) else o
@@ -495,7 +563,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
     metadata = self._metadata[organism]
     track_masks = metadata_lib.create_track_masks(
         metadata,
-        requested_outputs=set(requested_outputs),
+        requested_outputs=requested_outputs,
         requested_ontologies=ontology_terms,
     )
 
@@ -512,6 +580,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
           self._state,
           sequence,
           organism_index,
+          requested_outputs=requested_outputs,
           negative_strand_mask=jax.device_put(np.asarray([False]), device),
           strand_reindexing=jax.device_put(metadata.strand_reindexing, device),
       )
@@ -534,6 +603,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
       requested_outputs: Iterable[dna_output.OutputType],
       ontology_terms: Iterable[ontology.OntologyTerm | str] | None,
   ) -> dna_output.Output:
+    requested_outputs = tuple(set(requested_outputs))
     if ontology_terms is not None:
       ontology_terms = set(
           ontology.from_curie(o) if isinstance(o, str) else o
@@ -543,7 +613,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
     metadata = self._metadata[organism]
     track_masks = metadata_lib.create_track_masks(
         metadata,
-        requested_outputs=set(requested_outputs),
+        requested_outputs=requested_outputs,
         requested_ontologies=ontology_terms,
     )
 
@@ -560,6 +630,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
           self._state,
           sequence,
           organism_index,
+          requested_outputs=requested_outputs,
           negative_strand_mask=jax.device_put(
               np.asarray([interval.negative_strand]), device
           ),
@@ -585,6 +656,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
       requested_outputs: Iterable[dna_output.OutputType],
       ontology_terms: Iterable[ontology.OntologyTerm | str] | None,
   ) -> dna_output.VariantOutput:
+    requested_outputs = tuple(set(requested_outputs))
     if ontology_terms is not None:
       ontology_terms = set(
           ontology.from_curie(o) if isinstance(o, str) else o
@@ -598,12 +670,29 @@ class AlphaGenomeModel(dna_model.DnaModel):
     metadata = self._metadata[organism]
     track_masks = metadata_lib.create_track_masks(
         metadata,
-        requested_outputs=set(requested_outputs),
+        requested_outputs=requested_outputs,
         requested_ontologies=ontology_terms,
     )
+
+    reference_gene_mask = np.ones((1, interval.width, 1), dtype=bool)
+    if extractor := self._gene_mask_extractors.get(organism):
+      mask, _ = extractor.extract(interval, variant)
+      if mask.size > 0:
+        reference_gene_mask = mask.max(-1, keepdims=True)[np.newaxis]
+
     splice_sites = None
     if splice_site_extractor := self._splice_site_extractors.get(organism):
       splice_sites = splice_site_extractor.extract(interval)[np.newaxis]
+      splice_sites *= reference_gene_mask
+
+    splice_junction_masks = _SpliceJunctionVariantMasks(
+        splice_sites=splice_sites,
+        reference_genes=reference_gene_mask,
+        indel_masks=jax.tree.map(
+            lambda x: x[np.newaxis],
+            variant_scoring.IndelMask.from_variant(variant, interval),
+        ),
+    )
 
     with self._device_context as device, jax.transfer_guard('disallow'):
       reference_sequence = jax.device_put(
@@ -622,13 +711,15 @@ class AlphaGenomeModel(dna_model.DnaModel):
           np.full((1,), convert_to_organism_index(organism), dtype=np.int32),
           device,
       )
+
       reference_predictions, alt_predictions = self._predict_variant(
           self._params,
           self._state,
           reference_sequence,
           alternate_sequence,
-          jax.device_put(splice_sites, device),
+          jax.device_put(splice_junction_masks, device),
           organism_indices,
+          requested_outputs=requested_outputs,
           negative_strand_mask=jax.device_put(
               np.asarray([interval.negative_strand]), device
           ),
@@ -676,8 +767,8 @@ class AlphaGenomeModel(dna_model.DnaModel):
         (1,), convert_to_organism_index(organism), dtype=np.int32
     )
 
-    requested_outputs = set(
-        scorer.requested_output for scorer in interval_scorers
+    requested_outputs = tuple(
+        {scorer.requested_output for scorer in interval_scorers}
     )
 
     track_metadata = self._metadata[organism]
@@ -699,6 +790,7 @@ class AlphaGenomeModel(dna_model.DnaModel):
           strand_reindexing=jax.device_put(
               track_metadata.strand_reindexing, device
           ),
+          requested_outputs=requested_outputs,
       )
       predictions = _filter_predictions(
           predictions,
@@ -773,12 +865,20 @@ class AlphaGenomeModel(dna_model.DnaModel):
     organism_indices = np.full(
         (1,), convert_to_organism_index(organism), dtype=np.int32
     )
+
+    reference_gene_mask = np.zeros((1, interval.width, 1), dtype=bool)
+    if extractor := self._gene_mask_extractors.get(organism):
+      mask, _ = extractor.extract(interval, variant)
+      if mask.size > 0:
+        reference_gene_mask = mask.max(-1, keepdims=True)[np.newaxis]
+
     splice_sites = None
     if splice_site_extractor := self._splice_site_extractors.get(organism):
       splice_sites = splice_site_extractor.extract(interval)[np.newaxis]
+      splice_sites *= reference_gene_mask
 
-    requested_outputs = set(
-        scorer.requested_output for scorer in variant_scorers
+    requested_outputs = tuple(
+        {scorer.requested_output for scorer in variant_scorers}
     )
 
     track_metadata = self._metadata[organism]
@@ -788,6 +888,16 @@ class AlphaGenomeModel(dna_model.DnaModel):
         requested_ontologies=None,
     )
 
+    splice_junction_masks = _SpliceJunctionVariantMasks(
+        splice_sites=splice_sites,
+        reference_genes=reference_gene_mask,
+        indel_masks=jax.tree.map(
+            lambda x: x[np.newaxis],
+            variant_scoring.IndelMask.from_variant(variant, interval),
+        ),
+    )
+    calibration_scorer = self._calibration_scorers.get(organism)
+
     with self._device_context as device, jax.transfer_guard('disallow'):
 
       reference_predictions, alternate_predictions = self._predict_variant(
@@ -795,8 +905,9 @@ class AlphaGenomeModel(dna_model.DnaModel):
           self._state,
           jax.device_put(reference_sequence, device),
           jax.device_put(alternate_sequence, device),
-          jax.device_put(splice_sites, device),
+          jax.device_put(splice_junction_masks, device),
           jax.device_put(organism_indices, device),
+          requested_outputs=requested_outputs,
           negative_strand_mask=jax.device_put(
               np.asarray([interval.negative_strand]), device
           ),
@@ -831,11 +942,10 @@ class AlphaGenomeModel(dna_model.DnaModel):
             settings=scorer_settings,
             track_metadata=output_metadata,
         )
-        masks = jax.device_put(masks, device)
         scores = scorer.score_variant(
             reference_predictions,
             alternate_predictions,
-            masks=masks,
+            masks=jax.device_put(masks, device),
             settings=scorer_settings,
             variant=variant,
             interval=interval,
@@ -849,6 +959,15 @@ class AlphaGenomeModel(dna_model.DnaModel):
         result.uns['interval'] = interval
         result.uns['variant'] = variant
         result.uns['variant_scorer'] = scorer_settings
+
+        if (
+            calibration_scorer is not None
+            and calibration_scorer.has_variant_scorer(scorer_settings.name)
+        ):
+          result.layers['quantiles'] = calibration_scorer.quantile_scores(
+              scorer_settings.name, result
+          )
+
         results.append(result)
 
     return results
@@ -1036,6 +1155,10 @@ class OrganismSettings:
   splice_site_starts_feather_path: str | os.PathLike[str] | None = None
   splice_site_ends_feather_path: str | os.PathLike[str] | None = None
 
+  # Optional path to variant score calibration. If None, variant scores will not
+  # be calibrated.
+  calibration_path: str | os.PathLike[str] | None = None
+
 
 def default_organism_settings() -> (
     Mapping[dna_model.Organism, OrganismSettings]
@@ -1063,6 +1186,7 @@ def default_organism_settings() -> (
               'https://storage.googleapis.com/alphagenome/reference/gencode/'
               'hg38/gencode.v46.splice_sites_ends.feather'
           ),
+          calibration_path='gs:///alphagenome/data/hg38/calibration_scores.pb',
       ),
       dna_model.Organism.MUS_MUSCULUS: OrganismSettings(
           fasta_path=(
@@ -1082,6 +1206,7 @@ def default_organism_settings() -> (
               'https://storage.googleapis.com/alphagenome/reference/gencode/'
               'mm10/gencode.vM23.splice_sites_ends.feather'
           ),
+          calibration_path=None,
       ),
   }
 
@@ -1190,15 +1315,17 @@ def create(
   metadata = {}
   fasta_extractors = {}
   splice_site_extractors = {}
+  calibration_scorers = {}
   gtfs = {}
   pas_gtfs = {}
+  validate_checkpoint = True
 
   for organism, settings in organism_settings.items():
-    metadata[organism] = (
-        settings.metadata
-        if settings.metadata is not None
-        else metadata_lib.load(organism)
-    )
+    if settings.metadata is not None:
+      metadata[organism] = settings.metadata
+      validate_checkpoint = False
+    else:
+      metadata[organism] = metadata_lib.load(organism)
 
     if settings.fasta_path is not None:
       fasta_extractors[organism] = fasta.FastaExtractor(settings.fasta_path)
@@ -1217,6 +1344,10 @@ def create(
               ),
           )
       )
+    if settings.calibration_path is not None:
+      calibration_scorers[organism] = calibration.load(
+          settings.calibration_path
+      )
 
   init_fn, apply_fn, junctions_apply_fn = create_model(
       metadata,
@@ -1226,12 +1357,14 @@ def create(
 
   dna_sequence_shape = jax.ShapeDtypeStruct((1, 2048, 4), dtype=jnp.float32)
   organism_index_shape = jax.ShapeDtypeStruct((1,), dtype=jnp.int32)
-  params_shapes, state_shapes = jax.eval_shape(
+  target_shapes = jax.eval_shape(
       init_fn, jax.random.PRNGKey(0), dna_sequence_shape, organism_index_shape
   )
   checkpointer = ocp.StandardCheckpointer()
   params, state = checkpointer.restore(
-      checkpoint_path, target=(params_shapes, state_shapes), strict=True
+      checkpoint_path,
+      target=target_shapes if validate_checkpoint else None,
+      strict=validate_checkpoint,
   )
 
   return AlphaGenomeModel(
@@ -1246,6 +1379,7 @@ def create(
       pas_gtfs=pas_gtfs,
       num_splice_sites=model_settings.num_splice_sites,
       splice_site_threshold=model_settings.splice_site_threshold,
+      calibration_scorers=calibration_scorers,
       device=device,
   )
 
@@ -1254,7 +1388,7 @@ def create_from_kaggle(
     model_version: str | ModelVersion,
     *,
     organism_settings: (
-        Mapping[dna_model.Organism, AlphaGenomeOutputMetadata] | None
+        Mapping[dna_model.Organism, OrganismSettings] | None
     ) = None,
     device: jax.Device | None = None,
 ) -> AlphaGenomeModel:
@@ -1288,7 +1422,7 @@ def create_from_huggingface(
     model_version: str | ModelVersion,
     *,
     organism_settings: (
-        Mapping[dna_model.Organism, AlphaGenomeOutputMetadata] | None
+        Mapping[dna_model.Organism, OrganismSettings] | None
     ) = None,
     device: jax.Device | None = None,
 ) -> AlphaGenomeModel:
