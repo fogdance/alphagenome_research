@@ -139,19 +139,26 @@ class M3Dataset:
 
 def create_batches(dataset: M3Dataset, batch_size: int, shuffle: bool = False):
     """Create batches with 1-step prefetch for GPU overlap."""
-    import threading
     import queue
+    import threading
+    import traceback
 
     n = len(dataset)
     indices = np.arange(n)
     if shuffle:
         np.random.shuffle(indices)
 
+    producer_error = []
+
     def _producer(q):
-        for i in range(0, n, batch_size):
-            batch_idx = indices[i:i+batch_size]
-            q.put(dataset.get_batch(batch_idx))
-        q.put(None)  # sentinel
+        try:
+            for i in range(0, n, batch_size):
+                batch_idx = indices[i:i+batch_size]
+                q.put(dataset.get_batch(batch_idx))
+        except Exception as exc:
+            producer_error.append((exc, traceback.format_exc()))
+        finally:
+            q.put(None)  # sentinel
 
     q = queue.Queue(maxsize=2)
     t = threading.Thread(target=_producer, args=(q,), daemon=True)
@@ -159,11 +166,18 @@ def create_batches(dataset: M3Dataset, batch_size: int, shuffle: bool = False):
 
     while True:
         item = q.get()
+        if producer_error:
+            t.join()
+            exc, tb = producer_error[0]
+            raise RuntimeError(f"Batch prefetch failed:\n{tb}") from exc
         if item is None:
             break
         yield item
 
     t.join()
+    if producer_error:
+        exc, tb = producer_error[0]
+        raise RuntimeError(f"Batch prefetch failed:\n{tb}") from exc
 
 
 def make_train_step(config: schemas.AlphaTradeConfig, optimizer, use_jit: bool = True):

@@ -116,6 +116,19 @@ def pinball_loss(y_true: np.ndarray, y_pred: np.ndarray, quantiles: List[float])
     return np.mean(losses)
 
 
+def pinball_loss_sum_count(y_true: np.ndarray, y_pred: np.ndarray,
+                           quantiles: List[float]) -> tuple[float, int]:
+    """Return summed pinball loss and element count for streaming metrics."""
+    total = 0.0
+    count = 0
+    for i, q in enumerate(quantiles):
+        error = y_true - y_pred[:, i]
+        loss = np.where(error >= 0, q * error, (q - 1) * error)
+        total += float(loss.sum())
+        count += int(loss.size)
+    return total, count
+
+
 def calculate_quantile_coverage(y_true: np.ndarray, y_pred: np.ndarray, quantiles: List[float]) -> Dict[str, float]:
     """Calculate actual coverage rate for each quantile."""
     coverage = {}
@@ -131,7 +144,7 @@ def calculate_quantile_crossing(y_pred: np.ndarray) -> Dict[str, float]:
     total = y_pred.shape[0] * (y_pred.shape[1] - 1)
 
     return {
-        "rate": float(crossings / total),
+        "rate": float(crossings / total) if total else 0.0,
         "count": int(crossings)
     }
 
@@ -154,16 +167,59 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     print(f"Running streamed batched evaluation (batch_size={batch_size})...")
 
     N = len(dataset)
+    if N == 0:
+        raise ValueError(
+            f"No samples available for eval split '{dataset.split}' "
+            f"across {len(dataset.symbols)} symbols"
+        )
+    if batch_size <= 0:
+        raise ValueError(f"batch_size must be positive, got {batch_size}")
+
     y_all = np.asarray(dataset.y)
     all_symbols = np.asarray(dataset.sample_symbols)
     horizon_to_idx = {h: i for i, h in enumerate(window_cache.HORIZONS)}
+    missing_horizons = [h for h in horizons if h not in horizon_to_idx]
+    if missing_horizons:
+        raise ValueError(f"Unsupported horizons requested: {missing_horizons}")
 
     print(f"  Samples: {N:,}")
     print(f"  Data shape: {dataset.x.shape}")
     print(f"  Batches: {(N + batch_size - 1) // batch_size}")
 
-    # Batched inference (no JIT: AlphaTradeOutput is not a JAX pytree)
-    all_predictions = {h: [] for h in horizons}
+    # Batched inference (no JIT: AlphaTradeOutput is not a JAX pytree).
+    # Metrics are accumulated per batch; only median predictions are retained
+    # for IC/rank-IC, which require full-series correlation.
+    median_idx = len(quantiles) // 2
+    pinball_sum = {h: 0.0 for h in horizons}
+    pinball_count = {h: 0 for h in horizons}
+    predicted_count = {h: 0 for h in horizons}
+    y_chunks = {h: [] for h in horizons}
+    median_pred_chunks = {h: [] for h in horizons}
+
+    h_first = horizons[0]
+    coverage_counts = np.zeros(len(quantiles), dtype=np.int64)
+    coverage_total = 0
+    crossing_count = 0
+    crossing_total = 0
+
+    symbol_order = []
+    symbol_stats = {}
+
+    def _symbol_stats(symbol):
+        key = str(symbol)
+        if key not in symbol_stats:
+            symbol_order.append(key)
+            symbol_stats[key] = {
+                "samples": 0,
+                "pinball_sum": {h: 0.0 for h in horizons},
+                "pinball_count": {h: 0 for h in horizons},
+                "first_y": [],
+                "first_pred": [],
+            }
+        return symbol_stats[key]
+
+    for symbol in all_symbols:
+        _symbol_stats(symbol)["samples"] += 1
 
     print(f"  Running inference...")
     for i in range(0, N, batch_size):
@@ -171,7 +227,9 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
             pct = 0 if N == 0 else 100 * i // N
             print(f"    Progress: {i}/{N} ({pct}%)")
 
-        X_batch = jax.device_put(dataset.x[i:i+batch_size])
+        end = min(i + batch_size, N)
+        X_batch = jax.device_put(dataset.x[i:end])
+        batch_symbols = all_symbols[i:end]
         rng = jax.random.PRNGKey(0)
         output, _ = model_apply_fn(params, state, rng, X_batch)
 
@@ -179,16 +237,45 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
         for h in horizons:
             if h in output.log_return_quantiles:
                 # [B, Q]
-                preds = np.array(output.log_return_quantiles[h])
-                all_predictions[h].append(preds)
+                preds = np.asarray(output.log_return_quantiles[h])
+                y_true = y_all[i:end, horizon_to_idx[h]]
+                loss_sum, loss_count = pinball_loss_sum_count(y_true, preds, quantiles)
+                pinball_sum[h] += loss_sum
+                pinball_count[h] += loss_count
+                predicted_count[h] += int(preds.shape[0])
+                y_chunks[h].append(y_true)
+                median_pred_chunks[h].append(preds[:, median_idx])
+
+                if h == h_first:
+                    coverage_counts += (y_true[:, None] < preds).sum(axis=0)
+                    coverage_total += int(y_true.shape[0])
+                    if preds.shape[1] > 1:
+                        crossing_count += int((preds[:, 1:] < preds[:, :-1]).sum())
+                        crossing_total += int(preds.shape[0] * (preds.shape[1] - 1))
+
+                for symbol in np.unique(batch_symbols):
+                    symbol_mask = batch_symbols == symbol
+                    stats = _symbol_stats(symbol)
+                    sym_loss_sum, sym_loss_count = pinball_loss_sum_count(
+                        y_true[symbol_mask],
+                        preds[symbol_mask],
+                        quantiles,
+                    )
+                    stats["pinball_sum"][h] += sym_loss_sum
+                    stats["pinball_count"][h] += sym_loss_count
+                    if h == h_first:
+                        stats["first_y"].append(y_true[symbol_mask])
+                        stats["first_pred"].append(preds[symbol_mask, median_idx])
 
     print(f"    Progress: {N}/{N} (100%)")
     print(f"  ✓ Inference complete\n")
 
-    # Concatenate all predictions
-    for h in horizons:
-        if all_predictions[h]:
-            all_predictions[h] = np.concatenate(all_predictions[h], axis=0)  # [N, Q]
+    missing_predictions = [h for h in horizons if predicted_count[h] != N]
+    if missing_predictions:
+        raise ValueError(
+            "Model did not return predictions for all samples at horizons: "
+            f"{missing_predictions}"
+        )
 
     # Calculate metrics
     print("Calculating metrics...")
@@ -198,20 +285,12 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     ic_by_horizon = {}
 
     for h in horizons:
-        if len(all_predictions[h]) == 0:
-            continue
-
-        y_true = y_all[:, horizon_to_idx[h]]
-        y_pred = all_predictions[h][:len(y_true)]  # [N, Q]
-
-        # Pinball loss
-        pb_loss = pinball_loss(y_true, y_pred, quantiles)
+        pb_loss = pinball_sum[h] / pinball_count[h] if pinball_count[h] else 0.0
         by_horizon_pinball[f"h{h}"] = float(pb_loss)
         overall_pinball.append(pb_loss)
 
-        # IC metrics (using median = q50)
-        median_idx = len(quantiles) // 2
-        y_pred_median = y_pred[:, median_idx]
+        y_true = np.concatenate(y_chunks[h], axis=0)
+        y_pred_median = np.concatenate(median_pred_chunks[h], axis=0)
         ic_metrics = calculate_ic_metrics(y_true, y_pred_median)
         ic_by_horizon[f"h{h}"] = ic_metrics["ic"]
 
@@ -219,53 +298,40 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     overall_pb = float(np.mean(overall_pinball)) if overall_pinball else 0.0
 
     # Quantile coverage (use first horizon)
-    h_first = horizons[0]
-    y_true_first = y_all[:, horizon_to_idx[h_first]]
-    y_pred_first = all_predictions[h_first][:len(y_true_first)]
-    coverage = calculate_quantile_coverage(y_true_first, y_pred_first, quantiles)
+    coverage = {
+        f"q{int(q*100)}": float(coverage_counts[i] / coverage_total)
+        for i, q in enumerate(quantiles)
+    }
 
     # Quantile crossing
-    crossing = calculate_quantile_crossing(y_pred_first)
+    crossing = {
+        "rate": float(crossing_count / crossing_total) if crossing_total else 0.0,
+        "count": int(crossing_count),
+    }
 
     # IC metrics (overall)
-    median_idx = len(quantiles) // 2
-    y_pred_median = y_pred_first[:, median_idx]
+    y_true_first = np.concatenate(y_chunks[h_first], axis=0)
+    y_pred_median = np.concatenate(median_pred_chunks[h_first], axis=0)
     ic_metrics = calculate_ic_metrics(y_true_first, y_pred_median)
 
     # By-symbol metrics
     print("Calculating by-symbol metrics...")
     by_symbol = []
-    symbol_to_indices = {}
 
-    for idx, symbol in enumerate(all_symbols):
-        if symbol not in symbol_to_indices:
-            symbol_to_indices[symbol] = []
-        symbol_to_indices[symbol].append(idx)
-
-    for symbol, indices in symbol_to_indices.items():
+    for symbol in symbol_order:
+        stats = symbol_stats[symbol]
         symbol_pinball = []
-        symbol_samples = len(indices)
+        symbol_samples = stats["samples"]
 
         for h in horizons:
-            if len(all_predictions[h]) == 0:
-                continue
-
-            # Get predictions and targets for this symbol
-            y_pred_symbol = all_predictions[h][indices]
-            y_true_symbol = y_all[indices, horizon_to_idx[h]]
-
-            if len(y_true_symbol) > 0:
-                pb_loss = pinball_loss(y_true_symbol, y_pred_symbol[:len(y_true_symbol)], quantiles)
+            if stats["pinball_count"][h]:
+                pb_loss = stats["pinball_sum"][h] / stats["pinball_count"][h]
                 symbol_pinball.append(pb_loss)
 
         if symbol_pinball:
-            # IC for this symbol
-            h_first = horizons[0]
-            y_pred_symbol = all_predictions[h_first][indices]
-            y_true_symbol = y_all[indices, horizon_to_idx[h_first]]
-
-            if len(y_true_symbol) > 0:
-                y_pred_median = y_pred_symbol[:len(y_true_symbol), median_idx]
+            if stats["first_y"]:
+                y_true_symbol = np.concatenate(stats["first_y"], axis=0)
+                y_pred_median = np.concatenate(stats["first_pred"], axis=0)
                 symbol_ic = calculate_ic_metrics(y_true_symbol, y_pred_median)["ic"]
             else:
                 symbol_ic = 0.0

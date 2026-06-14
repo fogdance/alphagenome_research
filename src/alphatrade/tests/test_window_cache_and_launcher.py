@@ -5,10 +5,13 @@ import json
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from alphatrade import gpu_launcher
 from alphatrade import window_cache
+from alphatrade.scripts import eval_m4_fast
 from alphatrade.scripts import run_m5_sweep
+from alphatrade.scripts import train_m4_alphatrade
 
 
 FEATURES = ["open", "high", "low", "close", "volume", "amount", "vwap", "oi"]
@@ -66,6 +69,7 @@ def test_window_cache_build_and_hit(tmp_path):
 
 def test_gpu_launcher_env_and_cmd(monkeypatch):
     monkeypatch.setenv("LD_LIBRARY_PATH", "/bad/cuda")
+    monkeypatch.delenv("MPLCONFIGDIR", raising=False)
     cmd, env = gpu_launcher.build_module_cmd(
         "train_m4_alphatrade",
         ["--max-steps", "1"],
@@ -118,3 +122,86 @@ def test_m5_resume_detects_train_only_state(tmp_path):
     assert state["eval_complete"] is False
     assert state["complete"] is False
     assert state["run_id"] == "abc123"
+
+
+def test_m5_config_hash_uses_effective_defaults():
+    base_config = {
+        "expected_seeds": [42],
+        "dataset_config": "configs/dataset/m2.yaml",
+        "defaults": {"max_steps": 500, "batch_size": 128},
+        "experiments": [{"exp_id": "baseline", "overrides": {}}],
+    }
+    changed_config = {
+        **base_config,
+        "defaults": {"max_steps": 1000, "batch_size": 128},
+    }
+
+    base_hash = run_m5_sweep.build_run_plan(base_config)[0]["config_hash"]
+    changed_hash = run_m5_sweep.build_run_plan(changed_config)[0]["config_hash"]
+    smoke_hash = run_m5_sweep.build_run_plan(base_config, smoke=True)[0]["config_hash"]
+
+    assert base_hash != changed_hash
+    assert base_hash != smoke_hash
+
+
+def test_m5_resume_requires_matching_sweep_metadata(tmp_path):
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    run = {
+        "exp_id": "baseline",
+        "seed": 42,
+        "config_hash": "abc12345",
+        "dataset_config": "configs/dataset/m2.yaml",
+        "overrides": {"max_steps": 500},
+        "smoke": False,
+    }
+    metadata = run_m5_sweep.sweep_metadata(run)
+
+    train_path = reports / "m5_baseline_seed42_train_metrics.json"
+    eval_path = reports / "m5_baseline_seed42_eval_metrics.json"
+    train_path.write_text(json.dumps({"run": {"run_id": "run-1", "sweep": metadata}}))
+    eval_path.write_text(json.dumps({"model": {"train_run_id": "run-1", "sweep": metadata}}))
+
+    state = run_m5_sweep.get_run_state("baseline", 42, str(reports), run)
+    assert state["complete"] is True
+
+    stale_run = {**run, "config_hash": "deadbeef"}
+    stale_state = run_m5_sweep.get_run_state("baseline", 42, str(reports), stale_run)
+    assert stale_state["complete"] is False
+    assert stale_state["train_complete"] is False
+    assert stale_state["eval_complete"] is False
+    assert stale_state["stale_reasons"]
+
+
+def test_create_batches_raises_prefetch_errors():
+    class BadDataset:
+        def __len__(self):
+            return 1
+
+        def get_batch(self, indices):
+            raise RuntimeError("device transfer failed")
+
+    with pytest.raises(RuntimeError, match="Batch prefetch failed"):
+        list(train_m4_alphatrade.create_batches(BadDataset(), batch_size=1))
+
+
+def test_eval_rejects_empty_dataset():
+    class EmptyDataset:
+        symbols = ["DCE.JM"]
+        split = "val"
+        x = np.empty((0, 60, len(FEATURES)), dtype=np.float32)
+        y = np.empty((0, 4), dtype=np.float32)
+        sample_symbols = np.empty((0,), dtype="U32")
+
+        def __len__(self):
+            return 0
+
+    with pytest.raises(ValueError, match="No samples available"):
+        eval_m4_fast.evaluate_model_batched(
+            lambda *args, **kwargs: None,
+            params=None,
+            state=None,
+            dataset=EmptyDataset(),
+            horizons=[1, 5, 20, 60],
+            quantiles=[0.1, 0.3, 0.5, 0.7, 0.9],
+        )

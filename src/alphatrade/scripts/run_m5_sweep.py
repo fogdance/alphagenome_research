@@ -67,10 +67,14 @@ def load_sweep_config(path: str) -> dict:
         return yaml.safe_load(f)
 
 
-def compute_config_hash(overrides: dict, dataset_config: str) -> str:
+def compute_config_hash(overrides: dict, dataset_config: str, smoke: bool = False) -> str:
     """SHA256[:8] of canonical JSON of config-relevant fields."""
     payload = json.dumps(
-        {"dataset_config": dataset_config, "overrides": overrides},
+        {
+            "dataset_config": dataset_config,
+            "overrides": overrides,
+            "smoke": bool(smoke),
+        },
         sort_keys=True, separators=(",", ":"),
     )
     return hashlib.sha256(payload.encode()).hexdigest()[:8]
@@ -88,7 +92,7 @@ def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
         if smoke:
             overrides["max_steps"] = 3
             overrides["save_every"] = 1
-        config_hash = compute_config_hash(exp.get("overrides", {}), dataset_config)
+        config_hash = compute_config_hash(overrides, dataset_config, smoke=smoke)
         for seed in seeds:
             plan.append({
                 "exp_id": exp_id,
@@ -97,6 +101,7 @@ def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
                 "overrides": overrides,
                 "dataset_config": dataset_config,
                 "description": exp.get("description", ""),
+                "smoke": bool(smoke),
             })
     return plan
 
@@ -126,23 +131,80 @@ def is_run_complete(exp_id: str, seed: int, reports_dir: str) -> bool:
     return True
 
 
-def get_run_state(exp_id: str, seed: int, reports_dir: str) -> dict:
+def sweep_metadata(run: dict) -> dict:
+    """Return the per-run metadata used to validate resume artifacts."""
+    return {
+        "exp_id": run["exp_id"],
+        "seed": run["seed"],
+        "config_hash": run["config_hash"],
+        "dataset_config": run["dataset_config"],
+        "overrides": run["overrides"],
+        "smoke": bool(run.get("smoke", False)),
+    }
+
+
+def _read_json(path: str) -> Optional[dict]:
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _artifact_sweep_metadata(data: dict, kind: str) -> Optional[dict]:
+    if kind == "train":
+        return data.get("run", {}).get("sweep")
+    if kind == "eval":
+        return data.get("model", {}).get("sweep")
+    raise ValueError(f"unknown artifact kind: {kind}")
+
+
+def _artifact_matches_run(data: dict, kind: str, expected_run: Optional[dict]) -> tuple[bool, str]:
+    if expected_run is None:
+        return True, ""
+
+    expected = sweep_metadata(expected_run)
+    actual = _artifact_sweep_metadata(data, kind)
+    if actual is None:
+        return False, f"{kind} artifact has no sweep metadata"
+    if actual != expected:
+        return False, f"{kind} artifact sweep metadata mismatch"
+    return True, ""
+
+
+def get_run_state(exp_id: str, seed: int, reports_dir: str,
+                  expected_run: Optional[dict] = None) -> dict:
     """Return readable train/eval state for finer resume handling."""
     train_path, eval_path = _run_file_paths(exp_id, seed, reports_dir)
 
-    def _readable_json(path: str) -> bool:
-        if not os.path.exists(path):
-            return False
-        try:
-            with open(path) as f:
-                json.load(f)
-            return True
-        except (json.JSONDecodeError, OSError):
-            return False
+    train_data = _read_json(train_path)
+    eval_data = _read_json(eval_path)
+    stale_reasons = []
 
-    train_complete = _readable_json(train_path)
-    eval_complete = _readable_json(eval_path)
-    run_id = _extract_run_id(train_path) if train_complete else None
+    train_complete = train_data is not None
+    eval_complete = eval_data is not None
+
+    if train_data is not None:
+        ok, reason = _artifact_matches_run(train_data, "train", expected_run)
+        if not ok:
+            train_complete = False
+            stale_reasons.append(reason)
+
+    if eval_data is not None:
+        ok, reason = _artifact_matches_run(eval_data, "eval", expected_run)
+        if not ok:
+            eval_complete = False
+            stale_reasons.append(reason)
+
+    run_id = train_data.get("run", {}).get("run_id", "unknown") if train_complete else None
+    if train_complete and eval_complete:
+        eval_train_run_id = eval_data.get("model", {}).get("train_run_id")
+        if eval_train_run_id != run_id:
+            eval_complete = False
+            stale_reasons.append("eval artifact points to a different train_run_id")
+
     return {
         "train_path": train_path,
         "eval_path": eval_path,
@@ -150,6 +212,7 @@ def get_run_state(exp_id: str, seed: int, reports_dir: str) -> dict:
         "eval_complete": eval_complete,
         "complete": train_complete and eval_complete,
         "run_id": run_id,
+        "stale_reasons": stale_reasons,
     }
 
 
@@ -163,6 +226,11 @@ def _extract_run_id(metrics_path: str) -> str:
 def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
     """Return (cmd, env) for subprocess."""
     return gpu_launcher.build_module_cmd(module, cli_args, gpu=gpu)
+
+
+def _write_json(path: str, data: dict) -> None:
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 # ---------------------------------------------------------------------------
@@ -258,7 +326,9 @@ def run_single_train(run: dict, output_root: str, reports_dir: str,
 
     run_id = metrics.get("run", {}).get("run_id", "unknown")
     dst_json = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_train_metrics.json")
-    os.rename(src_json, dst_json)
+    metrics.setdefault("run", {})["sweep"] = sweep_metadata(run)
+    _write_json(dst_json, metrics)
+    os.remove(src_json)
 
     src_md = os.path.join(reports_dir, "m4_train_run.md")
     dst_md = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_train_run.md")
@@ -306,7 +376,11 @@ def run_single_eval(run: dict, train_info: dict, output_root: str, reports_dir: 
         return None
 
     dst_json = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_eval_metrics.json")
-    os.rename(src_json, dst_json)
+    with open(src_json) as f:
+        metrics = json.load(f)
+    metrics.setdefault("model", {})["sweep"] = sweep_metadata(run)
+    _write_json(dst_json, metrics)
+    os.remove(src_json)
 
     src_md = os.path.join(reports_dir, "m4_eval_run_fast.md")
     dst_md = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_eval_run.md")
@@ -476,7 +550,10 @@ def main():
         exp_id = r["exp_id"]
         seed = r["seed"]
 
-        run_state = get_run_state(exp_id, seed, str(reports_dir)) if args.resume else None
+        run_state = get_run_state(exp_id, seed, str(reports_dir), r) if args.resume else None
+        if run_state and run_state["stale_reasons"]:
+            reasons = "; ".join(run_state["stale_reasons"])
+            print(f"[RESUME] {exp_id} seed={seed} — ignoring stale artifacts: {reasons}")
 
         # Resume check: fully complete run.
         if run_state and run_state["complete"]:
