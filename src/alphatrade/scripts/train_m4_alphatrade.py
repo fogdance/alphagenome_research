@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from alphatrade.core import losses as loss_lib
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
+from alphatrade import runtime_paths
 from alphatrade.training import training
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
@@ -54,9 +55,19 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--jit", type=int, default=1, help="Use JIT compilation (0/1, default: 1)")
     parser.add_argument("--clip-norm", type=float, default=1.0)
+    parser.add_argument("--learning-rate", type=float, default=None,
+                        help="Override learning rate from config YAML")
+    parser.add_argument("--weight-decay", type=float, default=None,
+                        help="Override weight decay from config YAML")
+    parser.add_argument("--val-every", type=int, default=None,
+                        help="Override validation interval from config YAML")
     parser.add_argument("--smoke", action="store_true", help="Use 3 symbols for quick test")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
     # Checkpoint arguments
-    parser.add_argument("--ckpt-dir", type=str, default=None, help="Checkpoint directory (default: checkpoints/m4/<run_id>)")
+    parser.add_argument("--ckpt-dir", type=str, default=None, help="Checkpoint directory (default: <output-root>/checkpoints/m4/<run_id>)")
     parser.add_argument("--save-every", type=int, default=100, help="Save checkpoint every N steps (default: 100)")
     parser.add_argument("--keep-last", type=int, default=3, help="Keep last N checkpoints (default: 3)")
     parser.add_argument("--resume", type=str, default=None, choices=["last", "best"], help="Resume from last/best checkpoint")
@@ -324,6 +335,9 @@ def make_eval_step(config: schemas.AlphaTradeConfig, use_jit: bool = True):
 def main():
     args = parse_args()
     config_dict = load_config(args.config)
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    checkpoints_root = runtime_paths.checkpoints_dir(args.output_root)
 
     # Use args directly (no override from config)
     max_steps = args.max_steps
@@ -348,6 +362,8 @@ def main():
     print(f"Batch size: {batch_size}")
     print(f"Clip norm: {args.clip_norm}")
     print(f"Seed: {seed}")
+    print(f"Output root: {output_root}")
+    print(f"Reports dir: {reports_dir}")
     print(f"{'='*60}")
 
     # Load datasets
@@ -402,12 +418,12 @@ def main():
     print(f"    Total params: {total_params:,}")
 
     # Create optimizer with gradient clipping
+    # CLI args override config YAML values
+    lr = args.learning_rate if args.learning_rate is not None else config_dict['training']['learning_rate']
+    wd = args.weight_decay if args.weight_decay is not None else config_dict['training']['weight_decay']
     optimizer = optax.chain(
         optax.clip_by_global_norm(args.clip_norm),
-        optax.adamw(
-            learning_rate=config_dict['training']['learning_rate'],
-            weight_decay=config_dict['training']['weight_decay']
-        )
+        optax.adamw(learning_rate=lr, weight_decay=wd)
     )
     opt_state = optimizer.init(params)
 
@@ -421,13 +437,13 @@ def main():
     print(f"{'='*60}")
 
     run_id = str(uuid.uuid4())[:8]
-    val_every = config_dict['training']['val_every']
+    val_every = args.val_every if args.val_every is not None else config_dict['training']['val_every']
 
     # Setup checkpoint directory
     if args.ckpt_dir:
         ckpt_dir = Path(args.ckpt_dir).resolve()
     else:
-        ckpt_dir = (Path("checkpoints/m4") / run_id).resolve()
+        ckpt_dir = (checkpoints_root / "m4" / run_id).resolve()
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     best_ckpt_dir = ckpt_dir / "best"
     best_ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -634,8 +650,8 @@ def main():
         "training": {
             "max_steps": max_steps,
             "batch_size": batch_size,
-            "learning_rate": config_dict['training']['learning_rate'],
-            "weight_decay": config_dict['training']['weight_decay'],
+            "learning_rate": lr,
+            "weight_decay": wd,
             "grad_clip": args.clip_norm,
             "optimizer": "adamw",
             "compile_jit": use_jit,
@@ -679,14 +695,14 @@ def main():
     }
 
     # Save metrics JSON
-    json_path = "reports/m4_train_metrics.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    json_path = reports_dir / "m4_train_metrics.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(metrics_output, f, indent=2)
     print(f"\n✅ Metrics: {json_path}")
 
     # Save markdown report
-    md_path = "reports/m4_train_run.md"
+    md_path = reports_dir / "m4_train_run.md"
     with open(md_path, 'w') as f:
         f.write("# M4 Training Run - AlphaTrade v0.2 (JAX)\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
@@ -698,6 +714,7 @@ def main():
         f.write(f" --clip-norm {args.clip_norm}")
         f.write(f" --jit {args.jit}")
         f.write(f" --seed {seed}")
+        f.write(f" --reports-dir {reports_dir}")
         if args.smoke:
             f.write(" --smoke")
         f.write("\n```\n\n")
@@ -747,17 +764,17 @@ def main():
         f.write(f"- Keep last: {args.keep_last}\n")
         f.write(f"\n### 恢复训练\n\n```bash\n")
         f.write(f"# 从最后的checkpoint恢复\n")
-        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume last --resume-dir {ckpt_dir}\n\n")
+        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume last --resume-dir {ckpt_dir} --reports-dir {reports_dir}\n\n")
         f.write(f"# 从最佳checkpoint恢复\n")
-        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume best --resume-dir {ckpt_dir}\n")
+        f.write(f"python src/alphatrade/scripts/train_m4_alphatrade.py --resume best --resume-dir {ckpt_dir} --reports-dir {reports_dir}\n")
         f.write("```\n")
         
         f.write(f"\n### 评估命令\n\n```bash\n")
         f.write(f"# 使用训练好的checkpoint评估\n")
         f.write(f"python src/alphatrade/scripts/eval_m4_fast.py \\\n")
-        f.write(f"  --train-metrics reports/m4_train_metrics.json \\\n")
-        f.write(f"  --ckpt-dir {best_ckpt_dir} \\\n")
+        f.write(f"  --train-metrics {json_path} \\\n")
         f.write(f"  --dataset-config {args.config} \\\n")
+        f.write(f"  --reports-dir {reports_dir} \\\n")
         f.write(f"  --split val\n")
         f.write("```\n")
 
@@ -768,7 +785,7 @@ def main():
     print(f"{'='*60}")
     print(f"\nNext: Validate schema")
     print(f"  python src/alphatrade/scripts/validate_reports_schema.py \\")
-    print(f"    --reports-dir reports --schemas-dir src/alphatrade/schemas")
+    print(f"    --reports-dir {reports_dir} --schemas-dir src/alphatrade/schemas")
 
 
 if __name__ == "__main__":

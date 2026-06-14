@@ -2,7 +2,7 @@ version: 1
 profiles:
   m4:
     description: "Mainline gate. 3-seed train+eval."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m4_train_metrics_seed42, path: "m4_train_metrics_seed42.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
       - {name: m4_train_metrics_seed43, path: "m4_train_metrics_seed43.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: true}
@@ -12,7 +12,7 @@ profiles:
       - {name: m4_eval_metrics_seed44, path: "m4_eval_metrics_seed44.json", schema: "src/alphatrade/schemas/m4_eval_metrics.schema.json", required: true}
   m5:
     description: "M5 sweep study. sweep_manifest + leaderboard + validation outputs."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
       - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
@@ -21,7 +21,7 @@ profiles:
       - {name: m5_schema_validation_md, path: "m5_schema_validation.md", schema: "", required: true}
   m6:
     description: "M6 baseline freeze. Frozen baseline × 3 seeds + summary."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
       - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
@@ -31,7 +31,7 @@ profiles:
       - {name: m6_baseline_run, path: "m6_baseline_run.md", schema: "", required: true}
   m7:
     description: "M7 ablation sweep. Baseline + ablations + regression report."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m5_sweep_manifest, path: "m5_sweep_manifest.json", schema: "src/alphatrade/schemas/m5_sweep_manifest.schema.json", required: true}
       - {name: m5_leaderboard, path: "m5_leaderboard.json", schema: "src/alphatrade/schemas/m5_leaderboard.schema.json", required: true}
@@ -40,7 +40,7 @@ profiles:
       - {name: m7_regression_report_md, path: "m7_regression_report.md", schema: "", required: true}
   m9:
     description: "M9 champion bundle + offline inference."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m9_model_bundle_manifest, path: "m9_model_bundle_manifest.json", schema: "src/alphatrade/schemas/m9_model_bundle_manifest.schema.json", required: true}
       - {name: m9_infer_metrics, path: "m9_infer_metrics.json", schema: "src/alphatrade/schemas/m9_infer_metrics.schema.json", required: true}
@@ -48,7 +48,7 @@ profiles:
       - {name: m9_predictions_parquet, path: "m9_predictions.parquet", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
-    reports_dir: "reports"
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
     items:
       - {name: m2_train_metrics, path: "m2_train_metrics.json", schema: "src/alphatrade/schemas/m2_train_metrics.schema.json", required: false}
       - {name: m2_universe_sweep, path: "m2_universe_sweep.json", schema: "src/alphatrade/schemas/m2_universe_sweep.schema.json", required: false}

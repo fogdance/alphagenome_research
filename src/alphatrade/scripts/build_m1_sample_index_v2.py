@@ -32,6 +32,10 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict
 import json
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build M1 sample index (v2)")
@@ -114,6 +118,7 @@ def parse_args():
         action="store_true",
         help="Force rebuild even if output exists"
     )
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -292,7 +297,7 @@ def process_symbol(csymbol: str, input_dir: str, output_dir: str,
         }
 
 
-def generate_reports(results: list, output_dir: str):
+def generate_reports(results: list, output_dir: str, reports_dir: Path):
     """Generate JSON and Markdown reports."""
     
     # JSON report
@@ -309,15 +314,15 @@ def generate_reports(results: list, output_dir: str):
         'results': results
     }
     
-    json_path = "reports/m1_t5_2_index_rebuild.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    json_path = reports_dir / "m1_t5_2_index_rebuild.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(json_report, f, indent=2, ensure_ascii=False)
     
     print(f"✅ JSON report: {json_path}")
     
     # Markdown report
-    md_path = "reports/m1_t5_2_index_rebuild.md"
+    md_path = reports_dir / "m1_t5_2_index_rebuild.md"
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write("# M1-T5.2 Sample Index Rebuild Report\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
@@ -440,7 +445,8 @@ def main():
     
     # Generate reports
     print("\nGenerating reports...")
-    generate_reports(results, args.output_dir)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    generate_reports(results, args.output_dir, reports_dir)
     
     # Summary
     success = sum(1 for r in results if r['status'] == 'SUCCESS')

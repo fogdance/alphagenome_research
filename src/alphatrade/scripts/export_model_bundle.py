@@ -7,10 +7,10 @@ and packages the best seed's checkpoint into a self-contained bundle.
 
 Usage:
     python src/alphatrade/scripts/export_model_bundle.py \
-      [--leaderboard reports/m5_leaderboard.json] \
+      [--leaderboard <runs>/reports/m5_leaderboard.json] \
       [--exp-id <override>] [--run-id <override>] \
-      [--output-dir artifacts/model_bundle] \
-      [--output-manifest reports/m9_model_bundle_manifest.json]
+      [--output-dir <runs>/artifacts/model_bundle] \
+      [--output-manifest <runs>/reports/m9_model_bundle_manifest.json]
 """
 
 import argparse
@@ -20,21 +20,28 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-from pathlib import Path
+
+from alphatrade import runtime_paths
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="M9: Export champion model bundle")
-    parser.add_argument("--leaderboard", type=str, default="reports/m5_leaderboard.json",
-                        help="Path to M5 leaderboard JSON")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--artifacts-dir", type=str, default=None,
+                        help="Artifacts directory (default: <output-root>/artifacts)")
+    parser.add_argument("--leaderboard", type=str, default=None,
+                        help="Path to M5 leaderboard JSON (default: <reports-dir>/m5_leaderboard.json)")
     parser.add_argument("--exp-id", type=str, default=None,
                         help="Override: select specific experiment ID")
     parser.add_argument("--run-id", type=str, default=None,
                         help="Override: select specific run ID")
-    parser.add_argument("--output-dir", type=str, default="artifacts/model_bundle",
-                        help="Output directory for bundles")
-    parser.add_argument("--output-manifest", type=str, default="reports/m9_model_bundle_manifest.json",
-                        help="Path for the reports manifest copy")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Output directory for bundles (default: <artifacts-dir>/model_bundle)")
+    parser.add_argument("--output-manifest", type=str, default=None,
+                        help="Path for the reports manifest copy (default: <reports-dir>/m9_model_bundle_manifest.json)")
     return parser.parse_args()
 
 
@@ -85,15 +92,24 @@ def select_champion(leaderboard: dict, exp_id_override: str | None, run_id_overr
 
 def main():
     args = parse_args()
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    artifacts_dir = runtime_paths.artifacts_dir(args.output_root, args.artifacts_dir)
+    leaderboard_path = args.leaderboard or str(reports_dir / "m5_leaderboard.json")
+    output_dir = args.output_dir or str(artifacts_dir / "model_bundle")
+    output_manifest = args.output_manifest or str(reports_dir / "m9_model_bundle_manifest.json")
 
     print(f"\n{'='*60}")
     print(f"M9: Export Champion Model Bundle")
     print(f"{'='*60}\n")
+    print(f"Output root: {output_root}")
+    print(f"Reports:     {reports_dir}")
+    print(f"Artifacts:   {artifacts_dir}\n")
 
     # Load leaderboard
-    if not os.path.exists(args.leaderboard):
-        sys.exit(f"ERROR: leaderboard not found: {args.leaderboard}")
-    with open(args.leaderboard, 'r') as f:
+    if not os.path.exists(leaderboard_path):
+        sys.exit(f"ERROR: leaderboard not found: {leaderboard_path}")
+    with open(leaderboard_path, 'r') as f:
         leaderboard = json.load(f)
 
     # Select champion
@@ -145,7 +161,7 @@ def main():
     print(f"\nModel version: {model_version}")
 
     # Create bundle directory
-    bundle_dir = os.path.join(args.output_dir, model_version)
+    bundle_dir = os.path.join(output_dir, model_version)
     os.makedirs(bundle_dir, exist_ok=True)
 
     # Copy best/ checkpoint dir
@@ -188,7 +204,7 @@ def main():
         "dataset_config": train_metrics.get("dataset", {}).get("config_path", ""),
         "universe": leaderboard.get("universe", ""),
         "expected_seeds": leaderboard.get("expected_seeds", []),
-        "leaderboard_path": args.leaderboard,
+        "leaderboard_path": leaderboard_path,
     }
 
     # Write bundle_manifest.json inside bundle
@@ -197,14 +213,14 @@ def main():
         json.dump(bundle_manifest, f, indent=2)
     print(f"  Wrote bundle_manifest.json")
 
-    # Copy to reports/
-    os.makedirs(os.path.dirname(args.output_manifest), exist_ok=True)
-    shutil.copy2(bundle_manifest_path, args.output_manifest)
-    print(f"  Copied manifest -> {args.output_manifest}")
+    # Copy manifest to the reports directory for validation and handoff.
+    os.makedirs(os.path.dirname(output_manifest), exist_ok=True)
+    shutil.copy2(bundle_manifest_path, output_manifest)
+    print(f"  Copied manifest -> {output_manifest}")
 
     print(f"\n{'='*60}")
     print(f"Bundle: {bundle_dir}")
-    print(f"Manifest: {args.output_manifest}")
+    print(f"Manifest: {output_manifest}")
     print(f"{'='*60}\n")
 
 

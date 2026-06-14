@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import unified feature schema
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+import runtime_paths
 
 
 def parse_args():
@@ -36,6 +37,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=None, help="Override batch_size")
     parser.add_argument("--seed", type=int, default=None, help="Override seed")
     parser.add_argument("--smoke", action="store_true", help="Use smoke symbols (2-5 symbols)")
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -377,8 +379,9 @@ def save_metrics(config, args, model, train_losses, val_losses, best_val_loss, b
         }
     }
     
-    json_path = "reports/m2_train_metrics.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    json_path = reports_dir / "m2_train_metrics.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(metrics, f, indent=2)
     
@@ -389,7 +392,9 @@ def save_metrics(config, args, model, train_losses, val_losses, best_val_loss, b
 def save_run_report(config, args, metrics):
     """Save run report to Markdown."""
     
-    md_path = "reports/m2_train_run.md"
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    md_path = reports_dir / "m2_train_run.md"
+    md_path.parent.mkdir(parents=True, exist_ok=True)
     with open(md_path, 'w') as f:
         f.write("# M2 Training Run (AlphaTrade v0.2)\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

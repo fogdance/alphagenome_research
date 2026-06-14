@@ -4,6 +4,21 @@
 
 成功实现了 AlphaTrade v0.2 - 一个基于 AlphaGenome 架构的多时间跨度金融时序预测模型。该模型专门用于预测未来对数收益的分位数分布。
 
+## 产物目录约定
+
+AlphaTrade 源码保留在 `alphagenome_research/src/alphatrade` 中；训练、评估、导出和推理产物默认写入仓库同级的 `../alphatrade_runs/default`，或由 `ALPHATRADE_RUNS_ROOT` 指定。
+
+推荐结构：
+
+```text
+alphatrade_runs/<run-name>/
+├── reports/
+├── checkpoints/
+└── artifacts/
+```
+
+每轮实验使用独立 `<run-name>`，避免 generated reports/checkpoints 污染外层 `alphagenome_research` 仓库。
+
 ## 实现文件清单
 
 ### 核心模块 (16个Python文件，共3744行代码)
@@ -204,7 +219,8 @@
 ### 快速开始
 
 ```python
-from alphagenome_research.alphatrade import schemas, training
+from alphatrade import schemas
+from alphatrade.training import training
 import jax
 
 # 配置
@@ -232,10 +248,10 @@ predictions = training.predict(train_state, features, rng)
 ```bash
 # 完整演示
 conda activate alphatrade
-python -m alphagenome_research.alphatrade.demo
+python -m alphatrade.examples.demo
 
 # 快速演示
-python -m alphagenome_research.alphatrade.quick_demo
+python -m alphatrade.examples.quick_demo
 ```
 
 ## 测试覆盖
@@ -249,7 +265,7 @@ python -m alphagenome_research.alphatrade.quick_demo
 
 运行测试：
 ```bash
-pytest src/alphagenome_research/alphatrade/*_test.py -v
+pytest src/alphatrade/tests -v
 ```
 
 ## 性能特点

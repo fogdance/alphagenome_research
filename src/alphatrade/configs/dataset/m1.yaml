@@ -14,7 +14,7 @@ paths:
 
   # processed outputs
   processed_dir: "data/processed/m1"
-  reports_dir: "reports"
+  reports_dir: "../alphatrade_runs/default/reports"
 
 symbol_universe:
   # 推荐先用 explicit（最稳），把 30 个 continuous symbols 明确写进来

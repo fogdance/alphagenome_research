@@ -12,6 +12,28 @@
 
 ---
 
+## Output Root
+
+AlphaTrade 的训练、评估、验证、bundle 和推理产物默认写入 `ALPHATRADE_RUNS_ROOT`。
+未设置时，脚本使用仓库同级目录 `../alphatrade_runs/default`。
+
+推荐结构：
+
+```
+alphatrade_runs/<run-name>/
+├── reports/
+├── checkpoints/
+└── artifacts/
+```
+
+如需按轮次隔离结果，设置：
+
+```bash
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round1"
+```
+
+---
+
 ## Profile 机制
 
 Validator 通过 `contracts_manifest.yaml` 中的 profile 隔离不同里程碑的验证范围。
@@ -122,8 +144,8 @@ src/alphatrade/schemas/m{milestone}_{type}.schema.json
 
 每次运行生成两个文件:
 
-- `reports/{profile}_schema_validation.json` — 机器可读
-- `reports/{profile}_schema_validation.md` — 人类可读
+- `$ALPHATRADE_RUNS_ROOT/reports/{profile}_schema_validation.json` — 机器可读
+- `$ALPHATRADE_RUNS_ROOT/reports/{profile}_schema_validation.md` — 人类可读
 
 ---
 

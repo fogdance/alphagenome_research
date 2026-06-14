@@ -23,6 +23,10 @@ from typing import List, Dict, Optional
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="M4 Matrix Runner (train→eval paired)")
@@ -44,6 +48,9 @@ def parse_args():
                         help="Run on GPU (default; uses python -c workaround for JAX 0.9 CUDA bug)")
     parser.add_argument("--no-gpu", action="store_false", dest="gpu",
                         help="Force CPU mode")
+    parser.add_argument("--checkpoints-dir", type=str, default=None,
+                        help="Checkpoints directory (default: <output-root>/checkpoints)")
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -51,8 +58,9 @@ def parse_args():
 # GPU workaround helpers (see docs/gpu_jit_issue.md)
 # ---------------------------------------------------------------------------
 
+_BASE_ENV = {k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"}
 _GPU_ENV = {
-    **os.environ,
+    **_BASE_ENV,
     "JAX_PLATFORMS": "cuda",
     "XLA_FLAGS": "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=",
 }
@@ -70,10 +78,10 @@ def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
             f"import sys; sys.argv = {argv_str}; "
             f"from alphatrade.scripts.{module} import main; main()"
         )
-        return ["python", "-c", code], _GPU_ENV
+        return [sys.executable, "-c", code], _GPU_ENV
     else:
         script = f"src/alphatrade/scripts/{module}.py"
-        return ["python", script] + cli_args, None   # inherit env
+        return [sys.executable, script] + cli_args, None   # inherit env
 
 
 # ---------------------------------------------------------------------------
@@ -81,14 +89,15 @@ def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
 # ---------------------------------------------------------------------------
 
 def run_training(config: str, seed: int, max_steps: int, batch_size: int,
-                 smoke: bool, jit: int, gpu: bool = False) -> Optional[Dict]:
+                 smoke: bool, jit: int, output_root: str, reports_dir: str,
+                 checkpoints_dir: str, gpu: bool = False) -> Optional[Dict]:
     """Run single training experiment. Returns result dict or None on failure."""
 
     print(f"\n{'='*60}")
     print(f"Training seed={seed}")
     print(f"{'='*60}\n")
 
-    ckpt_dir = f"checkpoints/m4/matrix_seed{seed}"
+    ckpt_dir = Path(checkpoints_dir) / "m4" / f"matrix_seed{seed}"
 
     cli_args = [
         "--config", config,
@@ -96,7 +105,9 @@ def run_training(config: str, seed: int, max_steps: int, batch_size: int,
         "--max-steps", str(max_steps),
         "--batch-size", str(batch_size),
         "--jit", str(jit),
-        "--ckpt-dir", ckpt_dir,
+        "--output-root", output_root,
+        "--reports-dir", reports_dir,
+        "--ckpt-dir", str(ckpt_dir),
     ]
     if smoke:
         cli_args.append("--smoke")
@@ -108,31 +119,32 @@ def run_training(config: str, seed: int, max_steps: int, batch_size: int,
         return None
 
     # Load & rename metrics
-    src_path = "reports/m4_train_metrics.json"
-    if not os.path.exists(src_path):
+    src_path = Path(reports_dir) / "m4_train_metrics.json"
+    if not src_path.exists():
         print(f"  Metrics file not found: {src_path}")
         return None
 
     with open(src_path, 'r') as f:
         metrics = json.load(f)
 
-    dst_path = f"reports/m4_train_metrics_seed{seed}.json"
-    os.rename(src_path, dst_path)
+    dst_path = Path(reports_dir) / f"m4_train_metrics_seed{seed}.json"
+    src_path.rename(dst_path)
 
-    md_src = "reports/m4_train_run.md"
-    if os.path.exists(md_src):
-        os.rename(md_src, f"reports/m4_train_run_seed{seed}.md")
+    md_src = Path(reports_dir) / "m4_train_run.md"
+    if md_src.exists():
+        md_src.rename(Path(reports_dir) / f"m4_train_run_seed{seed}.md")
 
     print(f"  Training complete: {dst_path}")
     return {
         "seed": seed,
         "metrics": metrics,
-        "metrics_path": dst_path,
+        "metrics_path": str(dst_path),
         "ckpt_dir": str(Path(ckpt_dir).resolve()),
     }
 
 
 def run_evaluation(config: str, seed: int, split: str,
+                   output_root: str, reports_dir: str,
                    smoke: bool = False, gpu: bool = False) -> Optional[Dict]:
     """Run evaluation for a trained model. Returns result dict or None on failure."""
 
@@ -140,14 +152,16 @@ def run_evaluation(config: str, seed: int, split: str,
     print(f"Evaluating seed={seed}")
     print(f"{'='*60}\n")
 
-    train_metrics_path = f"reports/m4_train_metrics_seed{seed}.json"
+    train_metrics_path = Path(reports_dir) / f"m4_train_metrics_seed{seed}.json"
 
     cli_args = [
-        "--train-metrics", train_metrics_path,
+        "--train-metrics", str(train_metrics_path),
         "--dataset-config", config,
         "--split", split,
         "--batch-size", "128",
         "--ckpt-step", "best",
+        "--output-root", output_root,
+        "--reports-dir", reports_dir,
     ]
     if smoke:
         cli_args.append("--smoke")
@@ -158,26 +172,26 @@ def run_evaluation(config: str, seed: int, split: str,
         print(f"  Evaluation FAILED for seed={seed}")
         return None
 
-    src_path = "reports/m4_eval_metrics_fast.json"
-    if not os.path.exists(src_path):
+    src_path = Path(reports_dir) / "m4_eval_metrics_fast.json"
+    if not src_path.exists():
         print(f"  Eval metrics not found: {src_path}")
         return None
 
     with open(src_path, 'r') as f:
         eval_metrics = json.load(f)
 
-    dst_path = f"reports/m4_eval_metrics_seed{seed}.json"
-    os.rename(src_path, dst_path)
+    dst_path = Path(reports_dir) / f"m4_eval_metrics_seed{seed}.json"
+    src_path.rename(dst_path)
 
-    md_src = "reports/m4_eval_run_fast.md"
-    if os.path.exists(md_src):
-        os.rename(md_src, f"reports/m4_eval_run_seed{seed}.md")
+    md_src = Path(reports_dir) / "m4_eval_run_fast.md"
+    if md_src.exists():
+        md_src.rename(Path(reports_dir) / f"m4_eval_run_seed{seed}.md")
 
     print(f"  Evaluation complete: {dst_path}")
     return {
         "seed": seed,
         "eval_metrics": eval_metrics,
-        "eval_path": dst_path,
+        "eval_path": str(dst_path),
     }
 
 
@@ -389,6 +403,10 @@ def generate_summary_md(summary_json: Dict) -> str:
 
 def main():
     args = parse_args()
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    checkpoints_dir = runtime_paths.checkpoints_dir(args.output_root, args.checkpoints_dir)
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*60}")
     print(f"M4 Matrix Runner (train→eval paired)")
@@ -399,6 +417,9 @@ def main():
     print(f"JIT: {'enabled' if args.jit else 'disabled'}")
     print(f"GPU: {'yes' if args.gpu else 'no'}")
     print(f"Eval split: {args.eval_split}")
+    print(f"Output root: {output_root}")
+    print(f"Reports: {reports_dir}")
+    print(f"Checkpoints: {checkpoints_dir}")
     print(f"{'='*60}\n")
 
     pairs = []
@@ -409,7 +430,9 @@ def main():
         # Train
         train_result = run_training(
             args.config, seed, args.max_steps, args.batch_size,
-            args.smoke, args.jit, gpu=args.gpu,
+            args.smoke, args.jit, output_root=str(output_root),
+            reports_dir=str(reports_dir), checkpoints_dir=str(checkpoints_dir),
+            gpu=args.gpu,
         )
         pair["train"] = train_result
 
@@ -417,6 +440,7 @@ def main():
         if train_result is not None:
             eval_result = run_evaluation(
                 args.config, seed, args.eval_split,
+                output_root=str(output_root), reports_dir=str(reports_dir),
                 smoke=args.smoke, gpu=args.gpu,
             )
             pair["eval"] = eval_result
@@ -428,13 +452,11 @@ def main():
     summary_md = generate_summary_md(summary_json)
 
     # Write outputs
-    os.makedirs("reports", exist_ok=True)
-
-    json_path = "reports/m4_matrix_summary.json"
+    json_path = reports_dir / "m4_matrix_summary.json"
     with open(json_path, 'w') as f:
         json.dump(summary_json, f, indent=2)
 
-    md_path = "reports/m4_matrix_summary.md"
+    md_path = reports_dir / "m4_matrix_summary.md"
     with open(md_path, 'w') as f:
         f.write(summary_md)
 

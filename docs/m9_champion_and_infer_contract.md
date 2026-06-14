@@ -22,16 +22,16 @@ Override: `--exp-id` / `--run-id` flags on the export script.
 
 ## 3. Bundle Format
 
-Self-contained directory under `artifacts/model_bundle/<model_version>/`:
+Self-contained directory under `$ALPHATRADE_RUNS_ROOT/artifacts/model_bundle/<model_version>/`:
 
 | File | Description |
 |------|-------------|
-| `best/` | Flax checkpoint dir (copied from checkpoints/m5/) |
+| `best/` | Flax checkpoint dir (copied from `$ALPHATRADE_RUNS_ROOT/checkpoints/m5/`) |
 | `artifacts.json` | Training metadata (copied) |
 | `model_config.json` | AlphaTradeConfig as JSON (extracted for readability) |
 | `bundle_manifest.json` | Full provenance record |
 
-Also writes `reports/m9_model_bundle_manifest.json` (same content, validated by m9 profile).
+Also writes `$ALPHATRADE_RUNS_ROOT/reports/m9_model_bundle_manifest.json` (same content, validated by m9 profile).
 
 ## 4. predictions.parquet Format
 
@@ -53,6 +53,8 @@ Directly slice `bars.parquet` by `eob` timestamp range (not relying on pre-built
 ## 6. Reproduction
 
 ```bash
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/default"
+
 # 1. Export champion bundle
 conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
   python src/alphatrade/scripts/export_model_bundle.py
@@ -60,11 +62,10 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 # 2. Run batch inference (smoke: 2 symbols × small range)
 conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
   python src/alphatrade/scripts/batch_infer_offline.py \
-  --bundle artifacts/model_bundle/alphatrade_v0.2_batch_256_9169f783 \
+  --bundle "$ALPHATRADE_RUNS_ROOT/artifacts/model_bundle/alphatrade_v0.2_batch_256_9169f783" \
   --data-dir data/processed/m1_f8 \
   --symbols DCE.JM,SHFE.AG \
   --start 2024-01-02 --end 2024-01-04 \
-  --output reports/m9_predictions.parquet \
   --smoke
 
 # 3. Validate M9 gate
@@ -76,9 +77,9 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 
 | Report | Path | Schema |
 |--------|------|--------|
-| m9_model_bundle_manifest | `reports/m9_model_bundle_manifest.json` | `m9_model_bundle_manifest.schema.json` |
-| m9_infer_metrics | `reports/m9_infer_metrics.json` | `m9_infer_metrics.schema.json` |
-| m9_infer_metrics_md | `reports/m9_infer_metrics.md` | existence-only |
-| m9_predictions_parquet | `reports/m9_predictions.parquet` | existence-only + semantic check |
+| m9_model_bundle_manifest | `$ALPHATRADE_RUNS_ROOT/reports/m9_model_bundle_manifest.json` | `m9_model_bundle_manifest.schema.json` |
+| m9_infer_metrics | `$ALPHATRADE_RUNS_ROOT/reports/m9_infer_metrics.json` | `m9_infer_metrics.schema.json` |
+| m9_infer_metrics_md | `$ALPHATRADE_RUNS_ROOT/reports/m9_infer_metrics.md` | existence-only |
+| m9_predictions_parquet | `$ALPHATRADE_RUNS_ROOT/reports/m9_predictions.parquet` | existence-only + semantic check |
 
 All items are required. Profile defined in `src/alphatrade/schemas/contracts_manifest.yaml` under `m9`.

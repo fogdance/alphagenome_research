@@ -33,6 +33,10 @@ archive_reader_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(archive_reader_module)
 ArchiveReader = archive_reader_module.ArchiveReader
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build canonical bars")
@@ -54,6 +58,7 @@ def parse_args():
         default=None,
         help="Output directory (default: from config paths.processed_dir)"
     )
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -303,8 +308,8 @@ def main():
 
     # Determine report path
     dataset_name = config.get("dataset", {}).get("name", "m0_1")
-    reports_dir = config.get("paths", {}).get("reports_dir", "reports")
-    report_path = f"{reports_dir}/{dataset_name}_canonical_profile.md"
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    report_path = reports_dir / f"{dataset_name}_canonical_profile.md"
 
     # Get symbols to process
     if args.all:

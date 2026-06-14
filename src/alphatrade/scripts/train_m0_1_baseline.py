@@ -22,6 +22,10 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="M0.1 Baseline Training")
@@ -35,6 +39,7 @@ def parse_args():
     parser.add_argument("--val-every", type=int, default=50)
     parser.add_argument("--limit-train-samples", type=int, default=None)
     parser.add_argument("--limit-val-samples", type=int, default=None)
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -387,15 +392,16 @@ def main():
     }
     
     # Save metrics JSON
-    metrics_path = "reports/m0_1_train_metrics.json"
-    os.makedirs(os.path.dirname(metrics_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    metrics_path = reports_dir / "m0_1_train_metrics.json"
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
     with open(metrics_path, 'w') as f:
         json.dump(metrics, f, indent=2)
     
     print(f"\n✅ Metrics saved: {metrics_path}")
     
     # Generate markdown report
-    md_path = "reports/m0_1_train_run.md"
+    md_path = reports_dir / "m0_1_train_run.md"
     with open(md_path, 'w') as f:
         f.write("# M0.1 Baseline Training Run\n\n")
         f.write(f"生成时间: {metrics['run']['created_at']}\n\n")

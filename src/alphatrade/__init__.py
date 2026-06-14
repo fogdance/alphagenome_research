@@ -14,8 +14,25 @@
 
 """AlphaTrade: Multi-horizon financial time series predictor."""
 
-from alphatrade.core import model
-from alphatrade.core import losses
-from alphatrade.core import schemas
+from __future__ import annotations
 
-__all__ = ['model', 'losses', 'schemas']
+import importlib
+
+
+_LAZY_EXPORTS = {
+    'api': 'alphatrade.api',
+    'losses': 'alphatrade.core.losses',
+    'model': 'alphatrade.core.model',
+    'runtime_paths': 'alphatrade.runtime_paths',
+    'schemas': 'alphatrade.core.schemas',
+}
+
+__all__ = sorted(_LAZY_EXPORTS)
+
+
+def __getattr__(name: str):
+    if name not in _LAZY_EXPORTS:
+        raise AttributeError(f"module 'alphatrade' has no attribute {name!r}")
+    module = importlib.import_module(_LAZY_EXPORTS[name])
+    globals()[name] = module
+    return module

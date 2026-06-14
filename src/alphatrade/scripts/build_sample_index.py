@@ -23,6 +23,10 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build sample index")
@@ -39,6 +43,7 @@ def parse_args():
         default="data/processed/m0_1",
         help="Output directory"
     )
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -291,8 +296,9 @@ def main():
     test_stats = compute_statistics(test_samples, horizons)
     
     # Generate report
-    report_path = "reports/m0_1_index_stats.md"
-    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    report_path = reports_dir / "m0_1_index_stats.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     
     mode = 'a' if os.path.exists(report_path) else 'w'
     with open(report_path, mode, encoding='utf-8') as f:

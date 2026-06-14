@@ -16,9 +16,21 @@ Usage:
 import os
 import sys
 import yaml
+import argparse
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Select final M1 universe")
+    parser.add_argument("--output-yaml", type=str, default="configs/universe/m1_selected.yaml")
+    runtime_paths.add_output_args(parser)
+    return parser.parse_args()
 
 
 def parse_t2_report(report_path: str) -> dict:
@@ -259,15 +271,18 @@ def generate_selection_report(selected: dict, rejected: dict, output_path: str):
 
 
 def main():
+    args = parse_args()
+
     print("="*60)
     print("M1-T4: Universe Selection")
     print("="*60)
-    
+
     # Paths
-    t2_report = "reports/m1_t2_continuous_build.md"
-    t3_report = "reports/m1_t3_sample_index.md"
-    output_yaml = "configs/universe/m1_selected.yaml"
-    output_report = "reports/m1_t4_universe_selection.md"
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    t2_report = reports_dir / "m1_t2_continuous_build.md"
+    t3_report = reports_dir / "m1_t3_sample_index.md"
+    output_yaml = args.output_yaml
+    output_report = reports_dir / "m1_t4_universe_selection.md"
     
     # Check inputs
     if not os.path.exists(t2_report):

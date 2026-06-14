@@ -27,6 +27,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+import runtime_paths
 
 
 def parse_args():
@@ -34,6 +35,7 @@ def parse_args():
     parser.add_argument("--config", type=str, default="configs/dataset/m2.yaml")
     parser.add_argument("--max-steps", type=int, default=200)
     parser.add_argument("--smoke", action="store_true")
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -302,8 +304,9 @@ def analyze_results(results, config, args):
     stats["convergence"] = convergence
     
     # Generate report
-    md_path = "reports/m2_t2_loss_sanity.md"
-    os.makedirs(os.path.dirname(md_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    md_path = reports_dir / "m2_t2_loss_sanity.md"
+    md_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(md_path, 'w') as f:
         f.write("# M2-T2 Loss Sanity Check Report\n\n")

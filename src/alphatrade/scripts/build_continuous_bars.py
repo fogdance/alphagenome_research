@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data_pipeline.db_connector import get_continuous_map
 from data_pipeline.archive_reader import ArchiveReader
+import runtime_paths
 
 
 def parse_args():
@@ -63,6 +64,7 @@ def parse_args():
         default="data/processed/m1",
         help="Output directory"
     )
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -342,7 +344,8 @@ def main():
             })
 
     # Generate report
-    report_path = "reports/m1_t2_continuous_build.md"
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    report_path = reports_dir / "m1_t2_continuous_build.md"
     generate_report(reports, report_path)
 
     # Summary

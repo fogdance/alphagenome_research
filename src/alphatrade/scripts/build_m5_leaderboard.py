@@ -14,13 +14,19 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 
+from alphatrade import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build M5 leaderboard from sweep manifest")
-    parser.add_argument("--manifest", type=str, default="reports/m5_sweep_manifest.json",
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--manifest", type=str, default=None,
                         help="Path to m5_sweep_manifest.json")
-    parser.add_argument("--output-json", type=str, default="reports/m5_leaderboard.json")
-    parser.add_argument("--output-md", type=str, default="reports/m5_leaderboard.md")
+    parser.add_argument("--output-json", type=str, default=None)
+    parser.add_argument("--output-md", type=str, default=None)
     return parser.parse_args()
 
 
@@ -168,29 +174,33 @@ def generate_md(leaderboard: dict) -> str:
 
 def main():
     args = parse_args()
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    manifest_path = args.manifest or str(reports_dir / "m5_sweep_manifest.json")
+    output_json = args.output_json or str(reports_dir / "m5_leaderboard.json")
+    output_md = args.output_md or str(reports_dir / "m5_leaderboard.md")
 
-    if not os.path.exists(args.manifest):
-        print(f"ERROR: Manifest not found: {args.manifest}")
+    if not os.path.exists(manifest_path):
+        print(f"ERROR: Manifest not found: {manifest_path}")
         sys.exit(1)
 
-    with open(args.manifest) as f:
+    with open(manifest_path) as f:
         manifest = json.load(f)
 
-    print(f"Building leaderboard from {args.manifest}")
+    print(f"Building leaderboard from {manifest_path}")
     print(f"  Runs: {len(manifest['runs'])}")
     print(f"  Expected seeds: {manifest['expected_seeds']}")
     print(f"  Primary metric: {manifest['primary_metric']}")
 
     leaderboard = build_leaderboard(manifest)
 
-    os.makedirs(os.path.dirname(args.output_json) or ".", exist_ok=True)
-    with open(args.output_json, "w") as f:
+    os.makedirs(os.path.dirname(output_json) or ".", exist_ok=True)
+    with open(output_json, "w") as f:
         json.dump(leaderboard, f, indent=2)
-    print(f"JSON: {args.output_json}")
+    print(f"JSON: {output_json}")
 
-    with open(args.output_md, "w") as f:
+    with open(output_md, "w") as f:
         f.write(generate_md(leaderboard))
-    print(f"Markdown: {args.output_md}")
+    print(f"Markdown: {output_md}")
 
     print(f"Experiments: {len(leaderboard['experiments'])}")
     for exp in leaderboard["experiments"]:

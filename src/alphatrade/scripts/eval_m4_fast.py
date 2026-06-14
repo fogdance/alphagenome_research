@@ -34,13 +34,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
+from alphatrade import runtime_paths
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="M4 AlphaTrade v0.2 Evaluation (Fast)")
-    parser.add_argument("--train-metrics", type=str, default="reports/m4_train_metrics.json",
-                        help="Path to training metrics JSON")
+    parser.add_argument("--train-metrics", type=str, default=None,
+                        help="Path to training metrics JSON (default: <reports-dir>/m4_train_metrics.json)")
     parser.add_argument("--dataset-config", type=str, default="configs/dataset/m2.yaml",
                         help="Dataset config file")
     parser.add_argument("--split", type=str, default="val", choices=["train", "val", "test"],
@@ -51,6 +52,10 @@ def parse_args():
                         help="Checkpoint step: 'best' (default), 'last', or integer step number")
     parser.add_argument("--smoke", action="store_true",
                         help="Use smoke test symbols (overrides auto-detection)")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
     return parser.parse_args()
 
 
@@ -322,9 +327,11 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
 
 def main():
     args = parse_args()
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    train_metrics_path = args.train_metrics or str(reports_dir / "m4_train_metrics.json")
 
     # Load training metrics
-    train_metrics = load_train_metrics(args.train_metrics)
+    train_metrics = load_train_metrics(train_metrics_path)
     run_id = train_metrics['run']['run_id']
 
     print(f"\n{'='*60}")
@@ -333,6 +340,8 @@ def main():
     print(f"Run ID: {run_id}")
     print(f"Split: {args.split}")
     print(f"Batch size: {args.batch_size}")
+    print(f"Reports dir: {reports_dir}")
+    print(f"Train metrics: {train_metrics_path}")
     print(f"{'='*60}\n")
 
     # Load config
@@ -475,15 +484,15 @@ def main():
         eval_metrics["sanity_warnings"] = sanity_warnings
 
     # Save JSON
-    json_path = "reports/m4_eval_metrics_fast.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    json_path = reports_dir / "m4_eval_metrics_fast.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(eval_metrics, f, indent=2)
 
     print(f"Metrics: {json_path}")
 
     # Save markdown report
-    md_path = "reports/m4_eval_run_fast.md"
+    md_path = reports_dir / "m4_eval_run_fast.md"
     with open(md_path, 'w') as f:
         f.write("# M4 Evaluation Run (FAST) - AlphaTrade v0.2 (JAX)\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
@@ -498,8 +507,9 @@ def main():
         f.write("Reproduce:\n")
         f.write("```bash\n")
         f.write(f"python src/alphatrade/scripts/eval_m4_fast.py \\\n")
-        f.write(f"  --train-metrics {args.train_metrics} \\\n")
+        f.write(f"  --train-metrics {train_metrics_path} \\\n")
         f.write(f"  --ckpt-step {args.ckpt_step} \\\n")
+        f.write(f"  --reports-dir {reports_dir} \\\n")
         f.write(f"  --split {args.split}")
         if args.smoke:
             f.write(" \\\n  --smoke")

@@ -27,6 +27,10 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build M1 sample index")
@@ -98,6 +102,7 @@ def parse_args():
         default="2026-01-01",
         help="Test end date"
     )
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -372,7 +377,8 @@ def main():
     print(f"{'='*60}")
     
     # Process each symbol
-    report_path = "reports/m1_t3_sample_index.md"
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    report_path = reports_dir / "m1_t3_sample_index.md"
     reports = []
     
     for i, csymbol in enumerate(csymbols, 1):

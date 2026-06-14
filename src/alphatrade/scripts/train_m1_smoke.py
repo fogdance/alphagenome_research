@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import unified feature schema
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+import runtime_paths
 
 
 def parse_args():
@@ -41,6 +42,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--val-every", type=int, default=100)
     parser.add_argument("--grad-clip", type=float, default=1.0)
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -409,15 +411,16 @@ def main():
         }
     }
     
-    json_path = "reports/m1_train_metrics.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    json_path = reports_dir / "m1_train_metrics.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(metrics, f, indent=2)
     
     print(f"✅ JSON report: {json_path}")
     
     # Markdown report
-    md_path = "reports/m1_train_run.md"
+    md_path = reports_dir / "m1_train_run.md"
     with open(md_path, 'w') as f:
         f.write("# M1 Smoke Training Run\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

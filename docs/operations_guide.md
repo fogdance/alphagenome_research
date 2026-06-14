@@ -71,6 +71,12 @@
 ```bash
 # 所有命令都在此 prefix 下运行
 export RUN="conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH"
+
+# 训练/评估/推理产物默认写到仓库同级目录，避免污染 alphagenome_research
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/default"
+export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
+export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
+export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
 ```
 
 ### 数据
@@ -81,7 +87,7 @@ export RUN="conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH"
 ls data/processed/m1_f8/DCE.JM/bars.parquet  # 应存在
 ```
 
-### 目录结构
+### 目录结构与产物隔离
 
 ```
 alphagenome_research/
@@ -89,10 +95,20 @@ alphagenome_research/
 │   ├── dataset/m2.yaml              # 数据集配置（固定）
 │   ├── sweep/                       # sweep 配置（每轮迭代一个）
 │   └── universe/m1_selected.yaml    # 品种列表
-├── src/alphatrade/scripts/          # 所有脚本
-├── reports/                         # 所有输出
-├── checkpoints/                     # 训练 checkpoint
-└── artifacts/model_bundle/          # 最终模型 bundle
+└── src/alphatrade/scripts/          # 所有脚本
+
+alphatrade_runs/
+└── default/
+    ├── reports/                     # metrics、leaderboard、schema validation
+    ├── checkpoints/                 # 训练 checkpoint
+    └── artifacts/model_bundle/      # 最终模型 bundle
+```
+
+脚本默认读取 `ALPHATRADE_RUNS_ROOT`；未设置时使用仓库同级的 `../alphatrade_runs/default`。
+需要分轮隔离时，直接改 `ALPHATRADE_RUNS_ROOT`，例如：
+
+```bash
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round1"
 ```
 
 ---
@@ -148,9 +164,9 @@ $RUN python src/alphatrade/scripts/run_m5_sweep.py \
 ```
 
 输出：
-- `reports/m5_baseline_seed{42,43,44}_{train,eval}_metrics.json`
-- `reports/m5_sweep_manifest.json`
-- `reports/m5_leaderboard.json`
+- `$REPORTS/m5_baseline_seed{42,43,44}_{train,eval}_metrics.json`
+- `$REPORTS/m5_sweep_manifest.json`
+- `$REPORTS/m5_leaderboard.json`
 
 ### 3.4 冻结基准
 
@@ -158,7 +174,7 @@ $RUN python src/alphatrade/scripts/run_m5_sweep.py \
 $RUN python src/alphatrade/scripts/gen_m6_baseline_report.py
 ```
 
-输出：`reports/m6_baseline_run.md`（记录基准口径：git_sha、config_hash、run_id、指标）
+输出：`$REPORTS/m6_baseline_run.md`（记录基准口径：git_sha、config_hash、run_id、指标）
 
 ### 3.5 验证
 
@@ -239,7 +255,7 @@ $RUN python src/alphatrade/scripts/run_iteration.py \
 ### 4.3 查看结果
 
 ```bash
-cat reports/m5_leaderboard.md
+cat "$REPORTS/m5_leaderboard.md"
 ```
 
 示例输出：
@@ -252,7 +268,7 @@ cat reports/m5_leaderboard.md
 ```
 
 ```bash
-cat reports/m7_regression_report.md
+cat "$REPORTS/m7_regression_report.md"
 ```
 
 示例输出：
@@ -285,7 +301,7 @@ cat reports/m7_regression_report.md
 
 ```bash
 # 用 jq 提取冠军
-cat reports/m5_leaderboard.json | python -c "
+cat "$REPORTS/m5_leaderboard.json" | python -c "
 import json, sys
 lb = json.load(sys.stdin)
 winner = lb['experiments'][0]
@@ -339,15 +355,16 @@ experiments:
     overrides: {batch_size: 512}
 ```
 
-### 5.3 清理旧报告 + 全量重跑
+### 5.3 切换产物目录 + 全量重跑
 
 > **关键**: 升级基准后 defaults 变了，config_hash 会变化。必须不带 `--resume` 全量重跑，否则会复用旧的 baseline 结果（config_hash 不匹配）。
 
 ```bash
-# 清理旧的 m5/m7 报告（保留原始报告可先备份）
-mkdir -p reports/archive/round1
-mv reports/m5_*.json reports/m5_*.md reports/archive/round1/ 2>/dev/null
-mv reports/m7_*.json reports/m7_*.md reports/archive/round1/ 2>/dev/null
+# 每轮使用独立 runs root，旧报告自然保留在 round1/default 中
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round2"
+export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
+export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
+export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
 
 # 全量重跑（不带 --resume）
 $RUN python src/alphatrade/scripts/run_iteration.py \
@@ -391,33 +408,33 @@ $RUN python src/alphatrade/scripts/export_model_bundle.py \
 ```
 
 输出：
-- `artifacts/model_bundle/alphatrade_v0.2_<exp_id>_<run_id>/` — 模型 bundle
-- `reports/m9_model_bundle_manifest.json` — 溯源记录
+- `$ARTIFACTS/model_bundle/alphatrade_v0.2_<exp_id>_<run_id>/` — 模型 bundle
+- `$REPORTS/m9_model_bundle_manifest.json` — 溯源记录
 
 ### 6.2 批量推理
+
+`batch_infer_offline.py` 默认清理 `LD_LIBRARY_PATH`，避免 JAX CUDA 插件加载到错误版本的 cuSPARSE/cuDNN。确实需要保留该变量时，设置 `ALPHATRADE_KEEP_LD_LIBRARY_PATH=1`。
 
 ```bash
 # Smoke test（快速验证）
 $RUN python src/alphatrade/scripts/batch_infer_offline.py \
-  --bundle artifacts/model_bundle/alphatrade_v0.2_batch_256_9169f783 \
+  --bundle "$ARTIFACTS/model_bundle/alphatrade_v0.2_batch_256_9169f783" \
   --data-dir data/processed/m1_f8 \
   --symbols DCE.JM,SHFE.AG \
   --start 2024-01-02 --end 2024-01-04 \
-  --output reports/m9_predictions.parquet \
   --smoke
 
 # 全量推理（所有品种 × 完整时间范围）
 $RUN python src/alphatrade/scripts/batch_infer_offline.py \
-  --bundle artifacts/model_bundle/alphatrade_v0.2_batch_256_9169f783 \
+  --bundle "$ARTIFACTS/model_bundle/alphatrade_v0.2_batch_256_9169f783" \
   --data-dir data/processed/m1_f8 \
   --symbols DCE.JM,SHFE.AG,CZCE.MA,DCE.PP,SHFE.CU,... \
-  --start 2024-01-02 --end 2024-12-31 \
-  --output reports/m9_predictions.parquet
+  --start 2024-01-02 --end 2024-12-31
 ```
 
 输出：
-- `reports/m9_predictions.parquet` — 宽表格式预测（symbol × eob × 20 prediction columns）
-- `reports/m9_infer_metrics.json` + `.md` — 推理统计
+- `$REPORTS/m9_predictions.parquet` — 宽表格式预测（symbol × eob × 20 prediction columns）
+- `$REPORTS/m9_infer_metrics.json` + `.md` — 推理统计
 
 ### 6.3 最终门禁
 
@@ -433,6 +450,10 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 
 ```bash
 export RUN="conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH"
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round1"
+export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
+export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
+export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
 
 # ========================================
 # Round 1: 建立初始基准
@@ -470,8 +491,8 @@ $RUN python src/alphatrade/scripts/run_iteration.py \
   --profile m7 --resume --strict
 
 # 查看结果
-cat reports/m5_leaderboard.md
-cat reports/m7_regression_report.md
+cat "$REPORTS/m5_leaderboard.md"
+cat "$REPORTS/m7_regression_report.md"
 
 # 假设结果：batch_256 排名第一，delta=-0.59%，verdict=neutral
 # 决策：虽然未达 improved 阈值，但确实排名第一 → 升级基准
@@ -481,11 +502,11 @@ cat reports/m7_regression_report.md
 # Round 2: 升级基准 + 新 ablation
 # ========================================
 
-# 备份旧报告
-mkdir -p reports/archive/round1
-mv reports/m5_*.json reports/m5_*.md reports/archive/round1/ 2>/dev/null
-mv reports/m7_*.json reports/m7_*.md reports/archive/round1/ 2>/dev/null
-mv reports/m6_baseline_run.md reports/archive/round1/ 2>/dev/null
+# 切换到新一轮独立 runs root，旧报告保留在 ../alphatrade_runs/round1
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round2"
+export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
+export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
+export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
 
 # 创建 configs/sweep/round2.yaml
 # defaults.batch_size: 256（吸收赢家）
@@ -500,8 +521,8 @@ $RUN python src/alphatrade/scripts/run_iteration.py \
 $RUN python src/alphatrade/scripts/gen_m6_baseline_report.py
 
 # 查看结果
-cat reports/m5_leaderboard.md
-cat reports/m7_regression_report.md
+cat "$REPORTS/m5_leaderboard.md"
+cat "$REPORTS/m7_regression_report.md"
 
 # 假设结果：steps_2000 排名第一，delta=-1.5%，verdict=improved! ✅
 
@@ -510,11 +531,11 @@ cat reports/m7_regression_report.md
 # Round 3: 再次升级基准
 # ========================================
 
-# 备份
-mkdir -p reports/archive/round2
-mv reports/m5_*.json reports/m5_*.md reports/archive/round2/ 2>/dev/null
-mv reports/m7_*.json reports/m7_*.md reports/archive/round2/ 2>/dev/null
-mv reports/m6_baseline_run.md reports/archive/round2/ 2>/dev/null
+# 切换到 round3 产物目录
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/round3"
+export REPORTS="$ALPHATRADE_RUNS_ROOT/reports"
+export CHECKPOINTS="$ALPHATRADE_RUNS_ROOT/checkpoints"
+export ARTIFACTS="$ALPHATRADE_RUNS_ROOT/artifacts"
 
 # 创建 configs/sweep/round3.yaml
 # defaults: batch_size=256, max_steps=2000（吸收两轮赢家）
@@ -536,11 +557,10 @@ $RUN python src/alphatrade/scripts/gen_m6_baseline_report.py
 $RUN python src/alphatrade/scripts/export_model_bundle.py
 
 $RUN python src/alphatrade/scripts/batch_infer_offline.py \
-  --bundle artifacts/model_bundle/alphatrade_v0.2_baseline_<run_id> \
+  --bundle "$ARTIFACTS/model_bundle/alphatrade_v0.2_baseline_<run_id>" \
   --data-dir data/processed/m1_f8 \
   --symbols DCE.JM,SHFE.AG,CZCE.MA \
-  --start 2024-01-02 --end 2024-12-31 \
-  --output reports/m9_predictions.parquet
+  --start 2024-01-02 --end 2024-12-31
 
 $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --strict
 
@@ -608,9 +628,10 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 
 ## 9. FAQ
 
-### Q: 升级基准时为什么要清理旧报告？
+### Q: 升级基准时为什么要切换 runs root？
 
-`run_m5_sweep.py` 用固定的文件名模式（`m5_{exp_id}_seed{seed}_*.json`），如果旧的 exp_id 与新的相同但配置不同，`--resume` 会错误地复用旧结果。清理旧报告可以避免这个问题。
+`run_m5_sweep.py` 用固定的文件名模式（`m5_{exp_id}_seed{seed}_*.json`），如果旧的 exp_id 与新的相同但配置不同，`--resume` 会错误地复用旧结果。
+现在推荐每轮使用独立的 `ALPHATRADE_RUNS_ROOT`，这样无需移动文件，也不会把训练产物写进源码仓库。
 
 ### Q: 可以同时跑多轮吗？
 
@@ -618,7 +639,7 @@ $RUN python src/alphatrade/scripts/validate_reports_schema.py --profile m9 --str
 
 ### Q: 如何回滚到某一轮的状态？
 
-每轮备份的 `reports/archive/roundN/` 包含完整的报告。将文件还原即可回到该轮状态。git commit 也可以作为还原点。
+每轮对应一个独立目录，例如 `../alphatrade_runs/round2`。回滚时把 `ALPHATRADE_RUNS_ROOT` 指回对应目录即可。
 
 ### Q: `--resume` 什么时候安全？
 
@@ -657,5 +678,5 @@ symbol | eob | model_version | h1_q10 | h1_q30 | h1_q50 | h1_q70 | h1_q90 | h5_q
 | 一键迭代 | `run_iteration.py` | sweep + regression + gate |
 | 回归报告 | `build_m7_regression_report.py` | m7_regression_report.json |
 | Schema 验证 | `validate_reports_schema.py` | {profile}_schema_validation.json |
-| 导出 champion | `export_model_bundle.py` | artifacts/model_bundle/ |
+| 导出 champion | `export_model_bundle.py` | artifacts/model_bundle/ under `ALPHATRADE_RUNS_ROOT` |
 | 批量推理 | `batch_infer_offline.py` | m9_predictions.parquet |

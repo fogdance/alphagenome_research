@@ -14,7 +14,8 @@ import re
 import sys
 import warnings
 from datetime import datetime
-from pathlib import Path
+
+from alphatrade import runtime_paths
 
 try:
     import jsonschema
@@ -31,13 +32,16 @@ _DEFAULT_PROFILE = "m4"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Validate reports: schema + semantic")
-    parser.add_argument("--reports-dir", type=str, default="reports", help="Reports directory")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
     parser.add_argument("--schemas-dir", type=str, default="src/alphatrade/schemas", help="Schemas directory")
     parser.add_argument("--manifest", type=str, default=_DEFAULT_MANIFEST, help="Path to contracts_manifest.yaml")
     parser.add_argument("--profile", type=str, default=_DEFAULT_PROFILE, help="Manifest profile to validate")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on required missing/fail")
-    parser.add_argument("--output-json", type=str, default=None, help="JSON output path (default: reports/{profile}_schema_validation.json)")
-    parser.add_argument("--output-md", type=str, default=None, help="Markdown output path (default: reports/{profile}_schema_validation.md)")
+    parser.add_argument("--output-json", type=str, default=None, help="JSON output path (default: <reports-dir>/{profile}_schema_validation.json)")
+    parser.add_argument("--output-md", type=str, default=None, help="Markdown output path (default: <reports-dir>/{profile}_schema_validation.md)")
     return parser.parse_args()
 
 
@@ -740,17 +744,19 @@ def main():
 
     profile_name = args.profile
     strict = args.strict
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    reports_dir_str = str(reports_dir)
 
     # Output paths
-    json_out = args.output_json or os.path.join(args.reports_dir, f"{profile_name}_schema_validation.json")
-    md_out = args.output_md or os.path.join(args.reports_dir, f"{profile_name}_schema_validation.md")
+    json_out = args.output_json or str(reports_dir / f"{profile_name}_schema_validation.json")
+    md_out = args.output_md or str(reports_dir / f"{profile_name}_schema_validation.md")
 
     print(f"\n{'='*60}")
     print(f"Reports Schema & Semantic Validation")
     print(f"{'='*60}")
     print(f"Profile:     {profile_name}")
     print(f"Strict:      {strict}")
-    print(f"Reports dir: {args.reports_dir}")
+    print(f"Reports dir: {reports_dir_str}")
     print(f"Manifest:    {args.manifest}")
     print(f"{'='*60}\n")
 
@@ -765,10 +771,9 @@ def main():
             available = list(manifest.get("profiles", {}).keys())
             print(f"Available profiles: {available}")
             sys.exit(1)
-        reports_dir = get_profile_reports_dir(manifest, profile_name) or args.reports_dir
         validations = []
         for item in items:
-            report_path = os.path.join(reports_dir, item["path"])
+            report_path = os.path.join(reports_dir_str, item["path"])
             schema_path = item.get("schema", "")
             validations.append({
                 "name": item["name"],
@@ -779,7 +784,7 @@ def main():
         print(f"Loaded manifest profile '{profile_name}': {len(validations)} items\n")
     else:
         warnings.warn(f"Manifest not found at {args.manifest} — using legacy hardcoded validations")
-        validations = _legacy_validations(args.reports_dir, args.schemas_dir)
+        validations = _legacy_validations(reports_dir_str, args.schemas_dir)
         print(f"Legacy mode: {len(validations)} items\n")
 
     # ── Phase 1: Schema validation ──
@@ -808,7 +813,7 @@ def main():
     # ── Phase 2: Semantic checks ──
     if profile_name == "m9":
         print("Phase 2: M9 bundle + predictions checks\n")
-        semantic_results = semantic_check_m9(args.reports_dir, args.schemas_dir)
+        semantic_results = semantic_check_m9(reports_dir_str, args.schemas_dir)
         for c in semantic_results["checks"]:
             icon = "\u2705" if c["status"] == "pass" else "\u274c"
             detail = f" ({c['detail']})" if c["detail"] else ""
@@ -819,7 +824,7 @@ def main():
         print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
     elif profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")
-        semantic_results = semantic_check_m5(args.reports_dir, args.schemas_dir)
+        semantic_results = semantic_check_m5(reports_dir_str, args.schemas_dir)
         for c in semantic_results["checks"]:
             icon = "\u2705" if c["status"] == "pass" else "\u274c"
             detail = f" ({c['detail']})" if c["detail"] else ""
@@ -832,7 +837,7 @@ def main():
         # M7: additional regression report checks
         if profile_name == "m7":
             print("Phase 2b: M7 regression report checks\n")
-            m7_result = semantic_check_m7_regression(args.reports_dir)
+            m7_result = semantic_check_m7_regression(reports_dir_str)
             semantic_results["m7_regression"] = m7_result
             for c in m7_result["checks"]:
                 icon = "\u2705" if c["status"] == "pass" else "\u274c"
@@ -848,7 +853,7 @@ def main():
     else:
         print("Phase 2: M4 semantic checks\n")
         semantic_results = []
-        seed_pairs = discover_m4_seed_pairs(args.reports_dir)
+        seed_pairs = discover_m4_seed_pairs(reports_dir_str)
 
         for sp in seed_pairs:
             print(f"  Seed {sp['seed']}:")
@@ -892,7 +897,7 @@ def main():
         "profile": profile_name,
         "strict": strict,
         "manifest": args.manifest if use_manifest else None,
-        "reports_dir": args.reports_dir,
+        "reports_dir": reports_dir_str,
         "summary": {
             "schema_total": schema_total,
             "schema_passed": schema_pass,

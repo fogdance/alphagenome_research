@@ -10,6 +10,7 @@ This script:
 5. Generates contract check report
 """
 
+import argparse
 import os
 import sys
 import yaml
@@ -18,6 +19,18 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import json
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import runtime_paths
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Check M1 data contract")
+    parser.add_argument("--universe", type=str, default="configs/universe/m1_selected.yaml")
+    parser.add_argument("--processed-dir", type=str, default="data/processed/m1")
+    runtime_paths.add_output_args(parser)
+    return parser.parse_args()
 
 
 def load_universe(universe_path: str) -> list:
@@ -288,12 +301,14 @@ def generate_json_report(samples: list, output_path: str):
 
 
 def main():
+    args = parse_args()
+
     print("="*60)
     print("M1-T5.0: Data Contract Check")
     print("="*60)
-    
+
     # Load universe
-    universe_path = "configs/universe/m1_selected.yaml"
+    universe_path = args.universe
     if not os.path.exists(universe_path):
         print(f"Error: Universe file not found: {universe_path}")
         sys.exit(1)
@@ -307,7 +322,7 @@ def main():
     
     # Check each sample
     samples = []
-    processed_dir = "data/processed/m1"
+    processed_dir = args.processed_dir
     
     for symbol in sample_symbols:
         print(f"\nChecking {symbol}...")
@@ -348,8 +363,11 @@ def main():
     
     # Generate reports
     print("\nGenerating reports...")
-    generate_report(samples, "reports/m1_t5_contract_check.md")
-    generate_json_report(samples, "reports/m1_t5_contract_check.json")
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    md_path = reports_dir / "m1_t5_contract_check.md"
+    json_path = reports_dir / "m1_t5_contract_check.json"
+    generate_report(samples, md_path)
+    generate_json_report(samples, json_path)
     
     # Summary
     all_pass = all(s['validation']['status'] == 'PASS' for s in samples)
@@ -357,8 +375,8 @@ def main():
     print(f"Contract Check: {'✅ PASS' if all_pass else '❌ FAIL'}")
     print(f"{'='*60}")
     print(f"Reports:")
-    print(f"  - reports/m1_t5_contract_check.md")
-    print(f"  - reports/m1_t5_contract_check.json")
+    print(f"  - {md_path}")
+    print(f"  - {json_path}")
     print(f"{'='*60}")
 
 

@@ -29,6 +29,7 @@ from alphatrade.core import losses as loss_lib
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
 from alphatrade.training import training
+from alphatrade import runtime_paths
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
 
@@ -42,6 +43,7 @@ def parse_args():
     parser.add_argument("--jit", type=int, default=1, help="Use JIT compilation (0/1)")
     parser.add_argument("--clip-norm", type=float, default=1.0)
     parser.add_argument("--smoke", action="store_true")
+    runtime_paths.add_output_args(parser)
     return parser.parse_args()
 
 
@@ -544,14 +546,15 @@ def main():
     }
 
     # Save metrics JSON
-    json_path = "reports/m3_train_metrics.json"
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    json_path = reports_dir / "m3_train_metrics.json"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
         json.dump(metrics_output, f, indent=2)
     print(f"\n✅ Metrics: {json_path}")
 
     # Save markdown report
-    md_path = "reports/m3_train_run.md"
+    md_path = reports_dir / "m3_train_run.md"
     with open(md_path, 'w') as f:
         f.write("# M3 Training Run - AlphaTrade v0.2 (JAX)\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

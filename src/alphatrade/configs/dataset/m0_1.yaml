@@ -12,7 +12,7 @@ paths:
   # manifest jsonl produced by backfill job (optional, if your reader can auto-detect latest)
   manifest_path: ""  # e.g. "/data/juejin/_manifest/<run_id>.jsonl"
   processed_dir: "data/processed/m0_1"
-  reports_dir: "reports"
+  reports_dir: "../alphatrade_runs/default/reports"
 
 universe:
   symbols:

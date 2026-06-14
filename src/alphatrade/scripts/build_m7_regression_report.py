@@ -8,12 +8,12 @@ a regression report (JSON + Markdown).
 
 Usage:
   python src/alphatrade/scripts/build_m7_regression_report.py \
-    [--leaderboard reports/m5_leaderboard.json] \
+    [--leaderboard <runs>/reports/m5_leaderboard.json] \
     [--baseline-exp baseline] \
     [--improvement-pct 1.0] \
     [--regression-pct 5.0] \
-    [--output-json reports/m7_regression_report.json] \
-    [--output-md reports/m7_regression_report.md]
+    [--output-json <runs>/reports/m7_regression_report.json] \
+    [--output-md <runs>/reports/m7_regression_report.md]
 """
 
 import argparse
@@ -23,21 +23,27 @@ import subprocess
 import sys
 from datetime import datetime
 
+from alphatrade import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build M7 regression report")
-    parser.add_argument("--leaderboard", type=str, default="reports/m5_leaderboard.json",
-                        help="Path to M5 leaderboard JSON")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--leaderboard", type=str, default=None,
+                        help="Path to M5 leaderboard JSON (default: <reports-dir>/m5_leaderboard.json)")
     parser.add_argument("--baseline-exp", type=str, default="baseline",
                         help="Experiment ID to use as baseline")
     parser.add_argument("--improvement-pct", type=float, default=1.0,
                         help="Minimum %% decrease in primary metric to count as improved")
     parser.add_argument("--regression-pct", type=float, default=5.0,
                         help="Minimum %% increase in primary metric to count as regressed")
-    parser.add_argument("--output-json", type=str, default="reports/m7_regression_report.json",
-                        help="Output JSON path")
-    parser.add_argument("--output-md", type=str, default="reports/m7_regression_report.md",
-                        help="Output Markdown path")
+    parser.add_argument("--output-json", type=str, default=None,
+                        help="Output JSON path (default: <reports-dir>/m7_regression_report.json)")
+    parser.add_argument("--output-md", type=str, default=None,
+                        help="Output Markdown path (default: <reports-dir>/m7_regression_report.md)")
     return parser.parse_args()
 
 
@@ -188,33 +194,37 @@ def generate_markdown(report):
 
 def main():
     args = parse_args()
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    leaderboard_path = args.leaderboard or str(reports_dir / "m5_leaderboard.json")
+    output_json = args.output_json or str(reports_dir / "m7_regression_report.json")
+    output_md = args.output_md or str(reports_dir / "m7_regression_report.md")
 
     print(f"\n{'='*60}")
     print("M7 Regression Report Builder")
     print(f"{'='*60}")
-    print(f"Leaderboard: {args.leaderboard}")
+    print(f"Leaderboard: {leaderboard_path}")
     print(f"Baseline:    {args.baseline_exp}")
     print(f"Improvement: >= {args.improvement_pct}% decrease")
     print(f"Regression:  >= {args.regression_pct}% increase")
     print(f"{'='*60}\n")
 
-    if not os.path.exists(args.leaderboard):
-        print(f"ERROR: leaderboard not found: {args.leaderboard}")
+    if not os.path.exists(leaderboard_path):
+        print(f"ERROR: leaderboard not found: {leaderboard_path}")
         sys.exit(1)
 
-    with open(args.leaderboard) as f:
+    with open(leaderboard_path) as f:
         leaderboard = json.load(f)
 
     report = build_report(leaderboard, args.baseline_exp, args.improvement_pct, args.regression_pct)
 
-    os.makedirs(os.path.dirname(args.output_json) or ".", exist_ok=True)
-    with open(args.output_json, "w") as f:
+    os.makedirs(os.path.dirname(output_json) or ".", exist_ok=True)
+    with open(output_json, "w") as f:
         json.dump(report, f, indent=2)
-    print(f"JSON report:     {args.output_json}")
+    print(f"JSON report:     {output_json}")
 
-    with open(args.output_md, "w") as f:
+    with open(output_md, "w") as f:
         f.write(generate_markdown(report))
-    print(f"Markdown report: {args.output_md}")
+    print(f"Markdown report: {output_md}")
 
     print(f"\n{'='*60}")
     s = report["summary"]

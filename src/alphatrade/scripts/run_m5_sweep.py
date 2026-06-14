@@ -8,8 +8,9 @@ for all (exp_id, seed) combinations defined in a sweep config YAML.
 Usage:
     python src/alphatrade/scripts/run_m5_sweep.py \
         --sweep-config configs/sweep/m5.yaml \
-        [--out-manifest reports/m5_sweep_manifest.json] \
-        [--reports-dir reports] \
+        [--output-root ../alphatrade_runs/default] \
+        [--out-manifest <runs>/reports/m5_sweep_manifest.json] \
+        [--reports-dir <runs>/reports] \
         [--dry-run] [--resume] [--smoke] [--gpu/--no-gpu]
 """
 
@@ -24,6 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import yaml
+from alphatrade import runtime_paths
 
 
 # ---------------------------------------------------------------------------
@@ -34,10 +36,14 @@ def parse_args():
     parser = argparse.ArgumentParser(description="M5 Sweep Runner")
     parser.add_argument("--sweep-config", type=str, required=True,
                         help="Path to sweep config YAML (e.g. configs/sweep/m5.yaml)")
-    parser.add_argument("--out-manifest", type=str, default="reports/m5_sweep_manifest.json",
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--out-manifest", type=str, default=None,
                         help="Output manifest path")
-    parser.add_argument("--reports-dir", type=str, default="reports",
+    parser.add_argument("--reports-dir", type=str, default=None,
                         help="Reports directory")
+    parser.add_argument("--checkpoints-dir", type=str, default=None,
+                        help="Checkpoints directory (default: <output-root>/checkpoints)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print run plan and exit")
     parser.add_argument("--resume", action="store_true",
@@ -130,8 +136,9 @@ def _extract_run_id(metrics_path: str) -> str:
 # GPU workaround (same as run_m4_matrix.py)
 # ---------------------------------------------------------------------------
 
+_BASE_ENV = {k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"}
 _GPU_ENV = {
-    **os.environ,
+    **_BASE_ENV,
     "JAX_PLATFORMS": "cuda",
     "XLA_FLAGS": "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer=",
 }
@@ -145,18 +152,62 @@ def _build_cmd(module: str, cli_args: List[str], gpu: bool) -> tuple:
             f"import sys; sys.argv = {argv_str}; "
             f"from alphatrade.scripts.{module} import main; main()"
         )
-        return ["python", "-c", code], _GPU_ENV
+        return [sys.executable, "-c", code], _GPU_ENV
     else:
         script = f"src/alphatrade/scripts/{module}.py"
-        return ["python", script] + cli_args, None
+        return [sys.executable, script] + cli_args, None
+
+
+# ---------------------------------------------------------------------------
+# Sweep → train CLI parameter mapping
+# ---------------------------------------------------------------------------
+
+# Each entry: (sweep_yaml_key, cli_flag, default_or_None)
+# - If default_or_None is not None: always pass the flag with override or default
+# - If default_or_None is None: only pass the flag when present in overrides
+#
+# To support a new parameter:
+#   1. Add a CLI arg in train_m4_alphatrade.py: parse_args()
+#   2. Add one row here
+#   3. Done — no other code changes needed
+_TRAIN_PARAM_MAP = [
+    ("max_steps",      "--max-steps",      500),
+    ("batch_size",     "--batch-size",     128),
+    ("jit",            "--jit",            1),
+    ("clip_norm",      "--clip-norm",      1.0),
+    ("save_every",     "--save-every",     100),
+    ("keep_last",      "--keep-last",      3),
+    # Parameters that only pass when explicitly set (override config YAML defaults)
+    ("learning_rate",  "--learning-rate",  None),
+    ("weight_decay",   "--weight-decay",   None),
+    ("val_every",      "--val-every",      None),
+]
+
+_EVAL_PARAM_MAP = [
+    ("batch_size",     "--batch-size",     128),
+    ("eval_split",     "--split",          "val"),
+    ("ckpt_step",      "--ckpt-step",      "best"),
+]
+
+
+def _build_cli_from_map(param_map: list, overrides: dict) -> List[str]:
+    """Build CLI args list from a parameter mapping table and overrides dict."""
+    cli = []
+    for yaml_key, cli_flag, default in param_map:
+        if yaml_key in overrides:
+            cli.extend([cli_flag, str(overrides[yaml_key])])
+        elif default is not None:
+            cli.extend([cli_flag, str(default)])
+        # else: not in overrides and no default → skip (train script uses its own default)
+    return cli
 
 
 # ---------------------------------------------------------------------------
 # Single-run executors
 # ---------------------------------------------------------------------------
 
-def run_single_train(run: dict, reports_dir: str, smoke: bool,
-                     gpu: bool) -> Optional[dict]:
+def run_single_train(run: dict, output_root: str, reports_dir: str,
+                     checkpoints_dir: str, smoke: bool, gpu: bool) -> Optional[dict]:
     """Run training for a single (exp_id, seed). Returns info dict or None."""
     exp_id = run["exp_id"]
     seed = run["seed"]
@@ -166,19 +217,16 @@ def run_single_train(run: dict, reports_dir: str, smoke: bool,
     print(f"[TRAIN] exp={exp_id} seed={seed}")
     print(f"{'='*60}\n")
 
-    ckpt_dir = f"checkpoints/m5/{exp_id}_seed{seed}"
+    ckpt_dir = str(Path(checkpoints_dir) / "m5" / f"{exp_id}_seed{seed}")
 
     cli_args = [
         "--config", run["dataset_config"],
         "--seed", str(seed),
-        "--max-steps", str(ov.get("max_steps", 500)),
-        "--batch-size", str(ov.get("batch_size", 128)),
-        "--jit", str(ov.get("jit", 0)),
-        "--clip-norm", str(ov.get("clip_norm", 1.0)),
+        "--output-root", output_root,
         "--ckpt-dir", ckpt_dir,
-        "--save-every", str(ov.get("save_every", 100)),
-        "--keep-last", str(ov.get("keep_last", 3)),
+        "--reports-dir", reports_dir,
     ]
+    cli_args.extend(_build_cli_from_map(_TRAIN_PARAM_MAP, ov))
     if smoke:
         cli_args.append("--smoke")
 
@@ -214,7 +262,7 @@ def run_single_train(run: dict, reports_dir: str, smoke: bool,
     }
 
 
-def run_single_eval(run: dict, train_info: dict, reports_dir: str,
+def run_single_eval(run: dict, train_info: dict, output_root: str, reports_dir: str,
                     smoke: bool, gpu: bool) -> Optional[dict]:
     """Run evaluation for a single (exp_id, seed). Returns info dict or None."""
     exp_id = run["exp_id"]
@@ -228,10 +276,10 @@ def run_single_eval(run: dict, train_info: dict, reports_dir: str,
     cli_args = [
         "--train-metrics", train_info["train_metrics_path"],
         "--dataset-config", run["dataset_config"],
-        "--split", ov.get("eval_split", "val"),
-        "--batch-size", str(ov.get("batch_size", 128)),
-        "--ckpt-step", str(ov.get("ckpt_step", "best")),
+        "--output-root", output_root,
+        "--reports-dir", reports_dir,
     ]
+    cli_args.extend(_build_cli_from_map(_EVAL_PARAM_MAP, ov))
     if smoke:
         cli_args.append("--smoke")
 
@@ -309,7 +357,8 @@ def build_manifest(config: dict, completed_runs: List[dict], git_sha: str) -> di
 # Post-pipeline (leaderboard + validator)
 # ---------------------------------------------------------------------------
 
-def run_post_pipeline(manifest_path: str, gpu: bool) -> bool:
+def run_post_pipeline(manifest_path: str, output_root: str, reports_dir: str,
+                      gpu: bool) -> bool:
     """Run leaderboard builder and validator. Returns True if all pass."""
     all_ok = True
 
@@ -318,7 +367,17 @@ def run_post_pipeline(manifest_path: str, gpu: bool) -> bool:
     print("[POST] Building M5 leaderboard")
     print(f"{'='*60}\n")
 
-    cmd, env = _build_cmd("build_m5_leaderboard", ["--manifest", manifest_path], gpu)
+    cmd, env = _build_cmd(
+        "build_m5_leaderboard",
+        [
+            "--manifest", manifest_path,
+            "--output-root", output_root,
+            "--reports-dir", reports_dir,
+            "--output-json", os.path.join(reports_dir, "m5_leaderboard.json"),
+            "--output-md", os.path.join(reports_dir, "m5_leaderboard.md"),
+        ],
+        gpu,
+    )
     result = subprocess.run(cmd, capture_output=False, text=True, env=env)
     if result.returncode != 0:
         print("  [FAIL] Leaderboard build failed")
@@ -332,8 +391,10 @@ def run_post_pipeline(manifest_path: str, gpu: bool) -> bool:
 
     validator_args = [
         "--profile", "m5", "--strict",
-        "--output-json", "reports/m5_schema_validation.json",
-        "--output-md", "reports/m5_schema_validation.md",
+        "--output-root", output_root,
+        "--reports-dir", reports_dir,
+        "--output-json", os.path.join(reports_dir, "m5_schema_validation.json"),
+        "--output-md", os.path.join(reports_dir, "m5_schema_validation.md"),
     ]
 
     # First pass: creates m5_schema_validation.json/md (may fail)
@@ -360,14 +421,24 @@ def main():
     args = parse_args()
     config = load_sweep_config(args.sweep_config)
     plan = build_run_plan(config, smoke=args.smoke)
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    checkpoints_dir = runtime_paths.checkpoints_dir(
+        args.output_root, args.checkpoints_dir
+    )
+    out_manifest = Path(args.out_manifest) if args.out_manifest else reports_dir / "m5_sweep_manifest.json"
 
-    os.makedirs(args.reports_dir, exist_ok=True)
+    os.makedirs(reports_dir, exist_ok=True)
+    out_manifest.parent.mkdir(parents=True, exist_ok=True)
 
     # ── Header ──
     print(f"\n{'='*60}")
     print("M5 Sweep Runner")
     print(f"{'='*60}")
     print(f"Config:    {args.sweep_config}")
+    print(f"Output:    {output_root}")
+    print(f"Reports:   {reports_dir}")
+    print(f"Ckpts:     {checkpoints_dir}")
     print(f"Runs:      {len(plan)}")
     print(f"Seeds:     {config['expected_seeds']}")
     print(f"Metric:    {config['primary_metric']}")
@@ -395,8 +466,8 @@ def main():
         seed = r["seed"]
 
         # Resume check
-        if args.resume and is_run_complete(exp_id, seed, args.reports_dir):
-            train_path, eval_path = _run_file_paths(exp_id, seed, args.reports_dir)
+        if args.resume and is_run_complete(exp_id, seed, str(reports_dir)):
+            train_path, eval_path = _run_file_paths(exp_id, seed, str(reports_dir))
             run_id = _extract_run_id(train_path)
             print(f"[SKIP] {exp_id} seed={seed} — already complete (run_id={run_id})")
             completed_runs.append({
@@ -413,13 +484,18 @@ def main():
 
         try:
             # Train
-            train_info = run_single_train(r, args.reports_dir, args.smoke, args.gpu)
+            train_info = run_single_train(
+                r, str(output_root), str(reports_dir), str(checkpoints_dir),
+                args.smoke, args.gpu
+            )
             if train_info is None:
                 print(f"[SKIP] {exp_id} seed={seed} — training failed, skipping eval")
                 continue
 
             # Eval
-            eval_info = run_single_eval(r, train_info, args.reports_dir, args.smoke, args.gpu)
+            eval_info = run_single_eval(
+                r, train_info, str(output_root), str(reports_dir), args.smoke, args.gpu
+            )
             if eval_info is None:
                 print(f"[SKIP] {exp_id} seed={seed} — eval failed")
                 continue
@@ -442,23 +518,25 @@ def main():
     git_sha = _get_git_sha()
     manifest = build_manifest(config, completed_runs, git_sha)
 
-    with open(args.out_manifest, "w") as f:
+    with open(out_manifest, "w") as f:
         json.dump(manifest, f, indent=2)
-    print(f"\n[MANIFEST] {args.out_manifest} ({len(completed_runs)}/{len(plan)} runs)")
+    print(f"\n[MANIFEST] {out_manifest} ({len(completed_runs)}/{len(plan)} runs)")
 
     # ── Post-pipeline ──
     if not completed_runs:
         print("\n[WARN] No completed runs — skipping post-pipeline")
         sys.exit(1)
 
-    all_ok = run_post_pipeline(args.out_manifest, args.gpu)
+    all_ok = run_post_pipeline(
+        str(out_manifest), str(output_root), str(reports_dir), args.gpu
+    )
 
     # ── Final summary ──
     print(f"\n{'='*60}")
     print("M5 Sweep Complete")
     print(f"{'='*60}")
     print(f"  Completed: {len(completed_runs)}/{len(plan)} runs")
-    print(f"  Manifest:  {args.out_manifest}")
+    print(f"  Manifest:  {out_manifest}")
     print(f"  Gate:      {'PASS' if all_ok else 'FAIL'}")
     print()
 

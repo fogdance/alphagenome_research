@@ -3,7 +3,7 @@
 Generate M6 Baseline Run Report.
 
 Reads M5 sweep artifacts (manifest, leaderboard, per-seed eval files)
-and configs to produce a single-page markdown summary: reports/m6_baseline_run.md.
+and configs to produce a single-page markdown summary in the reports directory.
 """
 
 import argparse
@@ -19,11 +19,16 @@ except ImportError:
     print("Error: pyyaml not installed")
     sys.exit(1)
 
+from alphatrade import runtime_paths
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate M6 baseline run report")
-    parser.add_argument("--reports-dir", type=str, default="reports", help="Reports directory")
-    parser.add_argument("--output", type=str, default=None, help="Output path (default: reports/m6_baseline_run.md)")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None, help="Reports directory")
+    parser.add_argument("--output", type=str, default=None,
+                        help="Output path (default: <reports-dir>/m6_baseline_run.md)")
     parser.add_argument("--sweep-config", type=str, default="configs/sweep/m5.yaml", help="Sweep config path")
     parser.add_argument("--dataset-config", type=str, default="configs/dataset/m2.yaml", help="Dataset config path")
     return parser.parse_args()
@@ -51,7 +56,7 @@ def get_git_sha() -> str:
 
 def main():
     args = parse_args()
-    reports_dir = Path(args.reports_dir)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
     output = Path(args.output) if args.output else reports_dir / "m6_baseline_run.md"
 
     # Load inputs
@@ -106,6 +111,8 @@ def main():
 
     w("## Reproduction\n")
     w("```bash")
+    w("# Default outputs go to ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default")
+    w("")
     w("# Run 3-seed sweep")
     w("conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \\")
     w("  python src/alphatrade/scripts/run_m5_sweep.py --sweep-config configs/sweep/m5.yaml")

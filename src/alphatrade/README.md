@@ -59,12 +59,31 @@ pip install -e /path/to/alphagenome_research
 # Dependencies: JAX, Haiku, Optax, NumPy
 ```
 
+## Generated Outputs
+
+Training and inference artifacts are kept outside the source tree by default.
+Set `ALPHATRADE_RUNS_ROOT` to choose a run directory:
+
+```bash
+export ALPHATRADE_RUNS_ROOT="$(pwd)/../alphatrade_runs/default"
+```
+
+Mainline scripts write to:
+
+- `$ALPHATRADE_RUNS_ROOT/reports`
+- `$ALPHATRADE_RUNS_ROOT/checkpoints`
+- `$ALPHATRADE_RUNS_ROOT/artifacts`
+
+Use a separate root per experiment round, for example
+`../alphatrade_runs/round1`, to avoid mixing generated reports with source code.
+
 ## Quick Start
 
 ### 1. Training
 
 ```python
-from alphagenome_research.alphatrade import schemas, training
+from alphatrade import schemas
+from alphatrade.training import training
 import jax
 
 # Create configuration
@@ -90,7 +109,8 @@ for batch in train_loader:
 ### 2. Inference
 
 ```python
-from alphagenome_research.alphatrade import api, preprocessing
+import alphatrade.api as api
+from alphatrade.core import preprocessing, schemas
 import numpy as np
 
 # Prepare features from OHLCV data
@@ -125,7 +145,7 @@ for horizon, quantiles in response.log_return_quantiles.items():
 ### 3. API Service
 
 ```python
-from alphagenome_research.alphatrade import api
+import alphatrade.api as api
 
 # Create HTTP handler
 service = api.create_service_from_train_state(train_state, config)
@@ -148,7 +168,7 @@ health = handler.handle_health()
 Run the complete demo suite:
 
 ```bash
-python -m alphagenome_research.alphatrade.demo
+python -m alphatrade.examples.demo
 ```
 
 This demonstrates:
@@ -292,17 +312,23 @@ Borrowed from AlphaGenome:
 ## File Structure
 
 ```
-alphagenome_research/src/alphagenome_research/alphatrade/
+alphagenome_research/src/alphatrade/
 ├── __init__.py              # Package initialization
-├── causal_layers.py         # Causal convolution layers
-├── causal_attention.py      # Causal transformer layers
-├── model.py                 # Main AlphaTrade model
-├── schemas.py               # Data schemas and configs
-├── losses.py                # Loss functions
-├── training.py              # Training utilities
-├── preprocessing.py         # Feature preprocessing
 ├── api.py                   # API service
-├── demo.py                  # Demo and examples
+├── core/
+│   ├── causal_layers.py     # Causal convolution layers
+│   ├── causal_attention.py  # Causal transformer layers
+│   ├── model.py             # Main AlphaTrade model
+│   ├── schemas.py           # Data schemas and configs
+│   ├── losses.py            # Loss functions
+│   └── preprocessing.py     # Feature preprocessing
+├── training/
+│   └── training.py          # Training utilities
+├── examples/
+│   ├── demo.py              # Demo suite
+│   └── quick_demo.py        # Quick demo
+├── scripts/                 # Data, train, eval, sweep, infer CLIs
+├── tests/                   # Unit and contract tests
 └── README.md                # This file
 ```
 

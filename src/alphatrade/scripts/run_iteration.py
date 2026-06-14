@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 import yaml
+from alphatrade import runtime_paths
 
 
 def parse_args():
@@ -24,6 +25,10 @@ def parse_args():
                         help="Path to sweep config YAML")
     parser.add_argument("--profile", type=str, required=True,
                         help="Validator profile (e.g. m5, m7)")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
     parser.add_argument("--smoke", action="store_true",
                         help="Smoke test mode (3 symbols, 3 steps)")
     parser.add_argument("--resume", action="store_true",
@@ -56,6 +61,8 @@ def main():
     args = parse_args()
 
     baseline_exp_id = load_baseline_exp_id(args.sweep_config)
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
 
     print(f"\n{'='*60}")
     print("M8 Iteration Loop")
@@ -63,6 +70,8 @@ def main():
     print(f"Sweep config:    {args.sweep_config}")
     print(f"Profile:         {args.profile}")
     print(f"Baseline exp:    {baseline_exp_id}")
+    print(f"Output root:     {output_root}")
+    print(f"Reports dir:     {reports_dir}")
     print(f"Smoke:           {'yes' if args.smoke else 'no'}")
     print(f"Resume:          {'yes' if args.resume else 'no'}")
     print(f"Strict:          {'yes' if args.strict else 'no'}")
@@ -73,6 +82,8 @@ def main():
     sweep_cmd = [
         sys.executable, "src/alphatrade/scripts/run_m5_sweep.py",
         "--sweep-config", args.sweep_config,
+        "--output-root", str(output_root),
+        "--reports-dir", str(reports_dir),
     ]
     if args.smoke:
         sweep_cmd.append("--smoke")
@@ -94,6 +105,8 @@ def main():
     regression_cmd = [
         sys.executable, "src/alphatrade/scripts/build_m7_regression_report.py",
         "--baseline-exp", baseline_exp_id,
+        "--output-root", str(output_root),
+        "--reports-dir", str(reports_dir),
     ]
 
     rc = run_step("Step 2/3: Regression Report", regression_cmd)
@@ -105,6 +118,8 @@ def main():
     validate_cmd = [
         sys.executable, "src/alphatrade/scripts/validate_reports_schema.py",
         "--profile", args.profile,
+        "--output-root", str(output_root),
+        "--reports-dir", str(reports_dir),
     ]
     if args.strict:
         validate_cmd.append("--strict")

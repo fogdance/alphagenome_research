@@ -7,16 +7,18 @@ timestamp range, and outputs predictions.parquet in wide format.
 
 Usage:
     python src/alphatrade/scripts/batch_infer_offline.py \
-      --bundle artifacts/model_bundle/<model_version> \
+      --bundle <runs>/artifacts/model_bundle/<model_version> \
       --data-dir data/processed/m1_f8 \
       --symbols DCE.JM,SHFE.AG \
       --start 2024-01-02 --end 2024-01-04 \
-      --output reports/m9_predictions.parquet \
+      --output <runs>/reports/m9_predictions.parquet \
       [--batch-size 256] [--smoke]
 """
 
 import os as _os
 
+if "ALPHATRADE_KEEP_LD_LIBRARY_PATH" not in _os.environ:
+    _os.environ.pop("LD_LIBRARY_PATH", None)
 if "JAX_PLATFORMS" not in _os.environ:
     _os.environ["JAX_PLATFORMS"] = "cpu"
 
@@ -37,6 +39,7 @@ from flax.training import checkpoints as flax_ckpt
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from alphatrade import runtime_paths
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
@@ -54,16 +57,20 @@ def parse_args():
                         help="Start date (inclusive), e.g. 2024-01-02")
     parser.add_argument("--end", type=str, required=True,
                         help="End date (inclusive), e.g. 2024-01-04")
-    parser.add_argument("--output", type=str, default="reports/m9_predictions.parquet",
-                        help="Output parquet path")
+    parser.add_argument("--output-root", type=str, default=None,
+                        help="Root for generated outputs (default: ALPHATRADE_RUNS_ROOT or ../alphatrade_runs/default)")
+    parser.add_argument("--reports-dir", type=str, default=None,
+                        help="Reports directory (default: <output-root>/reports)")
+    parser.add_argument("--output", type=str, default=None,
+                        help="Output parquet path (default: <reports-dir>/m9_predictions.parquet)")
     parser.add_argument("--batch-size", type=int, default=256,
                         help="Batch size for inference")
     parser.add_argument("--smoke", action="store_true",
                         help="Smoke mode: limit to first 2 symbols, max 100 samples")
     parser.add_argument("--output-metrics", type=str, default=None,
-                        help="Inference metrics JSON path (default: reports/m9_infer_metrics.json)")
+                        help="Inference metrics JSON path (default: <reports-dir>/m9_infer_metrics.json)")
     parser.add_argument("--output-metrics-md", type=str, default=None,
-                        help="Inference metrics markdown path (default: reports/m9_infer_metrics.md)")
+                        help="Inference metrics markdown path (default: <reports-dir>/m9_infer_metrics.md)")
     return parser.parse_args()
 
 
@@ -131,13 +138,25 @@ def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end:
 
 def main():
     args = parse_args()
-
-    metrics_json_path = args.output_metrics or "reports/m9_infer_metrics.json"
-    metrics_md_path = args.output_metrics_md or "reports/m9_infer_metrics.md"
+    output_root = runtime_paths.resolve_output_root(args.output_root)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    output_path = Path(args.output).expanduser() if args.output else reports_dir / "m9_predictions.parquet"
+    metrics_json_path = (
+        Path(args.output_metrics).expanduser()
+        if args.output_metrics
+        else reports_dir / "m9_infer_metrics.json"
+    )
+    metrics_md_path = (
+        Path(args.output_metrics_md).expanduser()
+        if args.output_metrics_md
+        else reports_dir / "m9_infer_metrics.md"
+    )
 
     print(f"\n{'='*60}")
     print(f"M9: Offline Batch Inference")
     print(f"{'='*60}\n")
+    print(f"Output root: {output_root}")
+    print(f"Reports:     {reports_dir}\n")
 
     # Load bundle
     bundle = load_bundle(args.bundle)
@@ -296,9 +315,9 @@ def main():
     df = pd.DataFrame(rows)
 
     # Write parquet
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    df.to_parquet(args.output, index=False)
-    print(f"  Wrote {args.output} ({len(df)} rows, {len(df.columns)} columns)")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+    print(f"  Wrote {output_path} ({len(df)} rows, {len(df.columns)} columns)")
 
     # Write inference metrics
     git_sha = get_git_sha()
@@ -319,18 +338,19 @@ def main():
             "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
         },
         "output": {
-            "predictions_path": args.output,
+            "predictions_path": str(output_path),
             "predictions_rows": len(df),
             "predictions_columns": len(df.columns),
         },
     }
 
-    os.makedirs(os.path.dirname(metrics_json_path), exist_ok=True)
+    metrics_json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(metrics_json_path, 'w') as f:
         json.dump(infer_metrics, f, indent=2)
     print(f"  Wrote {metrics_json_path}")
 
     # Write markdown report
+    metrics_md_path.parent.mkdir(parents=True, exist_ok=True)
     with open(metrics_md_path, 'w') as f:
         f.write("# M9 Inference Metrics\n\n")
         f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
@@ -348,7 +368,7 @@ def main():
         if missing_symbols:
             f.write(f"- Missing symbols: {missing_symbols}\n")
         f.write(f"\n## Output\n\n")
-        f.write(f"- Path: `{args.output}`\n")
+        f.write(f"- Path: `{output_path}`\n")
         f.write(f"- Rows: {len(df):,}\n")
         f.write(f"- Columns: {len(df.columns)}\n")
         if args.smoke:
