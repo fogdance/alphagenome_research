@@ -261,7 +261,8 @@ def generate_reports(
     config: dict,
     dataset: M2Dataset,
     random_results: List[dict],
-    symbol_results: List[dict]
+    symbol_results: List[dict],
+    reports_dir: Path,
 ):
     """Generate JSON and Markdown reports."""
     
@@ -294,7 +295,6 @@ def generate_reports(
         "symbol_samples": symbol_results
     }
     
-    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
     json_path = reports_dir / "m2_t1_dataloader_check.json"
     json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, 'w') as f:
@@ -401,7 +401,8 @@ def main():
     
     # Generate reports
     print(f"\nGenerating reports...")
-    generate_reports(config, dataset, random_results, symbol_results)
+    reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
+    generate_reports(config, dataset, random_results, symbol_results, reports_dir)
     
     # Summary
     total_checks = len(random_results) + len(symbol_results)
