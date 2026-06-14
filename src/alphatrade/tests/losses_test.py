@@ -54,6 +54,22 @@ class TestQuantilePinballLoss:
     loss_over = losses.quantile_pinball_loss(y_true, y_pred_high, quantiles_low)
     assert loss_over > loss_under
 
+  def test_explicit_quantile_weights(self):
+    """Test optional explicit quantile weights."""
+    y_true = jnp.array([0.0])
+    y_pred = jnp.array([[1.0, 1.0]])
+    quantiles = jnp.array([0.1, 0.9])
+
+    unweighted = losses.quantile_pinball_loss(y_true, y_pred, quantiles)
+    weighted = losses.quantile_pinball_loss(
+        y_true,
+        y_pred,
+        quantiles,
+        jnp.array([10.0, 1.0]),
+    )
+
+    assert weighted > unweighted
+
 
 class TestQuantileCrossingPenalty:
   """Tests for quantile crossing penalty."""

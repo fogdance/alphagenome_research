@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from alphatrade.core import losses as loss_lib
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
+from alphatrade import quality_metrics
 from alphatrade import runtime_paths
 from alphatrade import window_cache
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
@@ -83,6 +84,40 @@ def parse_args():
 def load_config(config_path: str) -> dict:
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
+
+
+def resolve_loss_diagnostics(config_dict: dict, horizons: List[int], quantiles: List[float]) -> dict:
+    """Resolve effective loss weights from config with M4 defaults."""
+    loss_config = config_dict.get("loss", {})
+    pinball_config = loss_config.get("pinball", {})
+    crossing_config = loss_config.get("crossing_penalty", {})
+
+    horizon_weights = quality_metrics.resolve_horizon_weights(
+        pinball_config.get("horizon_weights"),
+        horizons,
+    )
+    quantile_weights = quality_metrics.resolve_quantile_weights(
+        pinball_config.get("quantile_weights"),
+        quantiles,
+    )
+    crossing_penalty_weight = (
+        float(crossing_config.get("weight", 0.1))
+        if crossing_config.get("enabled", True)
+        else 0.0
+    )
+
+    return {
+        "horizon_weights": horizon_weights,
+        "quantile_weights": quantile_weights,
+        "crossing_penalty_weight": crossing_penalty_weight,
+        "report": quality_metrics.loss_weight_report(
+            horizons=horizons,
+            quantiles=quantiles,
+            horizon_weights=horizon_weights,
+            quantile_weights=quantile_weights,
+            crossing_penalty_weight=crossing_penalty_weight,
+        ),
+    }
 
 
 def get_git_sha() -> str:
@@ -180,10 +215,19 @@ def create_batches(dataset: M3Dataset, batch_size: int, shuffle: bool = False):
         raise RuntimeError(f"Batch prefetch failed:\n{tb}") from exc
 
 
-def make_train_step(config: schemas.AlphaTradeConfig, optimizer, use_jit: bool = True):
+def make_train_step(
+    config: schemas.AlphaTradeConfig,
+    optimizer,
+    use_jit: bool = True,
+    horizon_weights: Dict[int, float] | None = None,
+    quantile_weights: List[float] | None = None,
+    crossing_penalty_weight: float = 0.1,
+):
     """Create training step function."""
 
     quantiles_array = jnp.array(config.quantiles, dtype=jnp.float32)
+    quantile_weights_array = jnp.array(quantile_weights, dtype=jnp.float32) if quantile_weights else None
+    horizon_weights = horizon_weights or {h: 1.0 for h in config.horizons}
 
     def train_step_fn(params, state, opt_state, rng, xb, yb):
         """Single training step."""
@@ -207,13 +251,15 @@ def make_train_step(config: schemas.AlphaTradeConfig, optimizer, use_jit: bool =
                 y_pred = output.log_return_quantiles[horizon]  # [B, Q]
 
                 # Pinball loss
-                pinball = loss_lib.quantile_pinball_loss(y_true, y_pred, quantiles_array)
+                pinball = loss_lib.quantile_pinball_loss(
+                    y_true, y_pred, quantiles_array, quantile_weights_array
+                )
 
                 # Crossing penalty
                 crossing = loss_lib.quantile_crossing_penalty(y_pred)
 
-                horizon_loss = pinball + 0.1 * crossing
-                total_loss += horizon_loss
+                horizon_loss = pinball + crossing_penalty_weight * crossing
+                total_loss += horizon_weights.get(horizon, 1.0) * horizon_loss
 
                 loss_dict[f'h{horizon}_pinball'] = pinball
                 loss_dict[f'h{horizon}_crossing'] = crossing
@@ -249,10 +295,18 @@ def make_train_step(config: schemas.AlphaTradeConfig, optimizer, use_jit: bool =
         return train_step_fn
 
 
-def make_eval_step(config: schemas.AlphaTradeConfig, use_jit: bool = True):
+def make_eval_step(
+    config: schemas.AlphaTradeConfig,
+    use_jit: bool = True,
+    horizon_weights: Dict[int, float] | None = None,
+    quantile_weights: List[float] | None = None,
+    crossing_penalty_weight: float = 0.1,
+):
     """Create evaluation step function."""
 
     quantiles_array = jnp.array(config.quantiles, dtype=jnp.float32)
+    quantile_weights_array = jnp.array(quantile_weights, dtype=jnp.float32) if quantile_weights else None
+    horizon_weights = horizon_weights or {h: 1.0 for h in config.horizons}
 
     def eval_step_fn(params, state, rng, xb, yb):
         """Single evaluation step."""
@@ -275,13 +329,15 @@ def make_eval_step(config: schemas.AlphaTradeConfig, use_jit: bool = True):
             y_pred = output.log_return_quantiles[horizon]  # [B, Q]
 
             # Pinball loss
-            pinball = loss_lib.quantile_pinball_loss(y_true, y_pred, quantiles_array)
+            pinball = loss_lib.quantile_pinball_loss(
+                y_true, y_pred, quantiles_array, quantile_weights_array
+            )
 
             # Crossing penalty
             crossing = loss_lib.quantile_crossing_penalty(y_pred)
 
-            horizon_loss = pinball + 0.1 * crossing
-            total_loss += horizon_loss
+            horizon_loss = pinball + crossing_penalty_weight * crossing
+            total_loss += horizon_weights.get(horizon, 1.0) * horizon_loss
 
             loss_dict[f'h{horizon}_pinball'] = pinball
             loss_dict[f'h{horizon}_crossing'] = crossing
@@ -376,6 +432,32 @@ def main():
     print(f"  d_model: {alphatrade_config.d_model}")
     print(f"  Transformer layers: {alphatrade_config.num_transformer_layers}")
 
+    loss_diagnostics = resolve_loss_diagnostics(
+        config_dict,
+        alphatrade_config.horizons,
+        alphatrade_config.quantiles,
+    )
+    target_scaling = {
+        "train": quality_metrics.target_scale_summary(
+            train_dataset.all_y,
+            alphatrade_config.horizons,
+        ),
+        "val": quality_metrics.target_scale_summary(
+            val_dataset.all_y,
+            alphatrade_config.horizons,
+        ),
+    }
+    if target_scaling["train"]["warnings"]:
+        print("  Target scaling warnings:")
+        for warning in target_scaling["train"]["warnings"]:
+            print(f"    WARNING: {warning}")
+    print(f"  Horizon loss weights: {loss_diagnostics['report']['horizon_weights']}")
+    print(f"  Quantile loss weights: {loss_diagnostics['report']['quantile_weights']}")
+    print(
+        "  Crossing penalty weight: "
+        f"{loss_diagnostics['crossing_penalty_weight']}"
+    )
+
     # Initialize model
     print(f"\nInitializing model...")
     rng = jax.random.PRNGKey(seed)
@@ -412,8 +494,21 @@ def main():
 
     # Create train/eval steps
     use_jit = bool(args.jit)
-    train_step = make_train_step(alphatrade_config, optimizer, use_jit)
-    eval_step = make_eval_step(alphatrade_config, use_jit)
+    train_step = make_train_step(
+        alphatrade_config,
+        optimizer,
+        use_jit,
+        horizon_weights=loss_diagnostics["horizon_weights"],
+        quantile_weights=loss_diagnostics["quantile_weights"],
+        crossing_penalty_weight=loss_diagnostics["crossing_penalty_weight"],
+    )
+    eval_step = make_eval_step(
+        alphatrade_config,
+        use_jit,
+        horizon_weights=loss_diagnostics["horizon_weights"],
+        quantile_weights=loss_diagnostics["quantile_weights"],
+        crossing_penalty_weight=loss_diagnostics["crossing_penalty_weight"],
+    )
 
     print(f"\n{'='*60}")
     print(f"Training...")
@@ -627,6 +722,7 @@ def main():
                 "train": train_dataset.cache_metadata,
                 "val": val_dataset.cache_metadata,
             },
+            "target_scaling": target_scaling,
         },
         "model": {
             "type": "alphatrade_v0.2",
@@ -680,7 +776,8 @@ def main():
                     "train": float(np.mean(horizon_train_losses["h60"][-10:])) if horizon_train_losses["h60"] else 0.0,
                     "val": float(horizon_val_losses["h60"][-1]) if horizon_val_losses["h60"] else 0.0
                 }
-            }
+            },
+            "quantile_loss_weights": loss_diagnostics["report"],
         },
         "stability": {
             "nan_steps": nan_steps,
@@ -745,6 +842,33 @@ def main():
             train_val = metrics_output['loss']['by_horizon'][h]['train']
             val_val = metrics_output['loss']['by_horizon'][h]['val']
             f.write(f"| {h} | {train_val:.6f} | {val_val:.6f} |\n")
+
+        f.write("\n## Model Quality Diagnostics\n\n")
+        f.write("### Target Scale\n\n")
+        f.write("| Split | Horizon | Std | Abs p50 | Abs p90 |\n")
+        f.write("|-------|---------|-----|---------|---------|\n")
+        for split in ["train", "val"]:
+            for h in ["h1", "h5", "h20", "h60"]:
+                stats = metrics_output["dataset"]["target_scaling"][split]["by_horizon"][h]
+                f.write(
+                    f"| {split} | {h} | {stats['std']:.8f} | "
+                    f"{stats['abs_p50']:.8f} | {stats['abs_p90']:.8f} |\n"
+                )
+        f.write("\n### Loss Weights\n\n")
+        f.write("| Horizon | Weight |\n")
+        f.write("|---------|--------|\n")
+        for h, weight in metrics_output["loss"]["quantile_loss_weights"]["horizon_weights"].items():
+            f.write(f"| {h} | {weight:.4f} |\n")
+        f.write("\n| Quantile | Explicit Weight | Under Prediction | Over Prediction |\n")
+        f.write("|----------|-----------------|------------------|-----------------|\n")
+        q_weights = metrics_output["loss"]["quantile_loss_weights"]["quantile_weights"]
+        residual_weights = metrics_output["loss"]["quantile_loss_weights"]["pinball_residual_weights"]
+        for q, weight in q_weights.items():
+            residual = residual_weights[q]
+            f.write(
+                f"| {q} | {weight:.4f} | {residual['under_prediction']:.4f} | "
+                f"{residual['over_prediction']:.4f} |\n"
+            )
 
         f.write(f"\n## Stability\n\n")
         f.write(f"- NaN steps: {nan_steps}\n")

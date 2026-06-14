@@ -23,6 +23,7 @@ _LAZY_EXPORTS = {
     'api': 'alphatrade.api',
     'losses': 'alphatrade.core.losses',
     'model': 'alphatrade.core.model',
+    'quality_metrics': 'alphatrade.quality_metrics',
     'runtime_paths': 'alphatrade.runtime_paths',
     'schemas': 'alphatrade.core.schemas',
 }

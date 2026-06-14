@@ -25,6 +25,7 @@ def quantile_pinball_loss(
     y_true: Float[Array, 'B'],
     y_pred: Float[Array, 'B Q'],
     quantiles: Float[Array, 'Q'],
+    quantile_weights=None,
 ) -> Float[Array, '']:
   """Quantile pinball loss.
 
@@ -49,6 +50,10 @@ def quantile_pinball_loss(
       quantiles * residuals,
       (quantiles - 1) * residuals,
   )
+
+  if quantile_weights is not None:
+    weights = quantile_weights / jnp.maximum(jnp.sum(quantile_weights), 1e-12)
+    return jnp.sum(jnp.mean(loss, axis=0) * weights)
 
   return jnp.mean(loss)
 

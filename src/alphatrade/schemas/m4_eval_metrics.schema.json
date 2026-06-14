@@ -112,6 +112,18 @@
         }
       }
     },
+    "coverage_calibration": {
+      "type": "object",
+      "description": "Empirical quantile calibration errors by horizon and quantile"
+    },
+    "weighted_pinball_loss": {
+      "type": "object",
+      "description": "Pinball loss using the training horizon and quantile weights"
+    },
+    "quantile_loss": {
+      "type": "object",
+      "description": "Effective quantile loss weights and residual-side pinball weights"
+    },
     "quantile_crossing": {
       "type": "object",
       "required": ["rate", "count"],
@@ -129,6 +141,10 @@
           "description": "Total number of crossings"
         }
       }
+    },
+    "by_horizon": {
+      "type": "object",
+      "description": "Per-horizon quality metrics, including coverage calibration"
     },
     "ic_metrics": {
       "type": "object",

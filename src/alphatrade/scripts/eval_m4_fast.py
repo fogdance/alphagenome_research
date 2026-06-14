@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
+from alphatrade import quality_metrics
 from alphatrade import runtime_paths
 from alphatrade import window_cache
 from data_pipeline.feature_schema import FEATURE_COLS
@@ -119,14 +120,22 @@ def pinball_loss(y_true: np.ndarray, y_pred: np.ndarray, quantiles: List[float])
 def pinball_loss_sum_count(y_true: np.ndarray, y_pred: np.ndarray,
                            quantiles: List[float]) -> tuple[float, int]:
     """Return summed pinball loss and element count for streaming metrics."""
-    total = 0.0
-    count = 0
+    loss_by_quantile = pinball_loss_sums_by_quantile(y_true, y_pred, quantiles)
+    return float(loss_by_quantile.sum()), int(y_true.size * len(quantiles))
+
+
+def pinball_loss_sums_by_quantile(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    quantiles: List[float],
+) -> np.ndarray:
+    """Return summed pinball loss for each quantile."""
+    losses = []
     for i, q in enumerate(quantiles):
         error = y_true - y_pred[:, i]
         loss = np.where(error >= 0, q * error, (q - 1) * error)
-        total += float(loss.sum())
-        count += int(loss.size)
-    return total, count
+        losses.append(float(loss.sum()))
+    return np.asarray(losses, dtype=np.float64)
 
 
 def calculate_quantile_coverage(y_true: np.ndarray, y_pred: np.ndarray, quantiles: List[float]) -> Dict[str, float]:
@@ -151,6 +160,9 @@ def calculate_quantile_crossing(y_pred: np.ndarray) -> Dict[str, float]:
 
 def calculate_ic_metrics(y_true: np.ndarray, y_pred_median: np.ndarray) -> Dict[str, float]:
     """Calculate IC metrics using median prediction."""
+    if len(y_true) < 2 or np.std(y_true) == 0 or np.std(y_pred_median) == 0:
+        return {"ic": 0.0, "rank_ic": 0.0}
+
     ic = np.corrcoef(y_true, y_pred_median)[0, 1]
     rank_ic = spearmanr(y_true, y_pred_median).correlation
 
@@ -161,7 +173,8 @@ def calculate_ic_metrics(y_true: np.ndarray, y_pred_median: np.ndarray) -> Dict[
 
 
 def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset,
-                           horizons: List[int], quantiles: List[float], batch_size: int = 128) -> Dict:
+                           horizons: List[int], quantiles: List[float], batch_size: int = 128,
+                           quantile_loss_report: dict | None = None) -> Dict:
     """Evaluate model with streamed host→device batches."""
 
     print(f"Running streamed batched evaluation (batch_size={batch_size})...")
@@ -192,15 +205,29 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     median_idx = len(quantiles) // 2
     pinball_sum = {h: 0.0 for h in horizons}
     pinball_count = {h: 0 for h in horizons}
+    pinball_sum_by_quantile = {h: np.zeros(len(quantiles), dtype=np.float64) for h in horizons}
+    pinball_sample_count = {h: 0 for h in horizons}
     predicted_count = {h: 0 for h in horizons}
     y_chunks = {h: [] for h in horizons}
     median_pred_chunks = {h: [] for h in horizons}
+    horizon_weights = quality_metrics.resolve_horizon_weights(
+        (quantile_loss_report or {}).get("horizon_weights"),
+        horizons,
+    )
+    quantile_weights = np.asarray(
+        quality_metrics.resolve_quantile_weights(
+            (quantile_loss_report or {}).get("quantile_weights"),
+            quantiles,
+        ),
+        dtype=np.float64,
+    )
+    quantile_weight_norm = quantile_weights / quantile_weights.sum()
 
     h_first = horizons[0]
-    coverage_counts = np.zeros(len(quantiles), dtype=np.int64)
-    coverage_total = 0
-    crossing_count = 0
-    crossing_total = 0
+    coverage_counts = {h: np.zeros(len(quantiles), dtype=np.int64) for h in horizons}
+    coverage_total = {h: 0 for h in horizons}
+    crossing_count = {h: 0 for h in horizons}
+    crossing_total = {h: 0 for h in horizons}
 
     symbol_order = []
     symbol_stats = {}
@@ -213,8 +240,14 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
                 "samples": 0,
                 "pinball_sum": {h: 0.0 for h in horizons},
                 "pinball_count": {h: 0 for h in horizons},
-                "first_y": [],
-                "first_pred": [],
+                "coverage_counts": {
+                    h: np.zeros(len(quantiles), dtype=np.int64) for h in horizons
+                },
+                "coverage_total": {h: 0 for h in horizons},
+                "crossing_count": {h: 0 for h in horizons},
+                "crossing_total": {h: 0 for h in horizons},
+                "median_y": {h: [] for h in horizons},
+                "median_pred": {h: [] for h in horizons},
             }
         return symbol_stats[key]
 
@@ -239,19 +272,23 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
                 # [B, Q]
                 preds = np.asarray(output.log_return_quantiles[h])
                 y_true = y_all[i:end, horizon_to_idx[h]]
-                loss_sum, loss_count = pinball_loss_sum_count(y_true, preds, quantiles)
+                loss_by_quantile = pinball_loss_sums_by_quantile(y_true, preds, quantiles)
+                loss_sum = float(loss_by_quantile.sum())
+                loss_count = int(y_true.size * len(quantiles))
                 pinball_sum[h] += loss_sum
                 pinball_count[h] += loss_count
+                pinball_sum_by_quantile[h] += loss_by_quantile
+                pinball_sample_count[h] += int(y_true.shape[0])
                 predicted_count[h] += int(preds.shape[0])
                 y_chunks[h].append(y_true)
                 median_pred_chunks[h].append(preds[:, median_idx])
 
-                if h == h_first:
-                    coverage_counts += (y_true[:, None] < preds).sum(axis=0)
-                    coverage_total += int(y_true.shape[0])
-                    if preds.shape[1] > 1:
-                        crossing_count += int((preds[:, 1:] < preds[:, :-1]).sum())
-                        crossing_total += int(preds.shape[0] * (preds.shape[1] - 1))
+                batch_coverage = (y_true[:, None] < preds).sum(axis=0)
+                coverage_counts[h] += batch_coverage
+                coverage_total[h] += int(y_true.shape[0])
+                if preds.shape[1] > 1:
+                    crossing_count[h] += int((preds[:, 1:] < preds[:, :-1]).sum())
+                    crossing_total[h] += int(preds.shape[0] * (preds.shape[1] - 1))
 
                 for symbol in np.unique(batch_symbols):
                     symbol_mask = batch_symbols == symbol
@@ -263,9 +300,19 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
                     )
                     stats["pinball_sum"][h] += sym_loss_sum
                     stats["pinball_count"][h] += sym_loss_count
-                    if h == h_first:
-                        stats["first_y"].append(y_true[symbol_mask])
-                        stats["first_pred"].append(preds[symbol_mask, median_idx])
+                    stats["coverage_counts"][h] += (
+                        y_true[symbol_mask, None] < preds[symbol_mask]
+                    ).sum(axis=0)
+                    stats["coverage_total"][h] += int(symbol_mask.sum())
+                    if preds.shape[1] > 1:
+                        stats["crossing_count"][h] += int(
+                            (preds[symbol_mask, 1:] < preds[symbol_mask, :-1]).sum()
+                        )
+                        stats["crossing_total"][h] += int(
+                            symbol_mask.sum() * (preds.shape[1] - 1)
+                        )
+                    stats["median_y"][h].append(y_true[symbol_mask])
+                    stats["median_pred"][h].append(preds[symbol_mask, median_idx])
 
     print(f"    Progress: {N}/{N} (100%)")
     print(f"  ✓ Inference complete\n")
@@ -283,36 +330,114 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
     overall_pinball = []
     by_horizon_pinball = {}
     ic_by_horizon = {}
+    rank_ic_by_horizon = {}
+    coverage_by_horizon = {}
+    crossing_by_horizon = {}
+    by_horizon = {}
 
     for h in horizons:
         pb_loss = pinball_sum[h] / pinball_count[h] if pinball_count[h] else 0.0
-        by_horizon_pinball[f"h{h}"] = float(pb_loss)
+        h_key = quality_metrics.horizon_key(h)
+        by_horizon_pinball[h_key] = float(pb_loss)
         overall_pinball.append(pb_loss)
 
         y_true = np.concatenate(y_chunks[h], axis=0)
         y_pred_median = np.concatenate(median_pred_chunks[h], axis=0)
         ic_metrics = calculate_ic_metrics(y_true, y_pred_median)
-        ic_by_horizon[f"h{h}"] = ic_metrics["ic"]
+        ic_by_horizon[h_key] = ic_metrics["ic"]
+        rank_ic_by_horizon[h_key] = ic_metrics["rank_ic"]
+        coverage_by_horizon[h_key] = {
+            quality_metrics.quantile_key(q): (
+                float(coverage_counts[h][qi] / coverage_total[h])
+                if coverage_total[h] else 0.0
+            )
+            for qi, q in enumerate(quantiles)
+        }
+        crossing_by_horizon[h_key] = {
+            "rate": (
+                float(crossing_count[h] / crossing_total[h])
+                if crossing_total[h] else 0.0
+            ),
+            "count": int(crossing_count[h]),
+        }
 
     # Overall pinball loss
     overall_pb = float(np.mean(overall_pinball)) if overall_pinball else 0.0
-
-    # Quantile coverage (use first horizon)
-    coverage = {
-        f"q{int(q*100)}": float(coverage_counts[i] / coverage_total)
-        for i, q in enumerate(quantiles)
+    weighted_pinball_by_horizon = {}
+    weighted_terms = []
+    horizon_weight_total = 0.0
+    for h in horizons:
+        h_key = quality_metrics.horizon_key(h)
+        if pinball_sample_count[h]:
+            per_quantile_loss = pinball_sum_by_quantile[h] / pinball_sample_count[h]
+            weighted_loss = float(np.sum(per_quantile_loss * quantile_weight_norm))
+        else:
+            weighted_loss = 0.0
+        h_weight = float(horizon_weights.get(h, 1.0))
+        weighted_pinball_by_horizon[h_key] = weighted_loss
+        weighted_terms.append(h_weight * weighted_loss)
+        horizon_weight_total += h_weight
+    weighted_pinball_loss = {
+        "overall": (
+            float(sum(weighted_terms) / horizon_weight_total)
+            if horizon_weight_total else 0.0
+        ),
+        "by_horizon": weighted_pinball_by_horizon,
+        "horizon_weights": {
+            quality_metrics.horizon_key(h): float(horizon_weights.get(h, 1.0))
+            for h in horizons
+        },
+        "quantile_weights": {
+            quality_metrics.quantile_key(q): float(w)
+            for q, w in zip(quantiles, quantile_weights)
+        },
+        "normalization": (
+            "quantile weights normalized within each horizon; "
+            "horizon weighted average normalized by sum of horizon weights"
+        ),
     }
 
-    # Quantile crossing
+    # Quantile coverage across all horizons
+    coverage = {
+        quality_metrics.quantile_key(q): (
+            float(
+                sum(coverage_counts[h][qi] for h in horizons)
+                / sum(coverage_total[h] for h in horizons)
+            )
+            if sum(coverage_total[h] for h in horizons) else 0.0
+        )
+        for qi, q in enumerate(quantiles)
+    }
+
+    # Quantile crossing across all horizons
+    total_crossing_count = sum(crossing_count[h] for h in horizons)
+    total_crossing_slots = sum(crossing_total[h] for h in horizons)
     crossing = {
-        "rate": float(crossing_count / crossing_total) if crossing_total else 0.0,
-        "count": int(crossing_count),
+        "rate": float(total_crossing_count / total_crossing_slots) if total_crossing_slots else 0.0,
+        "count": int(total_crossing_count),
+        "by_horizon": crossing_by_horizon,
     }
 
     # IC metrics (overall)
     y_true_first = np.concatenate(y_chunks[h_first], axis=0)
     y_pred_median = np.concatenate(median_pred_chunks[h_first], axis=0)
     ic_metrics = calculate_ic_metrics(y_true_first, y_pred_median)
+    coverage_calibration = quality_metrics.coverage_calibration_summary(
+        coverage_by_horizon,
+        quantiles,
+    )
+
+    for h in horizons:
+        h_key = quality_metrics.horizon_key(h)
+        by_horizon[h_key] = {
+            "samples": int(predicted_count[h]),
+            "pinball_loss": by_horizon_pinball[h_key],
+            "ic": ic_by_horizon[h_key],
+            "rank_ic": rank_ic_by_horizon[h_key],
+            "quantile_coverage": coverage_by_horizon[h_key],
+            "coverage_calibration": coverage_calibration["by_horizon"][h_key],
+            "quantile_crossing": crossing_by_horizon[h_key],
+        }
 
     # By-symbol metrics
     print("Calculating by-symbol metrics...")
@@ -322,16 +447,49 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
         stats = symbol_stats[symbol]
         symbol_pinball = []
         symbol_samples = stats["samples"]
+        symbol_by_horizon = {}
 
         for h in horizons:
             if stats["pinball_count"][h]:
+                h_key = quality_metrics.horizon_key(h)
                 pb_loss = stats["pinball_sum"][h] / stats["pinball_count"][h]
                 symbol_pinball.append(pb_loss)
+                symbol_coverage = {
+                    quality_metrics.quantile_key(q): (
+                        float(stats["coverage_counts"][h][qi] / stats["coverage_total"][h])
+                        if stats["coverage_total"][h] else 0.0
+                    )
+                    for qi, q in enumerate(quantiles)
+                }
+                if stats["median_y"][h]:
+                    y_true_symbol_h = np.concatenate(stats["median_y"][h], axis=0)
+                    y_pred_symbol_h = np.concatenate(stats["median_pred"][h], axis=0)
+                    symbol_ic_h = calculate_ic_metrics(y_true_symbol_h, y_pred_symbol_h)
+                else:
+                    symbol_ic_h = {"ic": 0.0, "rank_ic": 0.0}
+                symbol_by_horizon[h_key] = {
+                    "samples": int(stats["coverage_total"][h]),
+                    "pinball_loss": float(pb_loss),
+                    "ic": float(symbol_ic_h["ic"]),
+                    "rank_ic": float(symbol_ic_h["rank_ic"]),
+                    "quantile_coverage": symbol_coverage,
+                    "coverage_calibration": quality_metrics.coverage_calibration_summary(
+                        {h_key: symbol_coverage},
+                        quantiles,
+                    )["by_horizon"][h_key],
+                    "quantile_crossing": {
+                        "rate": (
+                            float(stats["crossing_count"][h] / stats["crossing_total"][h])
+                            if stats["crossing_total"][h] else 0.0
+                        ),
+                        "count": int(stats["crossing_count"][h]),
+                    },
+                }
 
         if symbol_pinball:
-            if stats["first_y"]:
-                y_true_symbol = np.concatenate(stats["first_y"], axis=0)
-                y_pred_median = np.concatenate(stats["first_pred"], axis=0)
+            if stats["median_y"][h_first]:
+                y_true_symbol = np.concatenate(stats["median_y"][h_first], axis=0)
+                y_pred_median = np.concatenate(stats["median_pred"][h_first], axis=0)
                 symbol_ic = calculate_ic_metrics(y_true_symbol, y_pred_median)["ic"]
             else:
                 symbol_ic = 0.0
@@ -340,7 +498,8 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
                 "symbol": symbol,
                 "samples": symbol_samples,
                 "pinball_loss": float(np.mean(symbol_pinball)),
-                "ic": float(symbol_ic)
+                "ic": float(symbol_ic),
+                "by_horizon": symbol_by_horizon,
             })
 
     print("  ✓ Metrics complete\n")
@@ -350,13 +509,17 @@ def evaluate_model_batched(model_apply_fn, params, state, dataset: M4EvalDataset
             "overall": overall_pb,
             "by_horizon": by_horizon_pinball
         },
+        "weighted_pinball_loss": weighted_pinball_loss,
         "quantile_coverage": coverage,
+        "coverage_calibration": coverage_calibration,
         "quantile_crossing": crossing,
         "ic_metrics": {
             "ic": ic_metrics["ic"],
             "rank_ic": ic_metrics["rank_ic"],
-            "ic_by_horizon": ic_by_horizon
+            "ic_by_horizon": ic_by_horizon,
+            "rank_ic_by_horizon": rank_ic_by_horizon,
         },
+        "by_horizon": by_horizon,
         "by_symbol": by_symbol
     }
 
@@ -490,6 +653,12 @@ def main():
         "train_run_id": run_id,
         "git_sha": git_sha,
     }
+    quantile_loss_report = train_metrics.get("loss", {}).get("quantile_loss_weights")
+    if quantile_loss_report is None:
+        quantile_loss_report = quality_metrics.loss_weight_report(
+            horizons=alphatrade_config.horizons,
+            quantiles=alphatrade_config.quantiles,
+        )
 
     # Evaluate (BATCHED)
     # Note: forward_t.apply is NOT jit-wrapped here because AlphaTradeOutput
@@ -501,7 +670,12 @@ def main():
         dataset,
         alphatrade_config.horizons,
         alphatrade_config.quantiles,
-        args.batch_size
+        args.batch_size,
+        quantile_loss_report=quantile_loss_report,
+    )
+    target_scaling = quality_metrics.target_scale_summary(
+        dataset.y,
+        alphatrade_config.horizons,
     )
 
     # --- Sanity check on quantile coverage ---
@@ -515,6 +689,23 @@ def main():
             warn = f"quantile_coverage[{q_label}] = {cov_val:.4f} > 0.98"
             sanity_warnings.append(warn)
             print(f"  WARNING: {warn}")
+    calibration = eval_results.get("coverage_calibration", {})
+    if calibration.get("overall_mae", 0.0) > 0.15:
+        warn = f"coverage_calibration.overall_mae = {calibration['overall_mae']:.4f} > 0.15"
+        sanity_warnings.append(warn)
+        print(f"  WARNING: {warn}")
+    worst_calibration = calibration.get("worst", {})
+    if worst_calibration.get("abs_error", 0.0) > 0.25:
+        warn = (
+            "coverage_calibration.worst = "
+            f"{worst_calibration.get('horizon')} {worst_calibration.get('quantile')} "
+            f"abs_error={worst_calibration.get('abs_error'):.4f}"
+        )
+        sanity_warnings.append(warn)
+        print(f"  WARNING: {warn}")
+    for warning in target_scaling.get("warnings", []):
+        sanity_warnings.append(f"target_scaling: {warning}")
+        print(f"  WARNING: target_scaling: {warning}")
 
     # Generate output
     eval_metrics = {
@@ -532,7 +723,9 @@ def main():
                 "cache_dir": str(window_cache_dir),
                 **dataset.cache_metadata,
             },
+            "target_scaling": target_scaling,
         },
+        "quantile_loss": quantile_loss_report,
         **eval_results
     }
     if sanity_warnings:
@@ -579,17 +772,32 @@ def main():
 
         f.write("## Pinball Loss\n\n")
         f.write(f"- Overall: {eval_results['pinball_loss']['overall']:.6f}\n\n")
+        f.write(
+            f"- Weighted overall: "
+            f"{eval_results['weighted_pinball_loss']['overall']:.6f}\n\n"
+        )
 
         f.write("### By-Horizon\n\n")
-        f.write("| Horizon | Loss |\n")
-        f.write("|---------|------|\n")
+        f.write("| Horizon | Loss | Weighted Loss |\n")
+        f.write("|---------|------|---------------|\n")
         for h, loss in eval_results['pinball_loss']['by_horizon'].items():
-            f.write(f"| {h} | {loss:.6f} |\n")
+            weighted_loss = eval_results["weighted_pinball_loss"]["by_horizon"][h]
+            f.write(f"| {h} | {loss:.6f} | {weighted_loss:.6f} |\n")
 
         f.write("\n## Quantile Coverage\n\n")
         for q, cov in eval_results['quantile_coverage'].items():
             expected = int(q[1:]) / 100
             f.write(f"- {q}: {cov:.4f} (expected: {expected:.2f})\n")
+
+        f.write("\n## Coverage Calibration\n\n")
+        calibration = eval_results["coverage_calibration"]
+        f.write(f"- Overall MAE: {calibration['overall_mae']:.4f}\n")
+        f.write(f"- Max abs error: {calibration['max_abs_error']:.4f}\n")
+        worst = calibration["worst"]
+        f.write(
+            f"- Worst: {worst['horizon']} {worst['quantile']} "
+            f"observed={worst['observed']:.4f}, expected={worst['expected']:.2f}\n"
+        )
 
         f.write("\n## Quantile Crossing\n\n")
         f.write(f"- Rate: {eval_results['quantile_crossing']['rate']:.4f}\n")
@@ -604,6 +812,26 @@ def main():
         f.write("|---------|----|\n")
         for h, ic in eval_results['ic_metrics']['ic_by_horizon'].items():
             f.write(f"| {h} | {ic:.4f} |\n")
+
+        f.write("\n## By-Horizon Quality\n\n")
+        f.write("| Horizon | Samples | Pinball | IC | Rank IC | Coverage MAE | Crossing |\n")
+        f.write("|---------|---------|---------|----|---------|--------------|----------|\n")
+        for h, metrics in eval_results["by_horizon"].items():
+            f.write(
+                f"| {h} | {metrics['samples']:,} | {metrics['pinball_loss']:.6f} | "
+                f"{metrics['ic']:.4f} | {metrics['rank_ic']:.4f} | "
+                f"{metrics['coverage_calibration']['mae']:.4f} | "
+                f"{metrics['quantile_crossing']['rate']:.4f} |\n"
+            )
+
+        f.write("\n## Target Scale\n\n")
+        f.write("| Horizon | Std | Abs p50 | Abs p90 |\n")
+        f.write("|---------|-----|---------|---------|\n")
+        for h, stats in target_scaling["by_horizon"].items():
+            f.write(
+                f"| {h} | {stats['std']:.8f} | "
+                f"{stats['abs_p50']:.8f} | {stats['abs_p90']:.8f} |\n"
+            )
 
         f.write("\n## By-Symbol Metrics\n\n")
         f.write("| Symbol | Samples | Pinball Loss | IC |\n")
