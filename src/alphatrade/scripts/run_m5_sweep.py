@@ -67,11 +67,17 @@ def load_sweep_config(path: str) -> dict:
         return yaml.safe_load(f)
 
 
-def compute_config_hash(overrides: dict, dataset_config: str, smoke: bool = False) -> str:
+def compute_config_hash(
+    overrides: dict,
+    dataset_config: str,
+    smoke: bool = False,
+    universe: str | None = None,
+) -> str:
     """SHA256[:8] of canonical JSON of config-relevant fields."""
     payload = json.dumps(
         {
             "dataset_config": dataset_config,
+            "universe": universe,
             "overrides": overrides,
             "smoke": bool(smoke),
         },
@@ -84,6 +90,7 @@ def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
     """Return list of {exp_id, seed, config_hash, overrides, dataset_config, description}."""
     seeds = config["expected_seeds"]
     dataset_config = config["dataset_config"]
+    universe = config.get("universe", "unknown")
     defaults = config.get("defaults", {})
     plan = []
     for exp in config["experiments"]:
@@ -92,7 +99,12 @@ def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
         if smoke:
             overrides["max_steps"] = 3
             overrides["save_every"] = 1
-        config_hash = compute_config_hash(overrides, dataset_config, smoke=smoke)
+        config_hash = compute_config_hash(
+            overrides,
+            dataset_config,
+            smoke=smoke,
+            universe=universe,
+        )
         for seed in seeds:
             plan.append({
                 "exp_id": exp_id,
@@ -100,6 +112,9 @@ def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
                 "config_hash": config_hash,
                 "overrides": overrides,
                 "dataset_config": dataset_config,
+                "universe": universe,
+                "eval_split": overrides.get("eval_split", "val"),
+                "ckpt_step": overrides.get("ckpt_step", "best"),
                 "description": exp.get("description", ""),
                 "smoke": bool(smoke),
             })
@@ -138,6 +153,9 @@ def sweep_metadata(run: dict) -> dict:
         "seed": run["seed"],
         "config_hash": run["config_hash"],
         "dataset_config": run["dataset_config"],
+        "universe": run.get("universe", "unknown"),
+        "eval_split": run.get("eval_split", run.get("overrides", {}).get("eval_split", "val")),
+        "ckpt_step": run.get("ckpt_step", run.get("overrides", {}).get("ckpt_step", "best")),
         "overrides": run["overrides"],
         "smoke": bool(run.get("smoke", False)),
     }
@@ -161,6 +179,21 @@ def _artifact_sweep_metadata(data: dict, kind: str) -> Optional[dict]:
     raise ValueError(f"unknown artifact kind: {kind}")
 
 
+_RESUME_COMPARE_FIELDS = (
+    "exp_id",
+    "seed",
+    "config_hash",
+    "dataset_config",
+    "universe",
+    "eval_split",
+    "ckpt_step",
+)
+
+
+class ResumeConfigMismatch(RuntimeError):
+    """Raised when --resume would reuse artifacts from a different config."""
+
+
 def _artifact_matches_run(data: dict, kind: str, expected_run: Optional[dict]) -> tuple[bool, str]:
     if expected_run is None:
         return True, ""
@@ -169,9 +202,31 @@ def _artifact_matches_run(data: dict, kind: str, expected_run: Optional[dict]) -
     actual = _artifact_sweep_metadata(data, kind)
     if actual is None:
         return False, f"{kind} artifact has no sweep metadata"
-    if actual != expected:
-        return False, f"{kind} artifact sweep metadata mismatch"
+    mismatches = []
+    for field in _RESUME_COMPARE_FIELDS:
+        if actual.get(field) != expected.get(field):
+            mismatches.append(
+                f"{field}: existing={actual.get(field)!r} expected={expected.get(field)!r}"
+            )
+    if actual.get("overrides") != expected.get("overrides"):
+        mismatches.append("overrides/defaults changed")
+    if bool(actual.get("smoke", False)) != bool(expected.get("smoke", False)):
+        mismatches.append(
+            f"smoke: existing={actual.get('smoke')!r} expected={expected.get('smoke')!r}"
+        )
+    if mismatches:
+        return False, f"{kind} artifact sweep metadata mismatch ({'; '.join(mismatches)})"
     return True, ""
+
+
+def fail_on_resume_config_mismatch(run_state: dict, exp_id: str, seed: int) -> None:
+    """Fail loudly before --resume can reuse stale train/eval artifacts."""
+    if not run_state.get("stale_reasons"):
+        return
+    reasons = "; ".join(run_state["stale_reasons"])
+    raise ResumeConfigMismatch(
+        f"resume_config_mismatch: exp_id={exp_id} seed={seed}: {reasons}"
+    )
 
 
 def get_run_state(exp_id: str, seed: int, reports_dir: str,
@@ -551,9 +606,12 @@ def main():
         seed = r["seed"]
 
         run_state = get_run_state(exp_id, seed, str(reports_dir), r) if args.resume else None
-        if run_state and run_state["stale_reasons"]:
-            reasons = "; ".join(run_state["stale_reasons"])
-            print(f"[RESUME] {exp_id} seed={seed} — ignoring stale artifacts: {reasons}")
+        if run_state:
+            try:
+                fail_on_resume_config_mismatch(run_state, exp_id, seed)
+            except ResumeConfigMismatch as e:
+                print(f"ERROR: {e}")
+                sys.exit(1)
 
         # Resume check: fully complete run.
         if run_state and run_state["complete"]:

@@ -171,6 +171,40 @@ def test_m5_resume_requires_matching_sweep_metadata(tmp_path):
     assert stale_state["train_complete"] is False
     assert stale_state["eval_complete"] is False
     assert stale_state["stale_reasons"]
+    assert "config_hash" in stale_state["stale_reasons"][0]
+
+    with pytest.raises(run_m5_sweep.ResumeConfigMismatch, match="resume_config_mismatch"):
+        run_m5_sweep.fail_on_resume_config_mismatch(stale_state, "baseline", 42)
+
+
+def test_m5_resume_mismatch_checks_eval_split_and_ckpt_step(tmp_path):
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    run = {
+        "exp_id": "baseline",
+        "seed": 42,
+        "config_hash": "abc12345",
+        "dataset_config": "configs/dataset/m2.yaml",
+        "universe": "cta_top20",
+        "eval_split": "val",
+        "ckpt_step": "best",
+        "overrides": {"max_steps": 500, "eval_split": "val", "ckpt_step": "best"},
+        "smoke": False,
+    }
+    metadata = run_m5_sweep.sweep_metadata(run)
+    train_path = reports / "m5_baseline_seed42_train_metrics.json"
+    eval_path = reports / "m5_baseline_seed42_eval_metrics.json"
+    train_path.write_text(json.dumps({"run": {"run_id": "run-1", "sweep": metadata}}))
+    eval_path.write_text(json.dumps({"model": {"train_run_id": "run-1", "sweep": metadata}}))
+
+    changed = {**run, "eval_split": "test", "ckpt_step": "last"}
+    changed["overrides"] = {**run["overrides"], "eval_split": "test", "ckpt_step": "last"}
+    stale_state = run_m5_sweep.get_run_state("baseline", 42, str(reports), changed)
+
+    assert stale_state["stale_reasons"]
+    reason = stale_state["stale_reasons"][0]
+    assert "eval_split" in reason
+    assert "ckpt_step" in reason
 
 
 def test_create_batches_raises_prefetch_errors():
