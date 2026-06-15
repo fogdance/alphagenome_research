@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pandas as pd
 
@@ -41,3 +43,68 @@ def test_build_sliding_windows_keeps_precise_end_timestamp(monkeypatch):
 
   assert windows.shape == (2, 3, batch_infer_offline.FEATURE_DIM)
   assert eobs[-1] == pd.Timestamp("2024-01-02 09:04:00")
+
+
+def test_smoke_limit_per_symbol_distributes_cap(monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.scripts import batch_infer_offline
+
+  assert batch_infer_offline.smoke_limit_per_symbol(2, total_limit=100) == 50
+  assert batch_infer_offline.smoke_limit_per_symbol(3, total_limit=100) == 33
+  assert batch_infer_offline.smoke_limit_per_symbol(0, total_limit=100) == 0
+
+
+def test_default_infer_batch_size_is_full_run_oriented(monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.scripts import batch_infer_offline
+
+  assert batch_infer_offline._DEFAULT_INFER_BATCH_SIZE >= 2048
+
+
+def test_progress_event_writes_jsonl(tmp_path, monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.scripts import batch_infer_offline
+
+  path = tmp_path / "progress.jsonl"
+  batch_infer_offline._write_progress_event(
+      path,
+      {
+          "event": "batch_progress",
+          "symbol": "DCE.JM",
+          "total_rows": 2048,
+          "rss_mb": 123.4,
+      },
+  )
+
+  event = json.loads(path.read_text(encoding="utf-8").strip())
+  assert event["schema_version"] == "m9_infer_progress_v1"
+  assert event["event"] == "batch_progress"
+  assert event["symbol"] == "DCE.JM"
+  assert event["total_rows"] == 2048
+
+
+def test_iter_sliding_window_batches_matches_full_builder(monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.scripts import batch_infer_offline
+
+  bars = _bars_frame(batch_infer_offline, n_rows=12)
+  full_windows, full_eobs = batch_infer_offline.build_sliding_windows(
+      bars,
+      lookback=3,
+      start="2024-01-02",
+      end="2024-01-02",
+  )
+  batches = list(
+      batch_infer_offline.iter_sliding_window_batches(
+          bars,
+          lookback=3,
+          start="2024-01-02",
+          end="2024-01-02",
+          batch_size=4,
+      )
+  )
+
+  batch_windows = np.concatenate([b[0] for b in batches], axis=0)
+  batch_eobs = [eob for _, eobs in batches for eob in eobs]
+  np.testing.assert_array_equal(batch_windows, full_windows)
+  assert batch_eobs == full_eobs

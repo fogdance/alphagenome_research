@@ -131,16 +131,46 @@ def validate_prediction_frame(
                 )
             )
 
+    duplicate_count = int(df.duplicated(list(BASE_COLUMNS)).sum())
+    if duplicate_count:
+        issues.append(
+            PredictionSchemaIssue(
+                "duplicates",
+                f"duplicate (symbol, eob, model_version) rows: {duplicate_count}",
+            )
+        )
+
     type_errors = []
-    null_errors = []
+    nonfinite_errors = []
     for col in prediction_columns(horizons, quantiles):
-        if not pd.api.types.is_float_dtype(df[col]):
+        if not pd.api.types.is_numeric_dtype(df[col]):
             type_errors.append(f"{col}={df[col].dtype}")
-        if df[col].isna().any():
-            null_errors.append(col)
+            continue
+        values = df[col].to_numpy(dtype=np.float64, copy=False)
+        if not np.isfinite(values).all():
+            nonfinite_errors.append(col)
     if type_errors:
-        issues.append(PredictionSchemaIssue("prediction_types", f"non-float columns: {type_errors}"))
-    if null_errors:
-        issues.append(PredictionSchemaIssue("prediction_nulls", f"columns contain nulls: {null_errors}"))
+        issues.append(PredictionSchemaIssue("prediction_types", f"non-numeric columns: {type_errors}"))
+    if nonfinite_errors:
+        issues.append(PredictionSchemaIssue("prediction_nonfinite", f"columns contain NaN/Inf: {nonfinite_errors}"))
+
+    crossing_errors = []
+    for horizon in horizons:
+        cols = [prediction_column(horizon, q) for q in quantiles]
+        if any(col not in df.columns for col in cols):
+            continue
+        if not all(pd.api.types.is_numeric_dtype(df[col]) for col in cols):
+            continue
+        values = df[cols].to_numpy(dtype=np.float64, copy=False)
+        crossings = int((values[:, 1:] < values[:, :-1]).sum())
+        if crossings:
+            crossing_errors.append(f"h{int(horizon)}={crossings}")
+    if crossing_errors:
+        issues.append(
+            PredictionSchemaIssue(
+                "quantile_crossing",
+                f"non-monotonic quantiles: {crossing_errors}",
+            )
+        )
 
     return issues

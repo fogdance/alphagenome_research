@@ -63,3 +63,57 @@ def test_validate_prediction_frame_catches_model_version_mismatch():
 
   issues = prediction_schema.validate_prediction_frame(df, expected_model_version="model_v2")
   assert any(issue.field == "model_version" for issue in issues)
+
+
+def test_validate_prediction_frame_catches_duplicate_keys():
+  n_rows = 2
+  predictions = {
+      h: np.zeros((n_rows, len(prediction_schema.DEFAULT_QUANTILES)), dtype=np.float32)
+      for h in prediction_schema.DEFAULT_HORIZONS
+  }
+  df = prediction_schema.build_prediction_frame(
+      symbols=["DCE.JM", "DCE.JM"],
+      eobs=["2024-01-02 09:00:00", "2024-01-02 09:00:00"],
+      model_version="model_v1",
+      predictions_by_horizon=predictions,
+  )
+
+  issues = prediction_schema.validate_prediction_frame(df)
+  assert any(issue.field == "duplicates" for issue in issues)
+
+
+def test_validate_prediction_frame_catches_nonfinite_predictions():
+  n_rows = 1
+  predictions = {
+      h: np.zeros((n_rows, len(prediction_schema.DEFAULT_QUANTILES)), dtype=np.float32)
+      for h in prediction_schema.DEFAULT_HORIZONS
+  }
+  df = prediction_schema.build_prediction_frame(
+      symbols=["DCE.JM"],
+      eobs=["2024-01-02 09:00:00"],
+      model_version="model_v1",
+      predictions_by_horizon=predictions,
+  )
+  df.loc[0, "h1_q50"] = np.inf
+
+  issues = prediction_schema.validate_prediction_frame(df)
+  assert any(issue.field == "prediction_nonfinite" for issue in issues)
+
+
+def test_validate_prediction_frame_catches_quantile_crossing():
+  n_rows = 1
+  predictions = {
+      h: np.zeros((n_rows, len(prediction_schema.DEFAULT_QUANTILES)), dtype=np.float32)
+      for h in prediction_schema.DEFAULT_HORIZONS
+  }
+  df = prediction_schema.build_prediction_frame(
+      symbols=["DCE.JM"],
+      eobs=["2024-01-02 09:00:00"],
+      model_version="model_v1",
+      predictions_by_horizon=predictions,
+  )
+  df.loc[0, "h1_q10"] = 1.0
+  df.loc[0, "h1_q30"] = 0.0
+
+  issues = prediction_schema.validate_prediction_frame(df)
+  assert any(issue.field == "quantile_crossing" for issue in issues)

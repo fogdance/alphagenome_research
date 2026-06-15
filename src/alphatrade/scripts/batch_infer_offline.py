@@ -19,6 +19,8 @@ import os as _os
 import sys as _sys
 
 _DEFAULT_XLA_FLAGS = "--xla_gpu_autotune_level=0 --xla_gpu_enable_command_buffer="
+_DEFAULT_INFER_BATCH_SIZE = int(_os.environ.get("ALPHATRADE_M9_INFER_BATCH_SIZE", "2048"))
+_DEFAULT_PROGRESS_EVERY_BATCHES = int(_os.environ.get("ALPHATRADE_M9_PROGRESS_EVERY_BATCHES", "10"))
 
 if "ALPHATRADE_KEEP_LD_LIBRARY_PATH" not in _os.environ:
     _os.environ.pop("LD_LIBRARY_PATH", None)
@@ -93,8 +95,12 @@ def parse_args():
                         help="Reports directory (default: <output-root>/reports)")
     parser.add_argument("--output", type=str, default=None,
                         help="Output parquet path (default: <reports-dir>/m9_predictions.parquet)")
-    parser.add_argument("--batch-size", type=int, default=256,
+    parser.add_argument("--batch-size", type=int, default=_DEFAULT_INFER_BATCH_SIZE,
                         help="Batch size for inference")
+    parser.add_argument("--progress-every-batches", type=int, default=_DEFAULT_PROGRESS_EVERY_BATCHES,
+                        help="Log progress every N batches (default: 10)")
+    parser.add_argument("--progress-log", type=str, default=None,
+                        help="JSONL progress log path (default: <reports-dir>/m9_infer_progress.jsonl)")
     parser.add_argument("--device", choices=["gpu", "cpu"], default=None,
                         help="JAX device policy (default: gpu; cpu is for tests/debug only)")
     parser.add_argument("--smoke", action="store_true",
@@ -128,6 +134,50 @@ def _eob_range_mask(eob: pd.Series, start: str, end: str):
     return (eob_ts >= start_ts) & (eob_ts <= end_ts)
 
 
+def _eligible_window_indices(
+    bars_df: pd.DataFrame,
+    lookback: int,
+    start: str,
+    end: str,
+) -> np.ndarray:
+    """Return row positions whose eob is in range and has enough lookback."""
+    mask = _eob_range_mask(bars_df["eob"], start, end)
+    indices = np.flatnonzero(mask.to_numpy())
+    return indices[indices >= lookback - 1].astype(np.int64, copy=False)
+
+
+def _windows_for_indices(features: np.ndarray, indices: np.ndarray, lookback: int) -> np.ndarray:
+    """Materialize a batch of sliding windows for integer row positions."""
+    if len(indices) == 0:
+        return np.empty((0, lookback, FEATURE_DIM), dtype=np.float32)
+    starts = indices.astype(np.int64) - int(lookback) + 1
+    offsets = np.arange(int(lookback), dtype=np.int64)
+    return features[starts[:, None] + offsets[None, :]].astype(np.float32, copy=False)
+
+
+def _process_rss_mb() -> float | None:
+    """Return current process RSS in MiB on Linux, if available."""
+    try:
+        with open("/proc/self/statm", "r", encoding="utf-8") as f:
+            pages = int(f.read().split()[1])
+        return round(pages * os.sysconf("SC_PAGE_SIZE") / (1024 * 1024), 1)
+    except Exception:
+        return None
+
+
+def _write_progress_event(progress_log: Path | None, event: dict) -> None:
+    if progress_log is None:
+        return
+    progress_log.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "m9_infer_progress_v1",
+        "generated_at": datetime.now().isoformat(),
+        **event,
+    }
+    with progress_log.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
 def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end: str):
     """Build sliding windows from bars.parquet filtered by eob range.
 
@@ -135,34 +185,46 @@ def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end:
         windows: np.ndarray of shape [N, lookback, features]
         eob_timestamps: list of eob timestamps for each window
     """
-    # Date-only end values are treated as inclusive calendar days, matching CLI
-    # examples such as --start 2024-01-02 --end 2024-01-04.
-    mask = _eob_range_mask(bars_df["eob"], start, end)
-
-    # We need lookback bars before the start of the range, so find earliest
-    # valid window start index
-    filtered_indices = bars_df.index[mask].tolist()
-    if not filtered_indices:
+    bars_df = bars_df.reset_index(drop=True)
+    indices = _eligible_window_indices(bars_df, lookback, start, end)
+    if len(indices) == 0:
         return np.array([]).reshape(0, lookback, FEATURE_DIM), []
 
-    windows = []
-    eob_timestamps = []
+    features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+    windows = _windows_for_indices(features, indices, lookback)
+    eob_timestamps = bars_df.iloc[indices]["eob"].tolist()
+    return windows, eob_timestamps
 
-    for idx in filtered_indices:
-        # Window: [idx - lookback + 1, idx + 1)
-        w_start = idx - lookback + 1
-        if w_start < 0:
-            continue
-        window = bars_df.iloc[w_start:idx + 1][FEATURE_COLS].values.astype(np.float32)
-        if window.shape[0] != lookback:
-            continue
-        windows.append(window)
-        eob_timestamps.append(bars_df.iloc[idx]["eob"])
 
-    if not windows:
-        return np.array([]).reshape(0, lookback, FEATURE_DIM), []
+def iter_sliding_window_batches(
+    bars_df: pd.DataFrame,
+    lookback: int,
+    start: str,
+    end: str,
+    batch_size: int,
+    max_samples: int | None = None,
+):
+    """Yield sliding-window batches without materializing the full symbol matrix."""
+    bars_df = bars_df.reset_index(drop=True)
+    indices = _eligible_window_indices(bars_df, lookback, start, end)
+    if max_samples is not None:
+        indices = indices[: int(max_samples)]
+    if len(indices) == 0:
+        return
 
-    return np.stack(windows), eob_timestamps
+    features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+    for start_idx in range(0, len(indices), int(batch_size)):
+        batch_indices = indices[start_idx:start_idx + int(batch_size)]
+        windows = _windows_for_indices(features, batch_indices, lookback)
+        eobs = bars_df.iloc[batch_indices]["eob"].tolist()
+        yield windows, eobs
+
+
+def smoke_limit_per_symbol(symbol_count: int, total_limit: int = 100) -> int:
+    """Return a per-symbol smoke cap that keeps each requested symbol represented."""
+    if symbol_count <= 0:
+        return 0
+    return max(1, int(total_limit) // int(symbol_count))
 
 
 def main():
@@ -180,12 +242,28 @@ def main():
         if args.output_metrics_md
         else reports_dir / "m9_infer_metrics.md"
     )
+    progress_log_path = (
+        Path(args.progress_log).expanduser()
+        if args.progress_log
+        else reports_dir / "m9_infer_progress.jsonl"
+    )
+    if args.batch_size <= 0:
+        sys.exit(f"ERROR: --batch-size must be positive, got {args.batch_size}")
+    if args.progress_every_batches < 0:
+        sys.exit(
+            "ERROR: --progress-every-batches must be non-negative, "
+            f"got {args.progress_every_batches}"
+        )
+    progress_log_path.parent.mkdir(parents=True, exist_ok=True)
+    progress_log_path.write_text("", encoding="utf-8")
 
     print(f"\n{'='*60}")
     print(f"M9: Offline Batch Inference")
     print(f"{'='*60}\n")
     print(f"Output root: {output_root}")
     print(f"Reports:     {reports_dir}\n")
+    print(f"Batch size:  {args.batch_size}")
+    print(f"Progress log: {progress_log_path}\n")
 
     # Load bundle
     try:
@@ -210,7 +288,10 @@ def main():
     symbols = [s.strip() for s in args.symbols.split(",")]
     if args.smoke:
         symbols = symbols[:2]
-        print(f"SMOKE mode: limited to {symbols}")
+        smoke_symbol_limit = smoke_limit_per_symbol(len(symbols), total_limit=100)
+        print(f"SMOKE mode: limited to {symbols}, max {smoke_symbol_limit} samples/symbol")
+    else:
+        smoke_symbol_limit = None
 
     lookback = int(model_config_dict["lookback_length"])
     horizons = [int(h) for h in model_config_dict["horizons"]]
@@ -225,72 +306,196 @@ def main():
         sys.exit(f"ERROR: failed to initialize predictor: {e}")
     print(f"  Loaded checkpoint from step {predictor.checkpoint_step}\n")
 
-    # Build sliding windows for each symbol
-    print("Loading data and building windows...")
-    all_windows = []
+    print("Loading data and running streaming inference...")
+    _write_progress_event(
+        progress_log_path,
+        {
+            "event": "start",
+            "batch_size": args.batch_size,
+            "progress_every_batches": args.progress_every_batches,
+            "symbols_requested": len(symbols),
+            "start": args.start,
+            "end": args.end,
+            "jax_backend": jax.default_backend(),
+            "rss_mb": _process_rss_mb(),
+        },
+    )
     all_eobs = []
     all_symbols_list = []
     missing_symbols = []
     processed_symbols = []
+    all_predictions = {h: [] for h in horizons}
+    N = 0
+    t_start = time.time()
 
-    for symbol in symbols:
+    for symbol_idx, symbol in enumerate(symbols, start=1):
         bars_path = os.path.join(args.data_dir, symbol, "bars.parquet")
         if not os.path.exists(bars_path):
             print(f"  WARNING: {bars_path} not found, skipping {symbol}")
             missing_symbols.append(symbol)
+            _write_progress_event(
+                progress_log_path,
+                {
+                    "event": "symbol_missing",
+                    "symbol": symbol,
+                    "symbol_index": symbol_idx,
+                    "total_symbols": len(symbols),
+                    "path": bars_path,
+                    "total_rows": N,
+                    "elapsed_seconds": round(time.time() - t_start, 2),
+                    "rss_mb": _process_rss_mb(),
+                },
+            )
             continue
 
+        symbol_start_time = time.time()
         bars_df = pd.read_parquet(bars_path)
-        windows, eobs = build_sliding_windows(bars_df, lookback, args.start, args.end)
+        bars_df = bars_df.reset_index(drop=True)
+        symbol_indices = _eligible_window_indices(bars_df, lookback, args.start, args.end)
+        if args.smoke:
+            symbol_indices = symbol_indices[:smoke_symbol_limit]
+        symbol_windows = int(len(symbol_indices))
 
-        if len(windows) == 0:
+        if symbol_windows == 0:
             print(f"  {symbol}: 0 windows in range [{args.start}, {args.end}]")
+            _write_progress_event(
+                progress_log_path,
+                {
+                    "event": "symbol_empty",
+                    "symbol": symbol,
+                    "symbol_index": symbol_idx,
+                    "total_symbols": len(symbols),
+                    "total_rows": N,
+                    "elapsed_seconds": round(time.time() - t_start, 2),
+                    "rss_mb": _process_rss_mb(),
+                },
+            )
             continue
 
-        if args.smoke:
-            # In smoke mode, limit total samples to 100 across all symbols.
-            remaining = 100 - sum(w.shape[0] for w in all_windows)
-            if remaining <= 0:
-                break
-            windows = windows[:remaining]
-            eobs = eobs[:remaining]
-            if len(windows) == 0:
-                break
-
-        all_windows.append(windows)
-        all_eobs.extend(eobs)
-        all_symbols_list.extend([symbol] * len(eobs))
         processed_symbols.append(symbol)
-        print(f"  {symbol}: {len(eobs)} windows")
+        symbol_batches = (symbol_windows + args.batch_size - 1) // args.batch_size
+        print(
+            f"  [{symbol_idx}/{len(symbols)}] {symbol}: "
+            f"{symbol_windows} windows, {symbol_batches} batches",
+            flush=True,
+        )
+        _write_progress_event(
+            progress_log_path,
+            {
+                "event": "symbol_start",
+                "symbol": symbol,
+                "symbol_index": symbol_idx,
+                "total_symbols": len(symbols),
+                "symbol_windows": symbol_windows,
+                "symbol_batches": symbol_batches,
+                "batch_size": args.batch_size,
+                "total_rows": N,
+                "elapsed_seconds": round(time.time() - t_start, 2),
+                "rss_mb": _process_rss_mb(),
+            },
+        )
 
-    if not all_windows:
+        features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+        for batch_start in range(0, symbol_windows, args.batch_size):
+            batch_number = batch_start // args.batch_size + 1
+            batch_indices = symbol_indices[batch_start:batch_start + args.batch_size]
+            X_batch = _windows_for_indices(features, batch_indices, lookback)
+            eobs = bars_df.iloc[batch_indices]["eob"].tolist()
+            batch_predictions = predictor.predict_arrays(X_batch)
+
+            for h in horizons:
+                if h in batch_predictions:
+                    all_predictions[h].append(batch_predictions[h])
+
+            batch_n = int(len(eobs))
+            all_eobs.extend(eobs)
+            all_symbols_list.extend([symbol] * batch_n)
+            N += batch_n
+
+            should_log_progress = (
+                args.progress_every_batches > 0
+                and (
+                    batch_number % args.progress_every_batches == 0
+                    or batch_number == symbol_batches
+                )
+            )
+            if should_log_progress:
+                elapsed = time.time() - t_start
+                rate = N / elapsed if elapsed > 0 else 0.0
+                symbol_elapsed = time.time() - symbol_start_time
+                symbol_done = min(batch_start + args.batch_size, symbol_windows)
+                symbol_rate = symbol_done / symbol_elapsed if symbol_elapsed > 0 else 0.0
+                print(
+                    f"    {symbol} batch {batch_number}/{symbol_batches}: "
+                    f"{symbol_done}/{symbol_windows} symbol rows, "
+                    f"{N} total rows, {rate:.0f} rows/sec total, "
+                    f"{symbol_rate:.0f} rows/sec symbol",
+                    flush=True,
+                )
+                _write_progress_event(
+                    progress_log_path,
+                    {
+                        "event": "batch_progress",
+                        "symbol": symbol,
+                        "symbol_index": symbol_idx,
+                        "total_symbols": len(symbols),
+                        "batch_number": batch_number,
+                        "symbol_batches": symbol_batches,
+                        "batch_rows": batch_n,
+                        "symbol_rows_done": symbol_done,
+                        "symbol_windows": symbol_windows,
+                        "total_rows": N,
+                        "elapsed_seconds": round(elapsed, 2),
+                        "samples_per_second": round(rate, 1),
+                        "symbol_samples_per_second": round(symbol_rate, 1),
+                        "rss_mb": _process_rss_mb(),
+                    },
+                )
+
+        symbol_elapsed = time.time() - symbol_start_time
+        symbol_rate = symbol_windows / symbol_elapsed if symbol_elapsed > 0 else 0.0
+        print(
+            f"  [{symbol_idx}/{len(symbols)}] {symbol} done in "
+            f"{symbol_elapsed:.1f}s ({symbol_rate:.0f} rows/sec)",
+            flush=True,
+        )
+        _write_progress_event(
+            progress_log_path,
+            {
+                "event": "symbol_done",
+                "symbol": symbol,
+                "symbol_index": symbol_idx,
+                "total_symbols": len(symbols),
+                "symbol_windows": symbol_windows,
+                "symbol_batches": symbol_batches,
+                "symbol_elapsed_seconds": round(symbol_elapsed, 2),
+                "symbol_samples_per_second": round(symbol_rate, 1),
+                "total_rows": N,
+                "elapsed_seconds": round(time.time() - t_start, 2),
+                "rss_mb": _process_rss_mb(),
+            },
+        )
+
+    if N == 0:
         sys.exit("ERROR: No data windows created. Check symbols and date range.")
 
-    X_all = np.concatenate(all_windows, axis=0)
-    N = X_all.shape[0]
     print(f"\nTotal samples: {N}")
 
-    # Run batched inference
-    print(f"Running inference (batch_size={args.batch_size})...")
-    t_start = time.time()
-
-    all_predictions = {h: [] for h in horizons}
-
-    for i in range(0, N, args.batch_size):
-        if i % (args.batch_size * 10) == 0:
-            print(f"  Progress: {i}/{N} ({100*i//N}%)")
-
-        X_batch = X_all[i:i + args.batch_size]
-        batch_predictions = predictor.predict_arrays(X_batch)
-
-        for h in horizons:
-            if h in batch_predictions:
-                all_predictions[h].append(batch_predictions[h])
-
-    print(f"  Progress: {N}/{N} (100%)")
     t_end = time.time()
     duration = t_end - t_start
     print(f"  Inference complete in {duration:.1f}s ({N/duration:.0f} samples/sec)\n")
+    _write_progress_event(
+        progress_log_path,
+        {
+            "event": "inference_done",
+            "total_rows": N,
+            "processed_symbols": processed_symbols,
+            "missing_symbols": missing_symbols,
+            "elapsed_seconds": round(duration, 2),
+            "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
+            "rss_mb": _process_rss_mb(),
+        },
+    )
 
     # Concatenate predictions
     for h in horizons:
@@ -330,6 +535,17 @@ def main():
         "git_sha": git_sha,
         "model_version": model_version,
         "bundle_path": args.bundle,
+        "prediction_path": str(output_path),
+        "symbols": processed_symbols,
+        "start": args.start,
+        "end": args.end,
+        "num_rows": len(df),
+        "num_symbols": len(processed_symbols),
+        "batch_size": args.batch_size,
+        "jax_backend": jax.default_backend(),
+        "progress_log_path": str(progress_log_path),
+        "elapsed_seconds": round(duration, 2),
+        "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
         "inference": {
             "symbols": processed_symbols,
             "n_symbols": len(processed_symbols),
@@ -338,6 +554,7 @@ def main():
             "n_predictions": N * len(horizons) * len(quantiles),
             "batch_size": args.batch_size,
             "jax_backend": jax.default_backend(),
+            "progress_log_path": str(progress_log_path),
             "missing_symbols": missing_symbols,
             "duration_seconds": round(duration, 2),
             "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
@@ -368,6 +585,7 @@ def main():
         f.write(f"- Symbols: {len(processed_symbols)}\n")
         f.write(f"- Time range: {args.start} to {args.end}\n")
         f.write(f"- Batch size: {args.batch_size}\n")
+        f.write(f"- Progress log: `{progress_log_path}`\n")
         f.write(f"- Samples: {N:,}\n")
         f.write(f"- Predictions: {N * len(horizons) * len(quantiles):,}\n")
         f.write(f"- Duration: {duration:.1f}s\n")
