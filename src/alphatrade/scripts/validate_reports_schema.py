@@ -599,6 +599,208 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (M11 closure)
+# ---------------------------------------------------------------------------
+
+def _m11_get(data: dict, path: list[str], default=None):
+    cur = data
+    for key in path:
+        if not isinstance(cur, dict) or key not in cur:
+            return default
+        cur = cur[key]
+    return cur
+
+
+def semantic_check_m11(reports_dir: str) -> dict:
+    """Run M11 closure semantic checks.
+
+    These checks verify that the M11 decision is internally consistent. They
+    intentionally keep schema/contract pass-fail separate from model quality:
+    a rejected champion can be a valid M11 closure outcome.
+    """
+    checks = []
+
+    def add(name, passed, detail="", observed=None):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+            "observed": observed,
+        })
+
+    paths = {
+        "audit": os.path.join(reports_dir, "m11_target_scale_audit.json"),
+        "quality": os.path.join(reports_dir, "m11_model_quality_validation.json"),
+        "calibration": os.path.join(reports_dir, "m11_calibration_comparison.json"),
+        "metadata": os.path.join(reports_dir, "m11_calibrated_prediction_metadata.json"),
+        "memo": os.path.join(reports_dir, "M11_DECISION_MEMO.md"),
+    }
+    missing = [name for name, path in paths.items() if not os.path.exists(path)]
+    if missing:
+        add("m11_closure_files_exist", False, f"missing: {missing}", observed=paths)
+        return {
+            "checks": checks,
+            "all_pass": False,
+            "model_quality_status": "UNKNOWN",
+            "separation_note": "Schema validation and model-quality status are reported separately.",
+        }
+    add("m11_closure_files_exist", True, observed=paths)
+
+    try:
+        audit = load_json(paths["audit"])
+        quality = load_json(paths["quality"])
+        calibration = load_json(paths["calibration"])
+        metadata = load_json(paths["metadata"])
+        with open(paths["memo"], "r", encoding="utf-8") as f:
+            memo = f.read()
+    except Exception as e:
+        add("m11_closure_files_load", False, str(e))
+        return {
+            "checks": checks,
+            "all_pass": False,
+            "model_quality_status": "UNKNOWN",
+            "separation_note": "Schema validation and model-quality status are reported separately.",
+        }
+    add("m11_closure_files_load", True)
+
+    target = audit.get("target_unit_conclusion", {})
+    target_scale_ruled_out = (
+        target.get("target_unit") == "raw_log_return"
+        and target.get("engineering_scale_mismatch_found") is False
+        and target.get("inference_inverse_transform_required") is False
+    )
+    add(
+        "target_scale_bug_ruled_out",
+        target_scale_ruled_out,
+        observed={
+            "target_unit": target.get("target_unit"),
+            "engineering_scale_mismatch_found": target.get("engineering_scale_mismatch_found"),
+            "inference_inverse_transform_required": target.get("inference_inverse_transform_required"),
+        },
+    )
+
+    output_problem_confirmed = (
+        target.get("model_output_scale_mismatch_found") is True
+        and quality.get("overall_status") in ("WARN", "FAIL_MODEL_QUALITY")
+    )
+    add(
+        "output_calibration_problem_confirmed",
+        output_problem_confirmed,
+        observed={
+            "model_output_scale_mismatch_found": target.get("model_output_scale_mismatch_found"),
+            "model_quality_status": quality.get("overall_status"),
+        },
+    )
+
+    raw_mae = _m11_get(calibration, ["raw", "quantile_coverage", "overall_mae"])
+    calibrated_mae = _m11_get(calibration, ["calibrated", "quantile_coverage", "overall_mae"])
+    coverage_delta = _m11_get(
+        calibration,
+        ["raw_vs_calibrated", "coverage_mae_delta_raw_minus_calibrated"],
+    )
+    coverage_improved = (
+        raw_mae is not None
+        and calibrated_mae is not None
+        and coverage_delta is not None
+        and calibrated_mae < raw_mae
+        and coverage_delta > 0.01
+    )
+    add(
+        "posthoc_calibration_improves_coverage",
+        coverage_improved,
+        observed={
+            "raw_coverage_mae": raw_mae,
+            "calibrated_coverage_mae": calibrated_mae,
+            "coverage_delta": coverage_delta,
+        },
+    )
+
+    rolling_pinball = _m11_get(
+        calibration,
+        ["rolling_historical_recomparison", "rolling_historical_quantile", "pinball_loss", "overall"],
+    )
+    calibrated_common_pinball = _m11_get(
+        calibration,
+        ["rolling_historical_recomparison", "calibrated_model_on_common", "pinball_loss", "overall"],
+    )
+    rolling_minus_calibrated = _m11_get(
+        calibration,
+        ["rolling_historical_recomparison", "pinball_delta_rolling_minus_calibrated"],
+    )
+    loses_to_rolling = (
+        rolling_pinball is not None
+        and calibrated_common_pinball is not None
+        and calibrated_common_pinball > rolling_pinball
+        and rolling_minus_calibrated is not None
+        and rolling_minus_calibrated < 0.0
+    )
+    add(
+        "calibrated_model_still_loses_to_rolling_historical",
+        loses_to_rolling,
+        observed={
+            "calibrated_pinball": calibrated_common_pinball,
+            "rolling_historical_pinball": rolling_pinball,
+            "rolling_minus_calibrated": rolling_minus_calibrated,
+        },
+    )
+
+    promotion = metadata.get("promotion", {})
+    metadata_not_promoted = (
+        promotion.get("promoted") is False
+        and promotion.get("promotion_status") == "not_promoted"
+        and _m11_get(
+            metadata,
+            ["calibrated_prediction_identity", "calibrated_predictions_written"],
+        ) is False
+    )
+    add(
+        "calibrated_candidate_not_promoted",
+        metadata_not_promoted,
+        observed={
+            "promoted": promotion.get("promoted"),
+            "promotion_status": promotion.get("promotion_status"),
+            "calibrated_predictions_written": _m11_get(
+                metadata,
+                ["calibrated_prediction_identity", "calibrated_predictions_written"],
+            ),
+        },
+    )
+
+    champion_rejected = (
+        _m11_get(calibration, ["conclusion", "champion_status"])
+        == "rejected_pending_retrain_or_stronger_fix"
+        and promotion.get("champion_status") == "rejected_pending_retrain_or_stronger_fix"
+    )
+    add(
+        "champion_remains_rejected",
+        champion_rejected,
+        observed={
+            "calibration_champion_status": _m11_get(calibration, ["conclusion", "champion_status"]),
+            "metadata_champion_status": promotion.get("champion_status"),
+        },
+    )
+
+    memo_has_m12 = "M12 feature/label/baseline expansion" in memo
+    add(
+        "m12_next_milestone_recorded",
+        memo_has_m12,
+        observed={"memo": paths["memo"]},
+    )
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {
+        "checks": checks,
+        "all_pass": all_pass,
+        "model_quality_status": quality.get("overall_status", "UNKNOWN"),
+        "separation_note": (
+            "Schema ALL PASS means report contracts are valid. Model-quality "
+            "PASS/WARN/FAIL_MODEL_QUALITY is reported separately and can be "
+            "FAIL_MODEL_QUALITY for a valid rejected-champion closure."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -648,6 +850,8 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
         _generate_md_phase2_m9(w, semantic_results)
     elif profile_name == "m10":
         _generate_md_phase2_schema_only(w, profile_name)
+    elif profile_name == "m11":
+        _generate_md_phase2_m11(w, semantic_results)
     elif profile_name in ("m5", "m6", "m7"):
         _generate_md_phase2_m5(w, semantic_results)
         if profile_name == "m7":
@@ -679,6 +883,10 @@ def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
         return semantic_results.get("all_pass", True)
     elif profile_name == "m10":
         return True
+    elif profile_name == "m11":
+        if not semantic_results:
+            return True
+        return semantic_results.get("all_pass", True)
     elif profile_name in ("m5", "m6", "m7"):
         # semantic_results is a dict from semantic_check_m5
         if not semantic_results:
@@ -794,6 +1002,30 @@ def _generate_md_phase2_m9(w, semantic_results):
     w(f"**M9 checks**: {sem_pass}/{sem_total} passed\n")
 
 
+def _generate_md_phase2_m11(w, semantic_results):
+    """Generate Phase 2 markdown for M11 closure checks."""
+    w("## Phase 2: M11 Closure Semantic Checks\n")
+
+    if not semantic_results or not semantic_results.get("checks"):
+        w("_No M11 closure semantic checks run._\n")
+        return
+
+    w(f"- Model-quality status: `{semantic_results.get('model_quality_status', 'UNKNOWN')}`")
+    w(f"- Separation note: {semantic_results.get('separation_note', '')}\n")
+    w("| Check | Status | Detail | Observed |")
+    w("|-------|--------|--------|----------|")
+    for c in semantic_results["checks"]:
+        icon = "\u2705" if c["status"] == "pass" else "\u274c"
+        observed = c.get("observed")
+        observed_text = "-" if observed is None else json.dumps(observed, sort_keys=True)[:180]
+        w(f"| {c['check']} | {icon} {c['status']} | {c.get('detail') or '-'} | `{observed_text}` |")
+    w("")
+
+    sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+    sem_total = len(semantic_results["checks"])
+    w(f"**M11 closure checks**: {sem_pass}/{sem_total} passed\n")
+
+
 def _generate_md_phase2_schema_only(w, profile_name: str):
     """Generate Phase 2 markdown for schema-only profiles."""
     w(f"## Phase 2: {profile_name.upper()} Semantic Checks\n")
@@ -895,6 +1127,19 @@ def main():
         sem_total = 0
         sem_pass = 0
         print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+    elif profile_name == "m11":
+        print("Phase 2: M11 closure semantic checks\n")
+        semantic_results = semantic_check_m11(reports_dir_str)
+        print(f"  Model-quality status: {semantic_results.get('model_quality_status', 'UNKNOWN')}")
+        print(f"  {semantic_results.get('separation_note', '')}")
+        for c in semantic_results["checks"]:
+            icon = "\u2705" if c["status"] == "pass" else "\u274c"
+            detail = f" ({c['detail']})" if c.get("detail") else ""
+            print(f"  {icon} {c['check']}{detail}")
+        sem_all_pass = semantic_results["all_pass"]
+        sem_total = len(semantic_results["checks"])
+        sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+        print(f"\n  M11 closure semantic: {sem_pass}/{sem_total} passed\n")
     elif profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")
         semantic_results = semantic_check_m5(reports_dir_str, args.schemas_dir)
@@ -978,6 +1223,11 @@ def main():
             "semantic_total": sem_total,
             "semantic_passed": sem_pass,
             "overall": "pass" if overall_ok else "fail",
+            "model_quality_status": (
+                semantic_results.get("model_quality_status")
+                if isinstance(semantic_results, dict)
+                else None
+            ),
         },
         "schema_results": schema_results,
         "semantic_results": semantic_results,

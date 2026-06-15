@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m11_model_quality_validation_v1",
+  "title": "M11 Model Quality Validation Schema",
+  "description": "Semantic model quality status checks for M11.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inputs",
+    "severity_levels",
+    "overall_status",
+    "checks"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m11_model_quality_validation_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "severity_levels": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["PASS", "WARN", "FAIL_MODEL_QUALITY"]}
+    },
+    "overall_status": {"type": "string", "enum": ["PASS", "WARN", "FAIL_MODEL_QUALITY"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "threshold", "detail"],
+        "additionalProperties": true,
+        "properties": {
+          "name": {"type": "string"},
+          "status": {"type": "string", "enum": ["PASS", "WARN", "FAIL_MODEL_QUALITY"]},
+          "threshold": {},
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  }
+}

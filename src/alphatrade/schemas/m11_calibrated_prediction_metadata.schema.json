@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m11_calibrated_prediction_metadata_v1",
+  "title": "M11 Calibrated Prediction Metadata Schema",
+  "description": "Metadata for M11 post-hoc calibrated prediction candidate. This does not promote a champion.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source_reports",
+    "target_scale_conclusion",
+    "calibrated_prediction_identity",
+    "calibration",
+    "metrics_summary",
+    "promotion"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m11_calibrated_prediction_metadata_v1"},
+    "generated_at": {"type": "string"},
+    "stage": {"type": "string"},
+    "source_reports": {"type": "object"},
+    "target_scale_conclusion": {"type": "object"},
+    "calibrated_prediction_identity": {
+      "type": "object",
+      "required": [
+        "raw_model_version",
+        "calibrated_candidate_version",
+        "prediction_schema_version",
+        "calibrated_predictions_written",
+        "calibrated_predictions_path"
+      ],
+      "additionalProperties": true
+    },
+    "calibration": {"type": "object"},
+    "metrics_summary": {"type": "object"},
+    "promotion": {
+      "type": "object",
+      "required": [
+        "promoted",
+        "promotion_status",
+        "champion_status",
+        "reason"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "promoted": {"type": "boolean"},
+        "promotion_status": {"type": "string"},
+        "champion_status": {"type": "string"},
+        "reason": {"type": "string"}
+      }
+    }
+  }
+}

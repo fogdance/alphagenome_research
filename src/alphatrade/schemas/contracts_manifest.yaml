@@ -58,6 +58,19 @@ profiles:
       - {name: m10_backtest_matrix_md, path: "m10_backtest_matrix.md", schema: "", required: true}
       - {name: m10_baseline_comparison, path: "m10_baseline_comparison.json", schema: "src/alphatrade/schemas/m10_baseline_comparison.schema.json", required: true}
       - {name: m10_baseline_comparison_md, path: "m10_baseline_comparison.md", schema: "", required: true}
+  m11:
+    description: "M11 target scale audit, semantic quality status, calibration comparison, and closure memo."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    items:
+      - {name: m11_target_scale_audit, path: "m11_target_scale_audit.json", schema: "src/alphatrade/schemas/m11_target_scale_audit.schema.json", required: true}
+      - {name: m11_target_scale_audit_md, path: "m11_target_scale_audit.md", schema: "", required: true}
+      - {name: m11_model_quality_validation, path: "m11_model_quality_validation.json", schema: "src/alphatrade/schemas/m11_model_quality_validation.schema.json", required: true}
+      - {name: m11_model_quality_validation_md, path: "m11_model_quality_validation.md", schema: "", required: true}
+      - {name: m11_calibration_comparison, path: "m11_calibration_comparison.json", schema: "src/alphatrade/schemas/m11_calibration_comparison.schema.json", required: true}
+      - {name: m11_calibration_comparison_md, path: "m11_calibration_comparison.md", schema: "", required: true}
+      - {name: m11_calibrated_prediction_metadata, path: "m11_calibrated_prediction_metadata.json", schema: "src/alphatrade/schemas/m11_calibrated_prediction_metadata.schema.json", required: true}
+      - {name: m11_calibrated_prediction_metadata_md, path: "m11_calibrated_prediction_metadata.md", schema: "", required: true}
+      - {name: m11_decision_memo, path: "M11_DECISION_MEMO.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"

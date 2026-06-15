@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m11_target_scale_audit_v1",
+  "title": "M11 Target Scale Audit Schema",
+  "description": "Target/output scale audit for AlphaTrade M11 calibration sprint.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inputs",
+    "target_unit_conclusion",
+    "code_path_audit",
+    "target_statistics",
+    "scale_diagnostics"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m11_target_scale_audit_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "target_unit_conclusion": {
+      "type": "object",
+      "required": [
+        "target_unit",
+        "target_formula",
+        "training_target_normalization",
+        "inference_inverse_transform_required",
+        "engineering_scale_mismatch_found",
+        "model_output_scale_mismatch_found"
+      ],
+      "additionalProperties": true
+    },
+    "code_path_audit": {"type": "object"},
+    "target_statistics": {"type": "object"},
+    "scale_diagnostics": {"type": "object"}
+  }
+}

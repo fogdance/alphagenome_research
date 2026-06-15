@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m11_calibration_comparison_v1",
+  "title": "M11 Calibration Comparison Schema",
+  "description": "Raw versus post-hoc calibrated prediction comparison for M11.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "calibrator",
+    "fit_diagnostics",
+    "raw",
+    "calibrated",
+    "raw_vs_calibrated",
+    "rolling_historical_recomparison",
+    "conclusion"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m11_calibration_comparison_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "calibrator": {"type": "object"},
+    "fit_diagnostics": {"type": "object"},
+    "raw": {"type": "object"},
+    "calibrated": {"type": "object"},
+    "raw_vs_calibrated": {"type": "object"},
+    "rolling_historical_recomparison": {"type": "object"},
+    "conclusion": {
+      "type": "object",
+      "required": [
+        "coverage_mae_reduced_materially",
+        "calibrated_model_can_be_retested_as_champion",
+        "champion_status"
+      ],
+      "additionalProperties": true
+    }
+  }
+}
