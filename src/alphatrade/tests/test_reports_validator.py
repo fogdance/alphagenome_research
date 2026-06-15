@@ -683,10 +683,11 @@ def _make_m9_predictions_parquet(path, n_rows=10, missing_col=None):
         "model_version": ["test_v0.2"] * n_rows,
     }
     for h in horizons:
+        base = np.linspace(-0.001, 0.001, n_rows, dtype=np.float64)
         for q in quantiles:
             col = f"h{h}_q{q}"
             if col != missing_col:
-                data[col] = np.random.randn(n_rows).astype(np.float64)
+                data[col] = (base + q * 1e-5).astype(np.float64)
 
     df = pd.DataFrame(data)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -755,6 +756,16 @@ def _make_m9_infer_metrics(reports_dir):
         "git_sha": "testsha",
         "model_version": "test_v0.2",
         "bundle_path": os.path.join(reports_dir, "bundle"),
+        "prediction_path": os.path.join(reports_dir, "m9_predictions.parquet"),
+        "symbols": ["DCE.JM"],
+        "start": "2024-01-02",
+        "end": "2024-01-02",
+        "num_rows": 10,
+        "num_symbols": 1,
+        "batch_size": 8,
+        "jax_backend": "gpu",
+        "elapsed_seconds": 1.25,
+        "samples_per_second": 8.0,
         "inference": {
             "symbols": ["DCE.JM"],
             "n_symbols": 1,
@@ -915,6 +926,55 @@ class TestM9SemanticChecks:
 
         result = validate_report(report_path, schema_path)
         assert result["status"] == "pass", f"Validation failed: {result.get('error')}"
+
+
+class TestM10Schemas:
+    """Test M10 report schemas with minimal valid reports."""
+
+    def test_m10_minimal_reports_validate(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+
+        eval_report = {
+            "schema_version": "m10_prediction_eval_metrics_v1",
+            "generated_at": "2026-06-14T00:00:00",
+            "inputs": {},
+            "data": {},
+            "pinball_loss": {},
+            "quantile_coverage": {},
+            "quantile_crossing": {},
+            "distribution_diagnostics": {},
+            "ic_metrics": {},
+            "direction_metrics": {},
+            "output": {},
+        }
+        backtest_report = {
+            "schema_version": "m10_backtest_matrix_v1",
+            "generated_at": "2026-06-14T00:00:00",
+            "inputs": {},
+            "matrix": [],
+            "summary": {},
+        }
+        baseline_report = {
+            "schema_version": "m10_baseline_comparison_v1",
+            "generated_at": "2026-06-14T00:00:00",
+            "inputs": {},
+            "model": {},
+            "baselines": {},
+            "deltas": {},
+        }
+        cases = [
+            ("m10_prediction_eval_metrics.json", "m10_prediction_eval_metrics.schema.json", eval_report),
+            ("m10_backtest_matrix.json", "m10_backtest_matrix.schema.json", backtest_report),
+            ("m10_baseline_comparison.json", "m10_baseline_comparison.schema.json", baseline_report),
+        ]
+        for report_name, schema_name, payload in cases:
+            report_path = os.path.join(reports_dir, report_name)
+            _write_json(report_path, payload)
+            result = validate_report(report_path, os.path.join(schemas_dir_abs, schema_name))
+            assert result["status"] == "pass", f"{report_name}: {result.get('error')}"
 
 
 class TestM7Integration:

@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m10_baseline_comparison_v1",
+  "title": "M10 Baseline Comparison Schema",
+  "description": "Comparison of current model outputs against naive and rolling historical baselines.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inputs",
+    "model",
+    "baselines",
+    "deltas"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m10_baseline_comparison_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "model": {"type": "object"},
+    "baselines": {"type": "object"},
+    "deltas": {"type": "object"}
+  }
+}

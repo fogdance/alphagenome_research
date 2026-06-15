@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m10_backtest_matrix_v1",
+  "title": "M10 Backtest Matrix Schema",
+  "description": "Development-stage directional handoff matrix across horizons, signals, costs, and thresholds.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inputs",
+    "matrix",
+    "summary"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m10_backtest_matrix_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "matrix": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "summary": {"type": "object"}
+  }
+}

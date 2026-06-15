@@ -17,6 +17,10 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 
+_SRC_ROOT = Path(__file__).resolve().parents[2]
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
+
 from alphatrade import prediction_schema
 from alphatrade import runtime_paths
 
@@ -642,6 +646,8 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
     # --- Phase 2 ---
     if profile_name == "m9":
         _generate_md_phase2_m9(w, semantic_results)
+    elif profile_name == "m10":
+        _generate_md_phase2_schema_only(w, profile_name)
     elif profile_name in ("m5", "m6", "m7"):
         _generate_md_phase2_m5(w, semantic_results)
         if profile_name == "m7":
@@ -671,6 +677,8 @@ def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
         if not semantic_results:
             return True
         return semantic_results.get("all_pass", True)
+    elif profile_name == "m10":
+        return True
     elif profile_name in ("m5", "m6", "m7"):
         # semantic_results is a dict from semantic_check_m5
         if not semantic_results:
@@ -786,6 +794,12 @@ def _generate_md_phase2_m9(w, semantic_results):
     w(f"**M9 checks**: {sem_pass}/{sem_total} passed\n")
 
 
+def _generate_md_phase2_schema_only(w, profile_name: str):
+    """Generate Phase 2 markdown for schema-only profiles."""
+    w(f"## Phase 2: {profile_name.upper()} Semantic Checks\n")
+    w("_No additional semantic checks are defined for this profile._\n")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -872,6 +886,14 @@ def main():
         sem_all_pass = semantic_results["all_pass"]
         sem_total = len(semantic_results["checks"])
         sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+        print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+    elif profile_name == "m10":
+        print("Phase 2: M10 semantic checks\n")
+        print("  No additional semantic checks are defined for M10.")
+        semantic_results = {"checks": [], "all_pass": True}
+        sem_all_pass = True
+        sem_total = 0
+        sem_pass = 0
         print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
     elif profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")

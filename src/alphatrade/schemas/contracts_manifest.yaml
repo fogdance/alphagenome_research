@@ -48,6 +48,16 @@ profiles:
       - {name: m9_predictions_parquet, path: "m9_predictions.parquet", schema: "", required: true}
       - {name: m9_backtest_metrics, path: "m9_backtest_metrics.json", schema: "src/alphatrade/schemas/m9_backtest_metrics.schema.json", required: true}
       - {name: m9_backtest_metrics_md, path: "m9_backtest_metrics.md", schema: "", required: true}
+  m10:
+    description: "M10 evaluation, calibration, baseline, and backtest matrix reports."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    items:
+      - {name: m10_prediction_eval_metrics, path: "m10_prediction_eval_metrics.json", schema: "src/alphatrade/schemas/m10_prediction_eval_metrics.schema.json", required: true}
+      - {name: m10_prediction_eval_metrics_md, path: "m10_prediction_eval_metrics.md", schema: "", required: true}
+      - {name: m10_backtest_matrix, path: "m10_backtest_matrix.json", schema: "src/alphatrade/schemas/m10_backtest_matrix.schema.json", required: true}
+      - {name: m10_backtest_matrix_md, path: "m10_backtest_matrix.md", schema: "", required: true}
+      - {name: m10_baseline_comparison, path: "m10_baseline_comparison.json", schema: "src/alphatrade/schemas/m10_baseline_comparison.schema.json", required: true}
+      - {name: m10_baseline_comparison_md, path: "m10_baseline_comparison.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"

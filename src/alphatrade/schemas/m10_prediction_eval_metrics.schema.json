@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m10_prediction_eval_metrics_v1",
+  "title": "M10 Prediction Evaluation Metrics Schema",
+  "description": "Evaluation, calibration, and diagnostics for M9 prediction parquet outputs.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inputs",
+    "data",
+    "pinball_loss",
+    "quantile_coverage",
+    "quantile_crossing",
+    "distribution_diagnostics",
+    "ic_metrics",
+    "direction_metrics",
+    "output"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m10_prediction_eval_metrics_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "inputs": {"type": "object"},
+    "data": {"type": "object"},
+    "pinball_loss": {"type": "object"},
+    "quantile_coverage": {"type": "object"},
+    "quantile_crossing": {"type": "object"},
+    "distribution_diagnostics": {"type": "object"},
+    "ic_metrics": {"type": "object"},
+    "direction_metrics": {"type": "object"},
+    "output": {"type": "object"}
+  }
+}
