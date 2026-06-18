@@ -301,6 +301,36 @@ def test_m12_builder_rejects_sparse_processed_feature_coverage(tmp_path):
     assert result["feature_coverage"]["missing_feature_rate"] > 0
 
 
+def test_m12_feature_coverage_ignores_common_index_count_phase_delta():
+    eobs = pd.date_range("2024-01-02 09:00:00", periods=12, freq="1min")
+    base_labeled = pd.DataFrame({"eob": eobs})
+    feature_frame = pd.DataFrame({"eob": eobs})
+    full_index_df = pd.DataFrame({"eob": eobs[3:9], "target_eob": eobs[4:10]})
+    split_indices = {
+        "train": pd.DataFrame({"eob": eobs[3:7], "target_eob": eobs[4:8]}),
+        "val": pd.DataFrame(columns=["eob", "target_eob"]),
+        "test": pd.DataFrame(columns=["eob", "target_eob"]),
+    }
+
+    coverage = m12.compute_feature_coverage(
+        base_labeled=base_labeled,
+        feature_frame=feature_frame,
+        full_index_df=full_index_df,
+        split_indices=split_indices,
+        train_start="2024-01-02 09:00:00",
+        train_end="2024-01-02 09:12:00",
+        val_start="2024-01-02 09:12:00",
+        val_end="2024-01-02 09:13:00",
+        test_start="2024-01-02 09:13:00",
+        test_end="2024-01-02 09:14:00",
+        max_missing_feature_rate=0.0,
+    )
+
+    assert coverage["status"] == "PASS"
+    assert coverage["missing_samples"] == 0
+    assert coverage["sample_count_delta"] == -2
+
+
 def test_m12_source_schema_versions_rejects_mixed_versions():
     observed = {
         "schema_version": ["legacy_snapshot.v0", "processed_market_snapshot.v1"],

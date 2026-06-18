@@ -588,10 +588,14 @@ def compute_feature_coverage(
         test_start=test_start,
         test_end=test_end,
     )
+    full_splits = {
+        "train": full_train,
+        "val": full_val,
+        "test": full_test,
+    }
     possible_samples_by_split = {
-        "train": int(len(full_train)),
-        "val": int(len(full_val)),
-        "test": int(len(full_test)),
+        split: int(len(index_df))
+        for split, index_df in full_splits.items()
     }
     common_samples_by_split = {
         split: int(len(index_df))
@@ -599,7 +603,20 @@ def compute_feature_coverage(
     }
     possible_samples = int(sum(possible_samples_by_split.values()))
     common_samples = int(sum(common_samples_by_split.values()))
-    missing_samples = max(0, possible_samples - common_samples)
+
+    missing_sample_eobs: list[pd.Timestamp] = []
+    missing_samples_by_split: dict[str, int] = {}
+    for split, index_df in full_splits.items():
+        if "eob" not in index_df.columns or index_df.empty:
+            missing_samples_by_split[split] = 0
+            continue
+        sample_eobs = pd.to_datetime(index_df["eob"])
+        missing_mask = ~sample_eobs.isin(feature_eobs)
+        missing_values = sample_eobs.loc[missing_mask].tolist()
+        missing_samples_by_split[split] = int(len(missing_values))
+        missing_sample_eobs.extend(missing_values)
+
+    missing_samples = int(len(missing_sample_eobs))
     sample_missing_rate = (
         float(missing_samples / possible_samples)
         if possible_samples
@@ -622,8 +639,11 @@ def compute_feature_coverage(
         "common_samples": common_samples,
         "missing_samples": int(missing_samples),
         "missing_sample_rate": sample_missing_rate,
+        "missing_sample_eob_sample": [str(x) for x in missing_sample_eobs[:10]],
         "possible_samples_by_split": possible_samples_by_split,
         "common_samples_by_split": common_samples_by_split,
+        "missing_samples_by_split": missing_samples_by_split,
+        "sample_count_delta": int(common_samples - possible_samples),
     }
 
 
