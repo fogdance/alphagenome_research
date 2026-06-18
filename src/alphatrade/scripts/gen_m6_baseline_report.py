@@ -31,6 +31,8 @@ def parse_args():
                         help="Output path (default: <reports-dir>/m6_baseline_run.md)")
     parser.add_argument("--sweep-config", type=str, default="configs/sweep/m5.yaml", help="Sweep config path")
     parser.add_argument("--dataset-config", type=str, default="configs/dataset/m2.yaml", help="Dataset config path")
+    parser.add_argument("--baseline-exp", type=str, default="baseline",
+                        help="Experiment ID to freeze as M6 baseline")
     return parser.parse_args()
 
 
@@ -54,6 +56,18 @@ def get_git_sha() -> str:
         return "unknown"
 
 
+def find_baseline_experiment(leaderboard: dict, baseline_exp_id: str) -> dict:
+    """Return the explicitly selected baseline experiment from a leaderboard."""
+    for exp in leaderboard.get("experiments", []):
+        if exp.get("exp_id") == baseline_exp_id:
+            return exp
+    available = [exp.get("exp_id", "<missing>") for exp in leaderboard.get("experiments", [])]
+    raise ValueError(
+        f"baseline experiment '{baseline_exp_id}' not found in leaderboard; "
+        f"available={available}"
+    )
+
+
 def main():
     args = parse_args()
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
@@ -75,8 +89,12 @@ def main():
     training_cfg = dataset_cfg.get("training", {})
     features = dataset_cfg.get("features", {})
 
-    # Extract leaderboard experiment (baseline)
-    exp = leaderboard["experiments"][0]
+    # Extract explicit leaderboard experiment (baseline), independent of ranking.
+    try:
+        exp = find_baseline_experiment(leaderboard, args.baseline_exp)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
     metrics = exp["metrics"]
 
     # Per-seed details
@@ -145,6 +163,11 @@ def main():
     w(f"| ckpt_step | {defaults.get('ckpt_step', 'N/A')} |")
     w(f"| seeds | {sweep_cfg.get('expected_seeds', 'N/A')} |")
     w("")
+
+    w("## Baseline Identity\n")
+    w(f"- **Baseline exp_id**: `{args.baseline_exp}`")
+    w(f"- **Config hash**: `{exp.get('config_hash', 'N/A')}`")
+    w(f"- **Runs**: {exp.get('n_runs', 'N/A')}\n")
 
     w("## Metrics Summary\n")
     w(f"- **Primary metric**: `{leaderboard.get('primary_metric', 'N/A')}` (lower is better)")

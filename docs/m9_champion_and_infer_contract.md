@@ -106,3 +106,18 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 All items are required. Profile defined in `src/alphatrade/schemas/contracts_manifest.yaml` under `m9`.
 
 `m9_infer_metrics.json` records the actual `batch_size` and JAX backend used for inference (`jax_backend`) so GPU runs can be audited from artifacts.
+
+At minimum, `m9_infer_metrics.json` must include:
+
+- `model_version`
+- `bundle_path`
+- `prediction_path`
+- `symbols`
+- `start`
+- `end`
+- `num_rows`
+- `num_symbols`
+- `batch_size`
+- `jax_backend`
+- `elapsed_seconds`
+- `samples_per_second`

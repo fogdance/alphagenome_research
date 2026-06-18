@@ -54,7 +54,18 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["exp_id", "seed", "run_id", "config_hash", "dataset_config", "train_metrics_path", "eval_metrics_path"],
+        "required": [
+          "exp_id",
+          "seed",
+          "run_id",
+          "config_hash",
+          "dataset_config",
+          "universe",
+          "eval_split",
+          "ckpt_step",
+          "train_metrics_path",
+          "eval_metrics_path"
+        ],
         "additionalProperties": false,
         "properties": {
           "exp_id": {
@@ -76,6 +87,18 @@
           "dataset_config": {
             "type": "string",
             "description": "Dataset config path used by this run"
+          },
+          "universe": {
+            "type": "string",
+            "description": "Universe identifier used by this run"
+          },
+          "eval_split": {
+            "type": "string",
+            "description": "Evaluation split used by this run"
+          },
+          "ckpt_step": {
+            "type": ["string", "integer"],
+            "description": "Checkpoint selector used by evaluation"
           },
           "train_metrics_path": {
             "type": "string",

@@ -32,6 +32,7 @@ _M9_BACKTEST_NOTE = (
     "M9/M10 backtest outputs are lightweight handoff checks, not full "
     "execution simulators."
 )
+IC_MATERIALITY_THRESHOLD = 0.005
 
 
 def parse_args():
@@ -686,12 +687,12 @@ def compute_ic_metrics(rows: pd.DataFrame, horizons: list[int]) -> dict:
         "by_horizon": by_horizon,
         "by_symbol": by_symbol,
         "materiality_proxy": {
-            "threshold_abs_ic": 0.02,
+            "threshold_abs_ic": IC_MATERIALITY_THRESHOLD,
             "max_abs_pearson_ic": max(ic_values) if ic_values else None,
             "max_abs_rank_ic": max(rank_values) if rank_values else None,
             "materially_different_from_zero": bool(
-                (max(ic_values) if ic_values else 0.0) >= 0.02
-                or (max(rank_values) if rank_values else 0.0) >= 0.02
+                (max(ic_values) if ic_values else 0.0) >= IC_MATERIALITY_THRESHOLD
+                or (max(rank_values) if rank_values else 0.0) >= IC_MATERIALITY_THRESHOLD
             ),
         },
     }

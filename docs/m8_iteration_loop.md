@@ -113,9 +113,23 @@ python src/alphatrade/scripts/run_iteration.py \
 
 ### `--resume` safety boundary
 
-`--resume` skips a run if its train and eval output files (`m5_{exp_id}_seed{seed}_{train,eval}_metrics.json`) already exist and are valid JSON. If train metrics exist but eval metrics are missing, it reuses the train metrics and runs only eval. It does **not** check whether the existing outputs match the current `config_hash`.
+`--resume` skips a run only when its train and eval output files
+(`m5_{exp_id}_seed{seed}_{train,eval}_metrics.json`) exist, are valid JSON, and their embedded
+sweep metadata matches the current run plan.
 
-**Rule:** if you change `defaults:` or an experiment's `overrides:`, you **must** run without `--resume` (or delete stale output files) to ensure results reflect the new config. Using `--resume` after a config change will silently reuse stale results.
+The checked fields are:
+
+- `exp_id`
+- `seed`
+- `config_hash`
+- `dataset_config`
+- `universe`
+- `eval_split`
+- `ckpt_step`
+
+If any field differs, the runner fails with `resume_config_mismatch` instead of silently reusing
+stale outputs. The schema validator also verifies that manifest entries and train/eval artifacts
+agree on the same sweep metadata.
 
 ## Sweep Config Fields
 

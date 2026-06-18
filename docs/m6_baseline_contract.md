@@ -61,7 +61,7 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 
 # Generate M6 baseline report
 conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
-  python src/alphatrade/scripts/gen_m6_baseline_report.py
+  python src/alphatrade/scripts/gen_m6_baseline_report.py --baseline-exp baseline
 
 # Validate
 conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
@@ -80,3 +80,6 @@ conda run -n alphatrade_cuda12 env -u LD_LIBRARY_PATH \
 | m6_baseline_run | `$ALPHATRADE_RUNS_ROOT/reports/m6_baseline_run.md` | existence-only |
 
 All items are required. Profile defined in `src/alphatrade/schemas/contracts_manifest.yaml` under `m6`.
+
+`gen_m6_baseline_report.py` must freeze the explicitly selected baseline experiment by `exp_id`;
+it must not assume the first leaderboard row is the baseline, because the leaderboard is metric-sorted.

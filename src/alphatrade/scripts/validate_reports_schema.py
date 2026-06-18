@@ -250,6 +250,52 @@ def semantic_check_m4(eval_path: str, train_path: str) -> list:
 # Phase 2: Semantic checks (M5 sweep)
 # ---------------------------------------------------------------------------
 
+_M5_SWEEP_COMPARE_FIELDS = (
+    "exp_id",
+    "seed",
+    "config_hash",
+    "dataset_config",
+    "universe",
+    "eval_split",
+    "ckpt_step",
+)
+
+
+def _m5_artifact_sweep_metadata(data: dict, kind: str) -> dict | None:
+    if kind == "train":
+        return data.get("run", {}).get("sweep")
+    if kind == "eval":
+        return data.get("model", {}).get("sweep")
+    raise ValueError(f"unknown M5 artifact kind: {kind}")
+
+
+def _m5_expected_sweep_metadata(run: dict, manifest: dict) -> dict:
+    return {
+        "exp_id": run.get("exp_id"),
+        "seed": run.get("seed"),
+        "config_hash": run.get("config_hash"),
+        "dataset_config": run.get("dataset_config", manifest.get("dataset_config", "")),
+        "universe": run.get("universe", manifest.get("universe", "unknown")),
+        "eval_split": run.get("eval_split", "val"),
+        "ckpt_step": run.get("ckpt_step", "best"),
+    }
+
+
+def _m5_sweep_metadata_mismatch(data: dict, kind: str, run: dict, manifest: dict) -> str:
+    expected = _m5_expected_sweep_metadata(run, manifest)
+    actual = _m5_artifact_sweep_metadata(data, kind)
+    if actual is None:
+        return f"{kind} artifact has no sweep metadata"
+
+    mismatches = []
+    for field in _M5_SWEEP_COMPARE_FIELDS:
+        if actual.get(field) != expected.get(field):
+            mismatches.append(
+                f"{field}: existing={actual.get(field)!r} expected={expected.get(field)!r}"
+            )
+    return "; ".join(mismatches)
+
+
 def semantic_check_m5(reports_dir: str, schemas_dir: str = "src/alphatrade/schemas") -> dict:
     """Run semantic checks on M5 sweep manifest runs.
 
@@ -342,30 +388,72 @@ def semantic_check_m5(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
             train_exists = os.path.exists(train_path)
             add_exp(f"{run_label} train_exists", train_exists,
                     f"not found: {train_path}" if not train_exists else "")
-            if train_exists and train_schema:
+            train_data = None
+            if train_exists:
                 try:
                     train_data = load_json(train_path)
+                except Exception as e:
+                    add_exp(f"{run_label} train_json_load", False, str(e)[:80])
+            if train_data is not None and train_schema:
+                try:
                     validate(instance=train_data, schema=train_schema)
                     add_exp(f"{run_label} train_schema", True)
                 except ValidationError as e:
                     add_exp(f"{run_label} train_schema", False, str(e.message)[:80])
                 except Exception as e:
                     add_exp(f"{run_label} train_schema", False, str(e)[:80])
+            if train_data is not None:
+                train_run_id = train_data.get("run", {}).get("run_id")
+                add_exp(
+                    f"{run_label} train_run_id_matches_manifest",
+                    train_run_id == run.get("run_id"),
+                    f"train={train_run_id!r} manifest={run.get('run_id')!r}",
+                )
+                mismatch = _m5_sweep_metadata_mismatch(train_data, "train", run, manifest)
+                add_exp(
+                    f"{run_label} train_sweep_metadata_matches_manifest",
+                    not mismatch,
+                    mismatch,
+                )
 
             # Eval metrics exists + schema
             eval_path = run["eval_metrics_path"]
             eval_exists = os.path.exists(eval_path)
             add_exp(f"{run_label} eval_exists", eval_exists,
                     f"not found: {eval_path}" if not eval_exists else "")
-            if eval_exists and eval_schema:
+            eval_data = None
+            if eval_exists:
                 try:
                     eval_data = load_json(eval_path)
+                except Exception as e:
+                    add_exp(f"{run_label} eval_json_load", False, str(e)[:80])
+            if eval_data is not None and eval_schema:
+                try:
                     validate(instance=eval_data, schema=eval_schema)
                     add_exp(f"{run_label} eval_schema", True)
                 except ValidationError as e:
                     add_exp(f"{run_label} eval_schema", False, str(e.message)[:80])
                 except Exception as e:
                     add_exp(f"{run_label} eval_schema", False, str(e)[:80])
+            if eval_data is not None:
+                eval_run_id = eval_data.get("run_id")
+                eval_train_run_id = eval_data.get("model", {}).get("train_run_id")
+                add_exp(
+                    f"{run_label} eval_run_id_matches_manifest",
+                    eval_run_id == run.get("run_id"),
+                    f"eval={eval_run_id!r} manifest={run.get('run_id')!r}",
+                )
+                add_exp(
+                    f"{run_label} eval_train_run_id_matches_manifest",
+                    eval_train_run_id == run.get("run_id"),
+                    f"eval_model_train={eval_train_run_id!r} manifest={run.get('run_id')!r}",
+                )
+                mismatch = _m5_sweep_metadata_mismatch(eval_data, "eval", run, manifest)
+                add_exp(
+                    f"{run_label} eval_sweep_metadata_matches_manifest",
+                    not mismatch,
+                    mismatch,
+                )
 
         by_exp[exp_id] = exp_checks
         checks.extend(exp_checks)

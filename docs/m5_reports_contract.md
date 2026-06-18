@@ -55,6 +55,9 @@ validator 通过 sweep_manifest 中声明的路径动态发现并校验每个 ru
 3. **Seed 覆盖**: 每个 `exp_id` 的 runs 必须覆盖 `expected_seeds` 中的所有 seed（缺 seed = **strict fail**）
 4. **Config hash 一致**: 同一 `exp_id` 下所有 run 的 `config_hash` 必须相同（不一致 = **strict fail**）
 5. **Run ID 唯一**: 所有 `run_id` 全局唯一
+6. **Artifact metadata 一致**: train/eval JSON 内嵌的 sweep metadata 必须与 manifest 中的
+   `exp_id`, `seed`, `config_hash`, `dataset_config`, `universe`, `eval_split`, `ckpt_step`
+   完全一致；不允许用旧配置产物替换当前 manifest。
 
 ---
 

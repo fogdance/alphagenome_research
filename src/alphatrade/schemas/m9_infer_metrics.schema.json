@@ -4,7 +4,25 @@
   "title": "M9 Inference Metrics Schema",
   "description": "Runtime statistics for offline batch inference",
   "type": "object",
-  "required": ["schema_version", "generated_at", "git_sha", "model_version", "bundle_path", "inference", "output"],
+  "required": [
+    "schema_version",
+    "generated_at",
+    "git_sha",
+    "model_version",
+    "bundle_path",
+    "prediction_path",
+    "symbols",
+    "start",
+    "end",
+    "num_rows",
+    "num_symbols",
+    "batch_size",
+    "jax_backend",
+    "elapsed_seconds",
+    "samples_per_second",
+    "inference",
+    "output"
+  ],
   "additionalProperties": false,
   "properties": {
     "schema_version": {

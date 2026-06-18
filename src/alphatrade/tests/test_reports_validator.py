@@ -1,5 +1,6 @@
 """Regression tests for validate_reports_schema.py (manifest + profile)."""
 
+import copy
 import json
 import os
 import subprocess
@@ -365,17 +366,26 @@ def _make_m5_sweep_manifest(reports_dir, seeds, exp_ids=None, config_hash="cfgha
             run_id = f"{exp_id}_s{seed}"
             train_path = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_train.json")
             eval_path = os.path.join(reports_dir, f"m5_{exp_id}_seed{seed}_eval.json")
+            sweep = {
+                "exp_id": exp_id,
+                "seed": seed,
+                "config_hash": config_hash,
+                "dataset_config": "configs/dataset/m2.yaml",
+                "universe": "test",
+                "eval_split": "val",
+                "ckpt_step": "best",
+            }
 
-            train_data = dict(_TRAIN_METRICS_VALID)
-            train_data["run"] = dict(train_data["run"])
+            train_data = copy.deepcopy(_TRAIN_METRICS_VALID)
             train_data["run"]["seed"] = seed
             train_data["run"]["run_id"] = run_id
+            train_data["run"]["sweep"] = sweep
             _write_json(train_path, train_data)
 
-            eval_data = dict(_EVAL_METRICS_VALID)
+            eval_data = copy.deepcopy(_EVAL_METRICS_VALID)
             eval_data["run_id"] = run_id
-            eval_data["model"] = dict(eval_data["model"])
             eval_data["model"]["train_run_id"] = run_id
+            eval_data["model"]["sweep"] = sweep
             _write_json(eval_path, eval_data)
 
             runs.append({
@@ -383,6 +393,10 @@ def _make_m5_sweep_manifest(reports_dir, seeds, exp_ids=None, config_hash="cfgha
                 "seed": seed,
                 "run_id": run_id,
                 "config_hash": config_hash,
+                "dataset_config": "configs/dataset/m2.yaml",
+                "universe": "test",
+                "eval_split": "val",
+                "ckpt_step": "best",
                 "train_metrics_path": train_path,
                 "eval_metrics_path": eval_path,
             })
@@ -394,6 +408,8 @@ def _make_m5_sweep_manifest(reports_dir, seeds, exp_ids=None, config_hash="cfgha
         "git_sha": "testsha",
         "universe": "test",
         "dataset": "test_ds",
+        "dataset_config": "configs/dataset/m2.yaml",
+        "dataset_configs": ["configs/dataset/m2.yaml"],
         "expected_seeds": list(seeds),
         "primary_metric": "pinball_loss.overall",
         "runs": runs,
@@ -462,6 +478,27 @@ class TestM5SemanticChecks:
         assert not result["all_pass"]
         hash_checks = [c for c in result["checks"] if "config_hash" in c["check"]]
         assert any(c["status"] == "fail" for c in hash_checks)
+
+    def test_m5_artifact_sweep_metadata_mismatch_fails(self, tmp_path):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_m5
+
+        reports_dir = str(tmp_path / "reports")
+        schemas_dir_abs = os.path.abspath(_schemas_dir())
+        _, manifest = _make_m5_sweep_manifest(reports_dir, seeds=[42, 43, 44])
+
+        eval_path = manifest["runs"][0]["eval_metrics_path"]
+        with open(eval_path) as f:
+            eval_data = json.load(f)
+        eval_data["model"]["sweep"]["config_hash"] = "stalehash"
+        _write_json(eval_path, eval_data)
+
+        result = semantic_check_m5(reports_dir, schemas_dir_abs)
+        assert not result["all_pass"]
+        metadata_checks = [
+            c for c in result["checks"]
+            if "eval_sweep_metadata_matches_manifest" in c["check"]
+        ]
+        assert any(c["status"] == "fail" and "stalehash" in c["detail"] for c in metadata_checks)
 
 
 class TestM5Integration:

@@ -485,11 +485,11 @@ def build_quality_validation(
         name="max_abs_ic",
         status=(
             "WARN" if max_abs_ic is None
-            else "FAIL_MODEL_QUALITY" if max_abs_ic < 0.005
+            else "FAIL_MODEL_QUALITY" if max_abs_ic < m10.IC_MATERIALITY_THRESHOLD
             else "PASS"
         ),
         observed=max_abs_ic,
-        threshold=">= 0.005",
+        threshold=f">= {m10.IC_MATERIALITY_THRESHOLD}",
         detail="At least one horizon should show non-trivial absolute Pearson or rank IC.",
     )
 
@@ -818,7 +818,7 @@ def build_calibration_comparison(
         and calibrated_mae is not None
         and calibrated_mae <= 0.05
         and calibrated_max_abs_ic is not None
-        and calibrated_max_abs_ic >= 0.005
+        and calibrated_max_abs_ic >= m10.IC_MATERIALITY_THRESHOLD
     )
 
     return {
@@ -869,7 +869,7 @@ def build_calibration_comparison(
             ),
             "decision_rule": (
                 "Retest only if calibrated pinball beats rolling historical on common rows, "
-                "coverage MAE <= 0.05, and max abs IC >= 0.005."
+                f"coverage MAE <= 0.05, and max abs IC >= {m10.IC_MATERIALITY_THRESHOLD}."
             ),
         },
     }
