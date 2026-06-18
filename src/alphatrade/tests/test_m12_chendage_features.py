@@ -84,6 +84,47 @@ def _write_processed_jsonl_with_as_of(path, as_of_values, export_symbol="CDG.JM"
             f.write(json.dumps(row) + "\n")
 
 
+def test_m12_common_index_records_target_eob_and_drops_cross_split_targets():
+    eobs = pd.date_range("2024-01-01 09:00:00", periods=10, freq="1min")
+    full_base = pd.DataFrame(
+        {
+            "eob": eobs,
+            "segment_id": np.ones(len(eobs), dtype=np.int32),
+        }
+    )
+    common = full_base.copy()
+    common["_m12_source_pos"] = np.arange(len(common), dtype=np.int64)
+    common["y_h1"] = 0.0
+    common["y_h2"] = 0.0
+
+    index_df = m12.generate_common_indices(
+        common,
+        full_base,
+        lookback=2,
+        horizons=[1, 2],
+        stride=1,
+    )
+
+    first = index_df.iloc[0]
+    assert first["eob"] == eobs[1]
+    assert first["target_eob"] == eobs[3]
+
+    train, val, test = m12.split_by_time(
+        index_df,
+        train_start="2024-01-01 09:00:00",
+        train_end="2024-01-01 09:05:00",
+        val_start="2024-01-01 09:05:00",
+        val_end="2024-01-01 09:08:00",
+        test_start="2024-01-01 09:08:00",
+        test_end="2024-01-01 09:10:00",
+    )
+
+    assert (train["target_eob"] < pd.Timestamp("2024-01-01 09:05:00")).all()
+    assert pd.Timestamp("2024-01-01 09:03:00") not in set(train["eob"])
+    assert (val["target_eob"] < pd.Timestamp("2024-01-01 09:08:00")).all()
+    assert test.empty
+
+
 def test_m12_builder_contract_passes_on_synthetic_processed_export(tmp_path):
     base_dir = tmp_path / "m1_f8"
     bars = _write_base_bars(base_dir)

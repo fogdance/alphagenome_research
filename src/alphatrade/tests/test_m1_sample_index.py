@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from alphatrade.scripts import build_m1_sample_index
 from alphatrade.scripts import build_m1_sample_index_v2 as m1_index
+from alphatrade.scripts import build_sample_index
+
+
+INDEX_BUILDERS = [m1_index, build_m1_sample_index, build_sample_index]
 
 
 def _bars(n: int = 10) -> pd.DataFrame:
@@ -16,10 +22,11 @@ def _bars(n: int = 10) -> pd.DataFrame:
     )
 
 
-def test_sample_index_records_max_target_eob() -> None:
-    bars = m1_index.compute_labels(_bars(), horizons=[1, 2])
+@pytest.mark.parametrize("builder", INDEX_BUILDERS)
+def test_sample_index_records_max_target_eob(builder) -> None:
+    bars = builder.compute_labels(_bars(), horizons=[1, 2])
 
-    samples = m1_index.generate_sample_indices(
+    samples = builder.generate_sample_indices(
         bars, lookback=2, horizons=[1, 2], stride=1, require_same_segment=True
     )
 
@@ -29,13 +36,14 @@ def test_sample_index_records_max_target_eob() -> None:
     assert first["target_eob"] == bars.loc[3, "eob"]
 
 
-def test_split_by_time_drops_samples_whose_target_crosses_split_boundary() -> None:
-    bars = m1_index.compute_labels(_bars(), horizons=[1, 2])
-    samples = m1_index.generate_sample_indices(
+@pytest.mark.parametrize("builder", INDEX_BUILDERS)
+def test_split_by_time_drops_samples_whose_target_crosses_split_boundary(builder) -> None:
+    bars = builder.compute_labels(_bars(), horizons=[1, 2])
+    samples = builder.generate_sample_indices(
         bars, lookback=2, horizons=[1, 2], stride=1, require_same_segment=True
     )
 
-    train, val, test = m1_index.split_by_time(
+    train, val, test = builder.split_by_time(
         samples,
         train_start="2024-01-01 09:00:00",
         train_end="2024-01-01 09:05:00",

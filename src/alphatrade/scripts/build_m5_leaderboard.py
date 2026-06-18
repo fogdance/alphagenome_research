@@ -67,6 +67,10 @@ def build_leaderboard(manifest: dict) -> dict:
     for exp_id, runs in exp_runs.items():
         config_hashes = {r["config_hash"] for r in runs}
         config_hash = runs[0]["config_hash"]
+        dataset_configs = sorted({r.get("dataset_config", "") for r in runs})
+        universes = sorted({r.get("universe", "") for r in runs})
+        eval_splits = sorted({r.get("eval_split", "") for r in runs})
+        ckpt_steps = sorted({str(r.get("ckpt_step", "")) for r in runs})
 
         seeds_done = sorted({r["seed"] for r in runs})
         seeds_missing = sorted(set(expected_seeds) - set(seeds_done))
@@ -112,6 +116,10 @@ def build_leaderboard(manifest: dict) -> dict:
         experiments.append({
             "exp_id": exp_id,
             "config_hash": config_hash,
+            "dataset_configs": dataset_configs,
+            "universes": universes,
+            "eval_splits": eval_splits,
+            "ckpt_steps": ckpt_steps,
             "seeds_done": seeds_done,
             "seeds_missing": seeds_missing,
             "n_runs": len(runs),
@@ -126,6 +134,10 @@ def build_leaderboard(manifest: dict) -> dict:
                     {
                         "seed": r["seed"],
                         "run_id": r["run_id"],
+                        "dataset_config": r.get("dataset_config", ""),
+                        "universe": r.get("universe", ""),
+                        "eval_split": r.get("eval_split", ""),
+                        "ckpt_step": r.get("ckpt_step", ""),
                         "train_metrics_path": r["train_metrics_path"],
                         "eval_metrics_path": r["eval_metrics_path"],
                     }

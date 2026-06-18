@@ -500,6 +500,25 @@ class TestM5SemanticChecks:
         ]
         assert any(c["status"] == "fail" and "stalehash" in c["detail"] for c in metadata_checks)
 
+    def test_m5_leaderboard_preserves_run_provenance_fields(self, tmp_path):
+        from alphatrade.scripts import build_m5_leaderboard
+
+        reports_dir = str(tmp_path / "reports")
+        _, manifest = _make_m5_sweep_manifest(reports_dir, seeds=[42, 43, 44])
+
+        leaderboard = build_m5_leaderboard.build_leaderboard(manifest)
+
+        exp = leaderboard["experiments"][0]
+        assert exp["dataset_configs"] == ["configs/dataset/m2.yaml"]
+        assert exp["universes"] == ["test"]
+        assert exp["eval_splits"] == ["val"]
+        assert exp["ckpt_steps"] == ["best"]
+        run = exp["artifacts"]["runs"][0]
+        assert run["dataset_config"] == "configs/dataset/m2.yaml"
+        assert run["universe"] == "test"
+        assert run["eval_split"] == "val"
+        assert run["ckpt_step"] == "best"
+
 
 class TestM5Integration:
     """Integration tests for M5 profile."""
@@ -557,6 +576,10 @@ def _make_m5_leaderboard(reports_dir, experiments_data, expected_seeds=None):
         experiments.append({
             "exp_id": ed["exp_id"],
             "config_hash": f"hash_{ed['exp_id']}",
+            "dataset_configs": [ed.get("dataset_config", "configs/dataset/m2.yaml")],
+            "universes": [ed.get("universe", "test")],
+            "eval_splits": [ed.get("eval_split", "val")],
+            "ckpt_steps": [str(ed.get("ckpt_step", "best"))],
             "seeds_done": expected_seeds,
             "seeds_missing": [],
             "n_runs": ed.get("n_runs", len(expected_seeds)),
@@ -571,6 +594,10 @@ def _make_m5_leaderboard(reports_dir, experiments_data, expected_seeds=None):
                     {
                         "seed": s,
                         "run_id": f"{ed['exp_id']}_s{s}",
+                        "dataset_config": ed.get("dataset_config", "configs/dataset/m2.yaml"),
+                        "universe": ed.get("universe", "test"),
+                        "eval_split": ed.get("eval_split", "val"),
+                        "ckpt_step": ed.get("ckpt_step", "best"),
                         "train_metrics_path": os.path.join(reports_dir, f"m5_{ed['exp_id']}_seed{s}_train_metrics.json"),
                         "eval_metrics_path": os.path.join(reports_dir, f"m5_{ed['exp_id']}_seed{s}_eval_metrics.json"),
                     }

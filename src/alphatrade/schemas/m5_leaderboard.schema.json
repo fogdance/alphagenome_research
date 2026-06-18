@@ -32,7 +32,19 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["exp_id", "config_hash", "seeds_done", "seeds_missing", "n_runs", "metrics", "artifacts"],
+        "required": [
+          "exp_id",
+          "config_hash",
+          "dataset_configs",
+          "universes",
+          "eval_splits",
+          "ckpt_steps",
+          "seeds_done",
+          "seeds_missing",
+          "n_runs",
+          "metrics",
+          "artifacts"
+        ],
         "additionalProperties": false,
         "properties": {
           "exp_id": {
@@ -40,6 +52,22 @@
           },
           "config_hash": {
             "type": "string"
+          },
+          "dataset_configs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "universes": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "eval_splits": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "ckpt_steps": {
+            "type": "array",
+            "items": {"type": "string"}
           },
           "seeds_done": {
             "type": "array",
@@ -81,11 +109,24 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["seed", "run_id", "train_metrics_path", "eval_metrics_path"],
+                  "required": [
+                    "seed",
+                    "run_id",
+                    "dataset_config",
+                    "universe",
+                    "eval_split",
+                    "ckpt_step",
+                    "train_metrics_path",
+                    "eval_metrics_path"
+                  ],
                   "additionalProperties": false,
                   "properties": {
                     "seed": {"type": "integer"},
                     "run_id": {"type": "string"},
+                    "dataset_config": {"type": "string"},
+                    "universe": {"type": "string"},
+                    "eval_split": {"type": "string"},
+                    "ckpt_step": {"type": ["string", "integer"]},
                     "train_metrics_path": {"type": "string"},
                     "eval_metrics_path": {"type": "string"}
                   }

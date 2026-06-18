@@ -476,9 +476,26 @@ def split_by_time(
         return empty, empty.copy(), empty.copy()
 
     eob = pd.to_datetime(index_df["eob"])
-    train = index_df[(eob >= pd.to_datetime(train_start)) & (eob < pd.to_datetime(train_end))].copy()
-    val = index_df[(eob >= pd.to_datetime(val_start)) & (eob < pd.to_datetime(val_end))].copy()
-    test = index_df[(eob >= pd.to_datetime(test_start)) & (eob < pd.to_datetime(test_end))].copy()
+    target_eob = pd.to_datetime(index_df["target_eob"])
+    train_start_dt = pd.to_datetime(train_start)
+    train_end_dt = pd.to_datetime(train_end)
+    val_start_dt = pd.to_datetime(val_start)
+    val_end_dt = pd.to_datetime(val_end)
+    test_start_dt = pd.to_datetime(test_start)
+    test_end_dt = pd.to_datetime(test_end)
+
+    train = index_df[
+        (eob >= train_start_dt) & (eob < train_end_dt)
+        & (target_eob >= train_start_dt) & (target_eob < train_end_dt)
+    ].copy()
+    val = index_df[
+        (eob >= val_start_dt) & (eob < val_end_dt)
+        & (target_eob >= val_start_dt) & (target_eob < val_end_dt)
+    ].copy()
+    test = index_df[
+        (eob >= test_start_dt) & (eob < test_end_dt)
+        & (target_eob >= test_start_dt) & (target_eob < test_end_dt)
+    ].copy()
     train["split"] = "train"
     val["split"] = "val"
     test["split"] = "test"
@@ -519,6 +536,7 @@ def generate_common_indices(
             "x_start": window_start,
             "x_end": t,
             "eob": common_df.iloc[t]["eob"],
+            "target_eob": full_base_df.iloc[target_pos]["eob"],
             "segment_id": int(common_df.iloc[t]["segment_id"]),
             "_m12_source_pos": source_t,
         }
@@ -526,7 +544,7 @@ def generate_common_indices(
             sample[f"y_h{h}"] = float(common_df.iloc[t][f"y_h{h}"])
         samples.append(sample)
 
-    columns = ["t", "x_start", "x_end", "eob", "segment_id", "_m12_source_pos"] + [
+    columns = ["t", "x_start", "x_end", "eob", "target_eob", "segment_id", "_m12_source_pos"] + [
         f"y_h{h}" for h in horizons
     ]
     return pd.DataFrame(samples, columns=columns)

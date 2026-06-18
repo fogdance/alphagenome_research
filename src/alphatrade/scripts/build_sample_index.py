@@ -122,6 +122,7 @@ def generate_sample_indices(
             "x_start": t - lookback + 1,
             "x_end": t,
             "eob": df.iloc[t]["eob"],
+            "target_eob": df.iloc[t + max_horizon]["eob"],
             "segment_id": int(df.iloc[t]["segment_id"])
         }
 
@@ -135,7 +136,10 @@ def generate_sample_indices(
 
     if not samples:
         # Return empty DataFrame with correct schema
-        return pd.DataFrame(columns=["t", "x_start", "x_end", "eob", "segment_id"] + [f"y_h{h}" for h in horizons])
+        return pd.DataFrame(
+            columns=["t", "x_start", "x_end", "eob", "target_eob", "segment_id"]
+            + [f"y_h{h}" for h in horizons]
+        )
 
     return pd.DataFrame(samples)
 
@@ -168,9 +172,21 @@ def split_by_time(
     test_start_dt = pd.to_datetime(test_start)
     test_end_dt = pd.to_datetime(test_end)
 
-    train_mask = (df["eob"] >= train_start_dt) & (df["eob"] < train_end_dt)
-    val_mask = (df["eob"] >= val_start_dt) & (df["eob"] < val_end_dt)
-    test_mask = (df["eob"] >= test_start_dt) & (df["eob"] < test_end_dt)
+    target_eob = pd.to_datetime(df["target_eob"])
+    anchor_eob = pd.to_datetime(df["eob"])
+
+    train_mask = (
+        (anchor_eob >= train_start_dt) & (anchor_eob < train_end_dt)
+        & (target_eob >= train_start_dt) & (target_eob < train_end_dt)
+    )
+    val_mask = (
+        (anchor_eob >= val_start_dt) & (anchor_eob < val_end_dt)
+        & (target_eob >= val_start_dt) & (target_eob < val_end_dt)
+    )
+    test_mask = (
+        (anchor_eob >= test_start_dt) & (anchor_eob < test_end_dt)
+        & (target_eob >= test_start_dt) & (target_eob < test_end_dt)
+    )
 
     train_df = df[train_mask].copy()
     val_df = df[val_mask].copy()

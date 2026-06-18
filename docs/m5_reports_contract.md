@@ -58,6 +58,8 @@ validator 通过 sweep_manifest 中声明的路径动态发现并校验每个 ru
 6. **Artifact metadata 一致**: train/eval JSON 内嵌的 sweep metadata 必须与 manifest 中的
    `exp_id`, `seed`, `config_hash`, `dataset_config`, `universe`, `eval_split`, `ckpt_step`
    完全一致；不允许用旧配置产物替换当前 manifest。
+7. **Leaderboard provenance**: `m5_leaderboard.json` 必须保留每个 run 的
+   `dataset_config`, `universe`, `eval_split`, `ckpt_step`，避免后续冻结/导出时丢失实验口径。
 
 ---
 
