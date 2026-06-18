@@ -18,7 +18,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -289,57 +289,66 @@ def write_processed_symbol(
     source_end: str,
     write_chunk_size: int,
 ) -> dict[str, Any]:
-    from chendage_signal.processed import (
-        ProcessedExportRequest,
-        build_processed_export_from_candles,
-    )
+    from chendage_signal.config import get_instrument_config, load_instrument_configs
+    from chendage_signal.processed import ProcessedFeatureConfig, iter_processed_snapshots
 
     output_dir = root / "inputs" / "processed_full"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{safe_symbol_name(csymbol)}.parquet"
     candles = candles_from_frame(bars_df, csymbol)
-    request = ProcessedExportRequest(
-        source="db",
-        symbol=csymbol,
-        trading_day_from=eval_start,
-        trading_day_to=eval_end,
-        mode="all-minutes",
+    eval_bars = bars_df[
+        (bars_df["trading_day"].astype(str) >= eval_start)
+        & (bars_df["trading_day"].astype(str) <= eval_end)
+    ].sort_values("eob")
+    if eval_bars.empty:
+        raise ValueError(f"{csymbol}: no evaluation bars in {eval_start}..{eval_end}")
+    as_of_list = [value.to_pydatetime() for value in pd.to_datetime(eval_bars["eob"])]
+    data_version = (
+        f"db_continuous_map:{csymbol}:full:"
+        f"{source_start}:{source_end}:eval:{eval_start}:{eval_end}"
     )
-    bundle = build_processed_export_from_candles(
+    feature_config = ProcessedFeatureConfig(source="db", data_version=data_version)
+    instrument_config = get_instrument_config(csymbol, load_instrument_configs())
+    snapshots = iter_processed_snapshots(
         candles,
-        request,
-        symbol=csymbol,
-        data_version=(
-            f"db_continuous_map:{csymbol}:full:"
-            f"{source_start}:{source_end}:eval:{eval_start}:{eval_end}"
-        ),
+        csymbol,
+        as_of_list,
+        config=feature_config,
+        instrument_config=instrument_config,
     )
-    snapshot_count = len(bundle.snapshots)
-    del candles
-    gc.collect()
     summary = write_snapshots_parquet_chunked(
-        bundle.snapshots,
+        snapshots,
         output_path=output_path,
         chunk_size=write_chunk_size,
+        progress_label=csymbol,
     )
-    del bundle
+    del candles, eval_bars, as_of_list
     gc.collect()
-    summary["snapshots"] = snapshot_count
+    summary["snapshot_mode"] = "streaming_iterator"
+    summary["materialized_snapshots"] = False
     return summary
 
 
+def flat_processed_snapshot_record(snapshot: Any) -> dict[str, Any]:
+    record = snapshot.to_dict(include_features=False)
+    record.update(
+        {f"feature.{key}": value for key, value in snapshot.to_feature_dict().items()}
+    )
+    return record
+
+
 def write_snapshots_parquet_chunked(
-    snapshots: list[Any],
+    snapshots: Iterable[Any],
     *,
     output_path: str | Path,
     chunk_size: int,
+    progress_label: str | None = None,
 ) -> dict[str, Any]:
-    """Write processed snapshots without materializing one full DataFrame."""
+    """Write processed snapshots without materializing the full snapshot stream."""
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
     import pyarrow as pa
     import pyarrow.parquet as pq
-    from chendage_signal.processed.features import processed_snapshots_to_dataframe
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -348,14 +357,17 @@ def write_snapshots_parquet_chunked(
     column_count = 0
     min_as_of: pd.Timestamp | None = None
     max_as_of: pd.Timestamp | None = None
-    try:
-        for start in range(0, len(snapshots), chunk_size):
-            frame = processed_snapshots_to_dataframe(
-                snapshots[start:start + chunk_size],
-                include_features=True,
-            )
+    started = time.time()
+
+    def flush(chunk: list[dict[str, Any]]) -> None:
+        nonlocal writer, total_rows, column_count, min_as_of, max_as_of
+        if not chunk:
+            return
+        frame = pd.DataFrame(chunk)
+        table = None
+        try:
             if frame.empty:
-                continue
+                return
             frame = normalize_processed_frame_for_parquet(frame)
             as_of = pd.to_datetime(frame["as_of"])
             chunk_min = as_of.min()
@@ -369,8 +381,28 @@ def write_snapshots_parquet_chunked(
             if writer is None:
                 writer = pq.ParquetWriter(output_path, table.schema, compression="zstd")
             writer.write_table(table)
-            del frame, table
+            if progress_label:
+                elapsed = max(time.time() - started, 1e-9)
+                print(
+                    f"    processed stream {progress_label}: rows={total_rows:,} "
+                    f"rows_per_sec={total_rows / elapsed:.1f}",
+                    flush=True,
+                )
+        finally:
+            del frame
+            if table is not None:
+                del table
             gc.collect()
+
+    chunk: list[dict[str, Any]] = []
+    try:
+        for snapshot in snapshots:
+            chunk.append(flat_processed_snapshot_record(snapshot))
+            if len(chunk) >= chunk_size:
+                flush(chunk)
+                chunk.clear()
+        flush(chunk)
+        chunk.clear()
     finally:
         if writer is not None:
             writer.close()
@@ -1396,7 +1428,7 @@ def main() -> int:
         },
         "source_boundary": {
             "accepted_api": [
-                "chendage_signal.processed.build_processed_export_from_candles",
+                "chendage_signal.processed.iter_processed_snapshots",
                 "chendage_signal.processed.export_processed_features",
             ],
             "legacy_cli_rejected": True,

@@ -1,5 +1,7 @@
 import importlib.util
 import sys
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -65,6 +67,51 @@ def test_processed_chunk_schema_rejects_non_numeric_feature_values():
 
     with pytest.raises(ValueError, match="Unable to parse string"):
         m12_db.normalize_processed_frame_for_parquet(frame)
+
+
+@dataclass(frozen=True)
+class _FakeProcessedSnapshot:
+    index: int
+
+    def to_dict(self, *, include_features: bool = False):
+        as_of = datetime(2024, 1, 2, 9, 1) + timedelta(minutes=self.index)
+        payload = {
+            "symbol": "DCE.JM",
+            "as_of": as_of.strftime("%Y-%m-%d %H:%M:%S"),
+            "current_datetime": as_of.strftime("%Y-%m-%d %H:%M:%S"),
+            "h1_active_support_role": None if self.index == 0 else "SUPPORT",
+            "h1_distance_to_active_support": None if self.index == 0 else 1.25,
+            "m5_bars_since_cross": None if self.index == 0 else self.index,
+            "h1_is_near_support": self.index % 2 == 0,
+            "count_1m": self.index + 1,
+        }
+        if include_features:
+            payload["feature_vector"] = self.to_feature_dict()
+        return payload
+
+    def to_feature_dict(self):
+        return {
+            "h1_distance_to_active_support": 0.0 if self.index == 0 else 1.25,
+            "m5_bars_since_cross": float(self.index),
+        }
+
+
+def test_write_snapshots_parquet_chunked_streams_generator(tmp_path):
+    output_path = tmp_path / "processed.parquet"
+
+    summary = m12_db.write_snapshots_parquet_chunked(
+        (_FakeProcessedSnapshot(index) for index in range(5)),
+        output_path=output_path,
+        chunk_size=2,
+    )
+    frame = pd.read_parquet(output_path)
+
+    assert summary["snapshots"] == 5
+    assert summary["write_chunk_size"] == 2
+    assert summary["columns"] == len(frame.columns)
+    assert len(frame) == 5
+    assert "feature.h1_distance_to_active_support" in frame.columns
+    assert "feature_vector" not in frame.columns
 
 
 def test_fit_scaler_from_parquet_fits_exact_per_feature_params(tmp_path):
