@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import unified feature schema
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM, FEATURE_DTYPE, validate_feature_schema
+from data_pipeline.feature_profiles import base_feature_profile, feature_profile_to_dict
 import runtime_paths
 
 
@@ -328,6 +329,50 @@ def generate_reports(results: list, output_dir: str, reports_dir: Path):
     print(f"✅ Markdown report: {md_path}")
 
 
+def write_root_manifests(results: list, input_dir: str, output_dir: str, reports_dir: Path) -> None:
+    """Write explicit root feature/source manifests for the m1_f8 data root."""
+    output_root = Path(output_dir)
+    output_root.mkdir(parents=True, exist_ok=True)
+    profile = base_feature_profile(str(output_root))
+    generated_at = datetime.now().isoformat()
+    git_sha = os.popen('git rev-parse --short HEAD 2>/dev/null').read().strip() or 'unknown'
+    symbols = [r.get("csymbol") for r in results if r.get("csymbol")]
+    success_or_existing = [
+        r.get("csymbol")
+        for r in results
+        if r.get("status") in {"SUCCESS", "SKIP"} and r.get("csymbol")
+    ]
+
+    feature_manifest = {
+        "schema_version": "m1_f8_feature_manifest_v1",
+        "generated_at": generated_at,
+        "git_sha": git_sha,
+        "feature_profile": feature_profile_to_dict(profile),
+        "feature_cols": list(FEATURE_COLS),
+        "feature_dim": FEATURE_DIM,
+        "feature_dtype": FEATURE_DTYPE,
+        "symbols": success_or_existing,
+        "symbol_count": len(success_or_existing),
+    }
+    source_manifest = {
+        "schema_version": "m1_f8_source_manifest_v1",
+        "generated_at": generated_at,
+        "git_sha": git_sha,
+        "input_processed_root": str(Path(input_dir)),
+        "output_processed_root": str(output_root),
+        "reports_dir": str(reports_dir),
+        "symbols_requested": symbols,
+        "symbols_available": success_or_existing,
+        "results": results,
+    }
+    with (output_root / "feature_manifest.json").open("w", encoding="utf-8") as f:
+        json.dump(feature_manifest, f, indent=2)
+    with (output_root / "source_manifest.json").open("w", encoding="utf-8") as f:
+        json.dump(source_manifest, f, indent=2)
+    print(f"✅ Feature manifest: {output_root / 'feature_manifest.json'}")
+    print(f"✅ Source manifest: {output_root / 'source_manifest.json'}")
+
+
 def main():
     args = parse_args()
     
@@ -405,6 +450,7 @@ def main():
     print("\nGenerating reports...")
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
     generate_reports(results, args.output_dir, reports_dir)
+    write_root_manifests(results, args.input_dir, args.output_dir, reports_dir)
     
     # Summary
     success = sum(1 for r in results if r['status'] == 'SUCCESS')

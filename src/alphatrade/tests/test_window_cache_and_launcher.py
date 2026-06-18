@@ -45,6 +45,7 @@ def test_window_cache_build_and_hit(tmp_path):
         processed_root=processed,
         split="val",
         features=FEATURES,
+        feature_profile_id="test_f8",
         cache_dir=cache_dir,
         mode="auto",
     )
@@ -58,6 +59,7 @@ def test_window_cache_build_and_hit(tmp_path):
         processed_root=processed,
         split="val",
         features=FEATURES,
+        feature_profile_id="test_f8",
         cache_dir=cache_dir,
         mode="auto",
         mmap=True,
@@ -65,6 +67,28 @@ def test_window_cache_build_and_hit(tmp_path):
     assert second.cache_hit is True
     assert second.x.shape == first.x.shape
     assert second.metadata["fingerprint"] == first.metadata["fingerprint"]
+
+
+def test_window_cache_fingerprint_includes_feature_profile(tmp_path):
+    processed = tmp_path / "processed"
+    _write_symbol(processed, "DCE.JM")
+
+    fp_a, _ = window_cache.fingerprint(
+        symbols=["DCE.JM"],
+        processed_root=processed,
+        split="val",
+        features=FEATURES,
+        feature_profile_id="profile_a",
+    )
+    fp_b, _ = window_cache.fingerprint(
+        symbols=["DCE.JM"],
+        processed_root=processed,
+        split="val",
+        features=FEATURES,
+        feature_profile_id="profile_b",
+    )
+
+    assert fp_a != fp_b
 
 
 def test_gpu_launcher_env_and_cmd(monkeypatch):
@@ -142,6 +166,42 @@ def test_m5_config_hash_uses_effective_defaults():
 
     assert base_hash != changed_hash
     assert base_hash != smoke_hash
+
+
+def test_m5_sweep_supports_per_experiment_dataset_config():
+    config = {
+        "expected_seeds": [42],
+        "dataset_config": "configs/dataset/m2.yaml",
+        "universe": "m12_common_rows",
+        "primary_metric": "pinball_loss.overall",
+        "defaults": {"max_steps": 10},
+        "experiments": [
+            {"exp_id": "base8_control", "dataset_config": "data/processed/m12_common_base8/dataset_config.yaml"},
+            {"exp_id": "chg_core", "dataset_config": "data/processed/m12_chendage_f12/dataset_config.yaml"},
+        ],
+    }
+
+    plan = run_m5_sweep.build_run_plan(config)
+
+    by_exp = {run["exp_id"]: run for run in plan}
+    assert by_exp["base8_control"]["dataset_config"].endswith("m12_common_base8/dataset_config.yaml")
+    assert by_exp["chg_core"]["dataset_config"].endswith("m12_chendage_f12/dataset_config.yaml")
+    assert by_exp["base8_control"]["config_hash"] != by_exp["chg_core"]["config_hash"]
+
+    completed = [
+        {
+            **run,
+            "run_id": f"run-{run['exp_id']}",
+            "train_metrics_path": f"/tmp/{run['exp_id']}_train.json",
+            "eval_metrics_path": f"/tmp/{run['exp_id']}_eval.json",
+        }
+        for run in plan
+    ]
+    manifest = run_m5_sweep.build_manifest(config, completed, "abc123")
+    run_dataset_configs = {run["exp_id"]: run["dataset_config"] for run in manifest["runs"]}
+    assert run_dataset_configs["base8_control"].endswith("m12_common_base8/dataset_config.yaml")
+    assert run_dataset_configs["chg_core"].endswith("m12_chendage_f12/dataset_config.yaml")
+    assert sorted(manifest["dataset_configs"]) == sorted(run_dataset_configs.values())
 
 
 def test_m5_resume_requires_matching_sweep_metadata(tmp_path):

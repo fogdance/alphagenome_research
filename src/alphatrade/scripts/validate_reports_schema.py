@@ -196,11 +196,12 @@ def semantic_check_m4(eval_path: str, train_path: str) -> list:
     """Run semantic checks on an M4 eval↔train pair."""
     checks = []
 
-    def add(name, passed, detail=""):
+    def add(name, passed, detail="", observed=None):
         checks.append({
             "check": name,
             "status": "pass" if passed else "fail",
             "detail": detail,
+            "observed": observed,
         })
 
     if not os.path.exists(eval_path):
@@ -263,11 +264,12 @@ def semantic_check_m5(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
 
     checks = []
 
-    def add(name, passed, detail=""):
+    def add(name, passed, detail="", observed=None):
         checks.append({
             "check": name,
             "status": "pass" if passed else "fail",
             "detail": detail,
+            "observed": observed,
         })
 
     # Load manifest
@@ -480,11 +482,12 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
 
     checks = []
 
-    def add(name, passed, detail=""):
+    def add(name, passed, detail="", observed=None):
         checks.append({
             "check": name,
             "status": "pass" if passed else "fail",
             "detail": detail,
+            "observed": observed,
         })
 
     # Check manifest exists and has valid bundle_path
@@ -510,6 +513,26 @@ def semantic_check_m9(reports_dir: str, schemas_dir: str = "src/alphatrade/schem
     add("prediction_schema_version_current",
         manifest.get("prediction_schema_version") == prediction_schema.PREDICTION_SCHEMA_VERSION,
         f"got {manifest.get('prediction_schema_version')!r}" if manifest.get("prediction_schema_version") != prediction_schema.PREDICTION_SCHEMA_VERSION else "")
+
+    feature_profile = manifest.get("feature_profile", {})
+    model_config = manifest.get("model_config", {})
+    profile_cols = feature_profile.get("feature_cols", [])
+    feature_profile_ok = (
+        bool(feature_profile.get("profile_id"))
+        and isinstance(profile_cols, list)
+        and len(profile_cols) == int(feature_profile.get("feature_dim", -1))
+        and int(model_config.get("num_features", -2)) == int(feature_profile.get("feature_dim", -1))
+    )
+    add(
+        "feature_profile_matches_model_config",
+        feature_profile_ok,
+        observed={
+            "profile_id": feature_profile.get("profile_id"),
+            "profile_dim": feature_profile.get("feature_dim"),
+            "feature_cols": len(profile_cols) if isinstance(profile_cols, list) else None,
+            "model_num_features": model_config.get("num_features"),
+        },
+    )
 
     bundle_files = manifest.get("bundle_files", [])
     if bundle_files and os.path.exists(bundle_path):
@@ -801,6 +824,171 @@ def semantic_check_m11(reports_dir: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (M12 Chendage processed features)
+# ---------------------------------------------------------------------------
+
+def semantic_check_m12(reports_dir: str) -> dict:
+    """Run semantic checks on the M12 Chendage feature contract."""
+    path = os.path.join(reports_dir, "m12_chendage_feature_contract.json")
+    checks = []
+
+    def add(name, passed, detail="", observed=None):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+            "observed": observed,
+        })
+
+    if not os.path.exists(path):
+        add("contract_exists", False, f"File not found: {path}")
+        return {"checks": checks, "all_pass": False}
+    add("contract_exists", True, observed=path)
+
+    try:
+        report = load_json(path)
+    except Exception as e:
+        add("contract_json_load", False, str(e))
+        return {"checks": checks, "all_pass": False}
+    add("contract_json_load", True)
+
+    add(
+        "overall_status_pass",
+        report.get("overall_status") == "PASS",
+        observed=report.get("overall_status"),
+    )
+
+    failed_contract_checks = [
+        c for c in report.get("checks", [])
+        if c.get("status") not in ("PASS", "WARN")
+    ]
+    add(
+        "contract_checks_no_fail",
+        len(failed_contract_checks) == 0,
+        observed=failed_contract_checks[:10],
+    )
+
+    profile = report.get("feature_profile", {})
+    chg_cols = profile.get("chendage_feature_cols", [])
+    add(
+        "feature_profile_wider_than_base8",
+        profile.get("feature_dim", 0) > 8 and len(chg_cols) > 0,
+        observed={"feature_dim": profile.get("feature_dim"), "chendage_feature_cols": len(chg_cols)},
+    )
+    normalization = report.get("normalization", {})
+    add(
+        "train_only_scaler_recorded",
+        normalization.get("train_only") is True
+        and bool(normalization.get("scaler_hash"))
+        and profile.get("scaler_hash") == normalization.get("scaler_hash"),
+        observed={
+            "profile_scaler_hash": profile.get("scaler_hash"),
+            "normalization": normalization,
+        },
+    )
+
+    boundary = report.get("source_boundary", {})
+    expected_versions = boundary.get("expected_source_schema_versions", {})
+    observed_versions = boundary.get("observed_source_schema_versions", {})
+    source_versions_ok = (
+        set(observed_versions.get("schema_version", [])) == {expected_versions.get("schema_version")}
+        and set(observed_versions.get("feature_vector_version", []))
+        == {expected_versions.get("feature_vector_version")}
+    )
+    add(
+        "source_schema_versions_match_expected",
+        source_versions_ok,
+        observed={"expected": expected_versions, "observed": observed_versions},
+    )
+    rule_only_found = boundary.get("rule_only_fields_found", [])
+    add(
+        "rule_only_fields_absent",
+        not rule_only_found,
+        observed=rule_only_found,
+    )
+    add(
+        "source_manifest_provenance_recorded",
+        bool(boundary.get("input_files"))
+        and bool(boundary.get("input_hashes"))
+        and bool(boundary.get("chendage_commit")),
+        observed={
+            "input_files": boundary.get("input_files"),
+            "input_hashes": boundary.get("input_hashes"),
+            "chendage_commit": boundary.get("chendage_commit"),
+        },
+    )
+
+    causality = report.get("causality_test", {})
+    causality_checks = causality.get("checks", {})
+    causality_pass = bool(causality_checks) and all(
+        item.get("status") == "PASS" for item in causality_checks.values()
+    )
+    add(
+        "causality_checks_pass",
+        causality_pass,
+        observed=causality_checks,
+    )
+
+    symbol_results = report.get("symbols", [])
+    all_symbols_success = bool(symbol_results) and all(
+        item.get("status") == "SUCCESS" for item in symbol_results
+    )
+    add("symbols_all_success", all_symbols_success, observed=symbol_results[:10])
+
+    total_common_rows = sum(int(item.get("common_rows", 0)) for item in symbol_results)
+    total_samples = sum(
+        int(item.get("train_samples", 0))
+        + int(item.get("val_samples", 0))
+        + int(item.get("test_samples", 0))
+        for item in symbol_results
+    )
+    add(
+        "common_rows_and_samples_positive",
+        total_common_rows > 0 and total_samples > 0,
+        observed={"common_rows": total_common_rows, "samples": total_samples},
+    )
+    coverage_ok = bool(symbol_results) and all(
+        item.get("feature_coverage", {}).get("status") == "PASS"
+        for item in symbol_results
+    )
+    add(
+        "feature_coverage_within_threshold",
+        coverage_ok,
+        observed={
+            item.get("symbol"): item.get("feature_coverage")
+            for item in symbol_results
+        },
+    )
+    distribution_recorded = bool(symbol_results) and all(
+        all(split in item.get("feature_distribution_by_split", {}) for split in ("train", "val", "test"))
+        for item in symbol_results
+        if item.get("status") == "SUCCESS"
+    )
+    add(
+        "feature_distribution_by_split_recorded",
+        distribution_recorded,
+        observed={
+            item.get("symbol"): list(item.get("feature_distribution_by_split", {}).keys())
+            for item in symbol_results
+            if item.get("status") == "SUCCESS"
+        },
+    )
+
+    outputs = report.get("outputs", {})
+    candidate_root = outputs.get("candidate_processed_root")
+    control_root = outputs.get("control_processed_root")
+    add(
+        "candidate_and_control_roots_exist",
+        bool(candidate_root) and os.path.exists(candidate_root)
+        and bool(control_root) and os.path.exists(control_root),
+        observed={"candidate": candidate_root, "control": control_root},
+    )
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {"checks": checks, "all_pass": all_pass}
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -852,6 +1040,8 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
         _generate_md_phase2_schema_only(w, profile_name)
     elif profile_name == "m11":
         _generate_md_phase2_m11(w, semantic_results)
+    elif profile_name == "m12":
+        _generate_md_phase2_m12(w, semantic_results)
     elif profile_name in ("m5", "m6", "m7"):
         _generate_md_phase2_m5(w, semantic_results)
         if profile_name == "m7":
@@ -884,6 +1074,10 @@ def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
     elif profile_name == "m10":
         return True
     elif profile_name == "m11":
+        if not semantic_results:
+            return True
+        return semantic_results.get("all_pass", True)
+    elif profile_name == "m12":
         if not semantic_results:
             return True
         return semantic_results.get("all_pass", True)
@@ -1026,6 +1220,28 @@ def _generate_md_phase2_m11(w, semantic_results):
     w(f"**M11 closure checks**: {sem_pass}/{sem_total} passed\n")
 
 
+def _generate_md_phase2_m12(w, semantic_results):
+    """Generate Phase 2 markdown for M12 Chendage feature checks."""
+    w("## Phase 2: M12 Chendage Feature Semantic Checks\n")
+
+    if not semantic_results or not semantic_results.get("checks"):
+        w("_No M12 semantic checks run._\n")
+        return
+
+    w("| Check | Status | Detail | Observed |")
+    w("|-------|--------|--------|----------|")
+    for c in semantic_results["checks"]:
+        icon = "\u2705" if c["status"] == "pass" else "\u274c"
+        observed = c.get("observed")
+        observed_text = "-" if observed is None else json.dumps(observed, sort_keys=True)[:180]
+        w(f"| {c['check']} | {icon} {c['status']} | {c.get('detail') or '-'} | `{observed_text}` |")
+    w("")
+
+    sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+    sem_total = len(semantic_results["checks"])
+    w(f"**M12 checks**: {sem_pass}/{sem_total} passed\n")
+
+
 def _generate_md_phase2_schema_only(w, profile_name: str):
     """Generate Phase 2 markdown for schema-only profiles."""
     w(f"## Phase 2: {profile_name.upper()} Semantic Checks\n")
@@ -1140,6 +1356,17 @@ def main():
         sem_total = len(semantic_results["checks"])
         sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
         print(f"\n  M11 closure semantic: {sem_pass}/{sem_total} passed\n")
+    elif profile_name == "m12":
+        print("Phase 2: M12 Chendage feature semantic checks\n")
+        semantic_results = semantic_check_m12(reports_dir_str)
+        for c in semantic_results["checks"]:
+            icon = "\u2705" if c["status"] == "pass" else "\u274c"
+            detail = f" ({c['detail']})" if c.get("detail") else ""
+            print(f"  {icon} {c['check']}{detail}")
+        sem_all_pass = semantic_results["all_pass"]
+        sem_total = len(semantic_results["checks"])
+        sem_pass = sum(1 for c in semantic_results["checks"] if c["status"] == "pass")
+        print(f"\n  M12 semantic: {sem_pass}/{sem_total} passed\n")
     elif profile_name in ("m5", "m6", "m7"):
         print("Phase 2: M5 sweep semantic checks\n")
         semantic_results = semantic_check_m5(reports_dir_str, args.schemas_dir)

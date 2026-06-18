@@ -41,6 +41,8 @@ def fingerprint(
     processed_root: str | os.PathLike[str],
     split: str,
     features: Sequence[str],
+    feature_profile_id: str,
+    scaler_hash: str | None = None,
 ) -> tuple[str, dict]:
     """Build a content-ish fingerprint from inputs and source file metadata."""
     root = Path(processed_root).expanduser().resolve()
@@ -69,7 +71,10 @@ def fingerprint(
         "processed_root": str(root),
         "split": split,
         "symbols": list(symbols),
+        "feature_profile_id": feature_profile_id,
         "features": list(features),
+        "feature_dim": len(features),
+        "scaler_hash": scaler_hash,
         "horizons": list(HORIZONS),
         "files": files,
     }
@@ -143,6 +148,9 @@ def materialize_windows(
             continue
 
         bars_df = pd.read_parquet(bars_path)
+        missing_features = [c for c in features if c not in bars_df.columns]
+        if missing_features:
+            raise ValueError(f"{symbol}: missing feature columns: {missing_features}")
         feature_data = bars_df[list(features)].values.astype(np.float32)
         feature_data = np.nan_to_num(feature_data, nan=0.0, posinf=0.0, neginf=0.0)
         bars_dict[symbol] = feature_data
@@ -208,7 +216,9 @@ def load_or_build(
     processed_root: str | os.PathLike[str],
     split: str,
     features: Sequence[str],
+    feature_profile_id: str,
     cache_dir: str | os.PathLike[str] | None,
+    scaler_hash: str | None = None,
     mode: str = "auto",
     mmap: bool = False,
 ) -> WindowDataset:
@@ -227,6 +237,8 @@ def load_or_build(
         processed_root=processed_root,
         split=split,
         features=features,
+        feature_profile_id=feature_profile_id,
+        scaler_hash=scaler_hash,
     )
 
     path = cache_path(cache_dir, fp) if cache_dir else None

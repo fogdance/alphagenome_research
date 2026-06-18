@@ -52,6 +52,25 @@
     "jax_backend": {
       "type": "string"
     },
+    "feature_profile": {
+      "type": "object",
+      "required": ["profile_id", "feature_dim", "feature_cols", "fingerprint"],
+      "properties": {
+        "profile_id": {"type": "string"},
+        "feature_dim": {"type": "integer", "minimum": 1},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "processed_root": {"type": ["string", "null"]},
+        "scaler_hash": {"type": ["string", "null"]},
+        "source_schema_versions": {"type": "object"},
+        "normalization": {"type": "object"},
+        "fingerprint": {"type": "string"}
+      }
+    },
+    "data_dir_feature_profile": {"type": "object"},
     "progress_log_path": {
       "type": "string"
     },
@@ -100,6 +119,8 @@
         "jax_backend": {
           "type": "string"
         },
+        "feature_profile": {"type": "object"},
+        "data_dir_feature_profile": {"type": "object"},
         "progress_log_path": {
           "type": "string"
         },

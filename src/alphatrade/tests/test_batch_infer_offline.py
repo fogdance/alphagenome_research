@@ -108,3 +108,76 @@ def test_iter_sliding_window_batches_matches_full_builder(monkeypatch):
   batch_eobs = [eob for _, eobs in batches for eob in eobs]
   np.testing.assert_array_equal(batch_windows, full_windows)
   assert batch_eobs == full_eobs
+
+
+def test_build_sliding_windows_accepts_dynamic_feature_cols(monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.scripts import batch_infer_offline
+
+  bars = _bars_frame(batch_infer_offline, n_rows=8)
+  bars["chg_h1_distance"] = np.arange(len(bars), dtype=np.float32)
+  feature_cols = list(batch_infer_offline.FEATURE_COLS) + ["chg_h1_distance"]
+
+  windows, _ = batch_infer_offline.build_sliding_windows(
+      bars,
+      lookback=3,
+      start="2024-01-02",
+      end="2024-01-02",
+      feature_cols=feature_cols,
+  )
+
+  assert windows.shape == (6, 3, len(feature_cols))
+
+
+def test_verify_data_dir_feature_profile_matches_bundle(tmp_path, monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.data_pipeline.feature_profiles import (
+      feature_profile_from_mapping,
+      feature_profile_to_dict,
+  )
+  from alphatrade.scripts import batch_infer_offline
+
+  profile = feature_profile_from_mapping(
+      {
+          "profile_id": "m12_chg_core",
+          "feature_dim": 2,
+          "feature_cols": ["a", "b"],
+          "scaler_hash": "scale123",
+      }
+  )
+  (tmp_path / "feature_manifest.json").write_text(
+      json.dumps({"feature_profile": feature_profile_to_dict(profile)}),
+      encoding="utf-8",
+  )
+
+  data_profile = batch_infer_offline.verify_data_dir_feature_profile(tmp_path, profile)
+
+  assert data_profile.profile_id == "m12_chg_core"
+  assert data_profile.feature_cols == ("a", "b")
+
+
+def test_verify_data_dir_feature_profile_rejects_mismatch(tmp_path, monkeypatch):
+  monkeypatch.setenv("ALPHATRADE_DEVICE", "cpu")
+  from alphatrade.data_pipeline.feature_profiles import (
+      feature_profile_from_mapping,
+      feature_profile_to_dict,
+  )
+  from alphatrade.scripts import batch_infer_offline
+
+  bundle_profile = feature_profile_from_mapping(
+      {"profile_id": "m12_chg_core", "feature_dim": 2, "feature_cols": ["a", "b"]}
+  )
+  data_profile = feature_profile_from_mapping(
+      {"profile_id": "m12_chg_core", "feature_dim": 2, "feature_cols": ["a", "c"]}
+  )
+  (tmp_path / "feature_manifest.json").write_text(
+      json.dumps({"feature_profile": feature_profile_to_dict(data_profile)}),
+      encoding="utf-8",
+  )
+
+  try:
+    batch_infer_offline.verify_data_dir_feature_profile(tmp_path, bundle_profile)
+  except ValueError as exc:
+    assert "feature_profile_mismatch" in str(exc)
+  else:
+    raise AssertionError("expected feature_profile_mismatch")

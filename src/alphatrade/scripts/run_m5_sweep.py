@@ -89,12 +89,13 @@ def compute_config_hash(
 def build_run_plan(config: dict, smoke: bool = False) -> List[dict]:
     """Return list of {exp_id, seed, config_hash, overrides, dataset_config, description}."""
     seeds = config["expected_seeds"]
-    dataset_config = config["dataset_config"]
+    default_dataset_config = config["dataset_config"]
     universe = config.get("universe", "unknown")
     defaults = config.get("defaults", {})
     plan = []
     for exp in config["experiments"]:
         exp_id = exp["exp_id"]
+        dataset_config = exp.get("dataset_config", default_dataset_config)
         overrides = {**defaults, **exp.get("overrides", {})}
         if smoke:
             overrides["max_steps"] = 3
@@ -471,6 +472,7 @@ def build_manifest(config: dict, completed_runs: List[dict], git_sha: str) -> di
             "seed": cr["seed"],
             "run_id": cr["run_id"],
             "config_hash": cr["config_hash"],
+            "dataset_config": cr.get("dataset_config", ""),
             "train_metrics_path": cr["train_metrics_path"],
             "eval_metrics_path": cr["eval_metrics_path"],
         }
@@ -487,6 +489,8 @@ def build_manifest(config: dict, completed_runs: List[dict], git_sha: str) -> di
         "git_sha": git_sha,
         "universe": config.get("universe", "unknown"),
         "dataset": config.get("dataset", "unknown"),
+        "dataset_config": config.get("dataset_config", ""),
+        "dataset_configs": sorted({r.get("dataset_config", "") for r in completed_runs}),
         "expected_seeds": config["expected_seeds"],
         "primary_metric": config["primary_metric"],
         "runs": runs,
@@ -624,6 +628,7 @@ def main():
                 "seed": seed,
                 "run_id": run_id,
                 "config_hash": r["config_hash"],
+                "dataset_config": r["dataset_config"],
                 "train_metrics_path": train_path,
                 "eval_metrics_path": eval_path,
                 "train_md_path": None,
@@ -665,6 +670,7 @@ def main():
                 "seed": seed,
                 "run_id": train_info["run_id"],
                 "config_hash": r["config_hash"],
+                "dataset_config": r["dataset_config"],
                 "train_metrics_path": train_info["train_metrics_path"],
                 "eval_metrics_path": eval_info["eval_metrics_path"],
                 "train_md_path": train_info.get("train_md_path"),

@@ -71,6 +71,12 @@ profiles:
       - {name: m11_calibrated_prediction_metadata, path: "m11_calibrated_prediction_metadata.json", schema: "src/alphatrade/schemas/m11_calibrated_prediction_metadata.schema.json", required: true}
       - {name: m11_calibrated_prediction_metadata_md, path: "m11_calibrated_prediction_metadata.md", schema: "", required: true}
       - {name: m11_decision_memo, path: "M11_DECISION_MEMO.md", schema: "", required: true}
+  m12:
+    description: "M12 Chendage processed numeric feature integration contract."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    items:
+      - {name: m12_chendage_feature_contract, path: "m12_chendage_feature_contract.json", schema: "src/alphatrade/schemas/m12_chendage_feature_contract.schema.json", required: true}
+      - {name: m12_chendage_feature_contract_md, path: "m12_chendage_feature_contract.md", schema: "", required: true}
   legacy_m2_m3:
     description: "Historical artifacts. Never blocks CI."
     reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"

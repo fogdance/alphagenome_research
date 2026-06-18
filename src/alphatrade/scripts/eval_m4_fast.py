@@ -36,7 +36,13 @@ from alphatrade.core import schemas
 from alphatrade import quality_metrics
 from alphatrade import runtime_paths
 from alphatrade import window_cache
-from data_pipeline.feature_schema import FEATURE_COLS
+from data_pipeline.feature_profiles import (
+    FeatureProfile,
+    assert_feature_profiles_match,
+    feature_profile_from_mapping,
+    feature_profile_to_dict,
+    resolve_feature_profile,
+)
 
 
 def parse_args():
@@ -82,19 +88,23 @@ class M4EvalDataset:
         self,
         symbols: List[str],
         processed_dir: str,
+        feature_profile: FeatureProfile,
         split: str,
         cache_dir: str | os.PathLike[str] | None = None,
         cache_mode: str = "auto",
     ):
         self.symbols = symbols
-        self.processed_dir = processed_dir
+        self.feature_profile = feature_profile
+        self.processed_dir = feature_profile.processed_root or processed_dir
         self.split = split
         self.cached = window_cache.load_or_build(
             symbols=symbols,
-            processed_root=processed_dir,
+            processed_root=self.processed_dir,
             split=split,
-            features=FEATURE_COLS,
+            features=list(feature_profile.feature_cols),
+            feature_profile_id=feature_profile.profile_id,
             cache_dir=cache_dir,
+            scaler_hash=feature_profile.scaler_hash,
             mode=cache_mode,
             mmap=True,
         )
@@ -551,6 +561,25 @@ def main():
 
     # Load config
     config_dict = load_config(args.dataset_config)
+    config_profile = resolve_feature_profile(config_dict)
+    train_profile_data = (
+        train_metrics.get("dataset", {}).get("feature_profile")
+        or train_metrics.get("model", {}).get("config", {}).get("feature_profile")
+    )
+    if not train_profile_data:
+        sys.exit("ERROR: train metrics missing dataset/model feature_profile")
+    try:
+        train_profile = feature_profile_from_mapping(train_profile_data)
+        assert_feature_profiles_match(config_profile, train_profile, context="m4_eval")
+    except ValueError as exc:
+        sys.exit(f"ERROR: {exc}")
+    feature_profile_dict = feature_profile_to_dict(config_profile)
+    processed_dir = config_profile.processed_root or config_dict['paths']['processed_dir']
+    print(
+        f"Feature profile: {config_profile.profile_id} "
+        f"({config_profile.feature_dim} cols)"
+    )
+    print(f"Processed dir: {processed_dir}")
 
     # Select symbols
     if args.smoke:
@@ -563,7 +592,8 @@ def main():
     # Load dataset
     dataset = M4EvalDataset(
         symbols,
-        config_dict['paths']['processed_dir'],
+        processed_dir,
+        config_profile,
         args.split,
         cache_dir=window_cache_dir,
         cache_mode=args.window_cache,
@@ -571,6 +601,11 @@ def main():
 
     # Create model
     model_config = train_metrics['model']['config']
+    if int(model_config["num_features"]) != config_profile.feature_dim:
+        sys.exit(
+            "ERROR: model_config.num_features does not match feature profile: "
+            f"{model_config['num_features']} vs {config_profile.feature_dim}"
+        )
     alphatrade_config = schemas.AlphaTradeConfig(
         lookback_length=model_config['lookback_length'],
         num_features=model_config['num_features'],
@@ -718,6 +753,8 @@ def main():
             "samples": len(dataset),
             "eval_mode": "streamed_batches",
             "batch_size": args.batch_size,
+            "processed_dir": processed_dir,
+            "feature_profile": feature_profile_dict,
             "window_cache": {
                 "mode": args.window_cache,
                 "cache_dir": str(window_cache_dir),

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "m12_chendage_feature_contract_v1",
+  "title": "M12 Chendage Feature Contract Schema",
+  "description": "Contract report for Chendage processed numeric feature integration.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "stage",
+    "overall_status",
+    "inputs",
+    "outputs",
+    "feature_profile",
+    "normalization",
+    "source_boundary",
+    "symbol_mapping",
+    "causality_test",
+    "symbols",
+    "checks"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"type": "string", "const": "m12_chendage_feature_contract_v1"},
+    "generated_at": {"type": "string"},
+    "git_sha": {"type": "string"},
+    "stage": {"type": "string"},
+    "overall_status": {"type": "string", "enum": ["PASS", "FAIL"]},
+    "inputs": {"type": "object"},
+    "outputs": {"type": "object"},
+    "feature_profile": {
+      "type": "object",
+      "required": ["profile_id", "feature_dim", "feature_cols", "fingerprint", "chendage_feature_cols"],
+      "additionalProperties": true,
+      "properties": {
+        "profile_id": {"type": "string"},
+        "feature_dim": {"type": "integer", "minimum": 1},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "fingerprint": {"type": "string"},
+        "chendage_feature_cols": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "normalization": {
+      "type": "object",
+      "required": ["policy", "train_only", "scaler_hash"],
+      "additionalProperties": true,
+      "properties": {
+        "policy": {"type": "string"},
+        "train_only": {"type": "boolean"},
+        "scaler_hash": {"type": "string"}
+      }
+    },
+    "source_boundary": {"type": "object"},
+    "symbol_mapping": {"type": "object"},
+    "causality_test": {"type": "object"},
+    "symbols": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "additionalProperties": true,
+        "properties": {
+          "name": {"type": "string"},
+          "status": {"type": "string", "enum": ["PASS", "FAIL", "WARN", "SKIPPED"]},
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  }
+}

@@ -25,6 +25,10 @@ from pathlib import Path
 
 from alphatrade import prediction_schema
 from alphatrade import runtime_paths
+from alphatrade.data_pipeline.feature_profiles import (
+    feature_profile_from_mapping,
+    feature_profile_to_dict,
+)
 
 
 def parse_args():
@@ -226,6 +230,30 @@ def main():
     model_config = train_metrics.get("model", {}).get("config", {})
     if not model_config:
         model_config = artifacts.get("model_config", {})
+    feature_profile_data = (
+        train_metrics.get("dataset", {}).get("feature_profile")
+        or train_metrics.get("model", {}).get("config", {}).get("feature_profile")
+        or artifacts.get("feature_profile")
+        or model_config.get("feature_profile")
+    )
+    if not feature_profile_data:
+        sys.exit("ERROR: train metrics/artifacts missing required feature_profile")
+    try:
+        feature_profile = feature_profile_from_mapping(feature_profile_data)
+    except ValueError as exc:
+        sys.exit(f"ERROR: invalid feature_profile: {exc}")
+    if int(model_config.get("num_features", -1)) != feature_profile.feature_dim:
+        sys.exit(
+            "ERROR: model_config.num_features does not match feature_profile.feature_dim: "
+            f"{model_config.get('num_features')} vs {feature_profile.feature_dim}"
+        )
+    feature_profile_dict = feature_profile_to_dict(feature_profile)
+    model_config = {
+        **model_config,
+        "feature_profile": feature_profile_dict,
+        "feature_profile_id": feature_profile.profile_id,
+        "feature_cols": list(feature_profile.feature_cols),
+    }
 
     # Construct model_version
     model_version = validate_model_version(args.model_version or f"alphatrade_v0.2_{exp_id}_{run_id}")
@@ -271,6 +299,7 @@ def main():
             "primary_best": metrics["primary_best"],
             "config_hash": exp["config_hash"],
         },
+        "feature_profile": feature_profile_dict,
         "model_config": model_config,
         "bundle_path": str(bundle_dir),
         "bundle_files": bundle_files,

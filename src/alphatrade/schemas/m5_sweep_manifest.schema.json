@@ -31,6 +31,15 @@
       "type": "string",
       "description": "Dataset identifier"
     },
+    "dataset_config": {
+      "type": "string",
+      "description": "Default dataset config path for the sweep"
+    },
+    "dataset_configs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Distinct dataset config paths used by sweep runs"
+    },
     "expected_seeds": {
       "type": "array",
       "items": {"type": "integer"},
@@ -45,7 +54,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["exp_id", "seed", "run_id", "config_hash", "train_metrics_path", "eval_metrics_path"],
+        "required": ["exp_id", "seed", "run_id", "config_hash", "dataset_config", "train_metrics_path", "eval_metrics_path"],
         "additionalProperties": false,
         "properties": {
           "exp_id": {
@@ -63,6 +72,10 @@
           "config_hash": {
             "type": "string",
             "description": "Hash of the experiment config (same exp_id must have same hash)"
+          },
+          "dataset_config": {
+            "type": "string",
+            "description": "Dataset config path used by this run"
           },
           "train_metrics_path": {
             "type": "string",

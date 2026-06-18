@@ -20,6 +20,27 @@ universe:
 paths:
   processed_dir: data/processed/m1_f8
 
+# Active feature profile. M12+ requires this to be explicit so wider processed
+# datasets cannot silently use the historical 8D column list.
+feature_profile:
+  profile_id: m1_f8
+  processed_root: data/processed/m1_f8
+  feature_dim: 8
+  feature_cols:
+    - ret_1m
+    - hl_range
+    - co_change
+    - vol_log1p
+    - pos_log1p
+    - minute_sin
+    - minute_cos
+    - is_session_open
+  source_schema_versions:
+    alphatrade_feature_profile: m1_f8_v1
+  normalization:
+    policy: precomputed_in_bars
+    train_only: false
+
 # Feature specification (8D, fixed order)
 features:
   dim: 8

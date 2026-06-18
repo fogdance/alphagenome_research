@@ -698,10 +698,32 @@ def _make_m9_predictions_parquet(path, n_rows=10, missing_col=None):
 def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
     """Create a minimal valid M9 bundle manifest."""
     os.makedirs(bundle_path, exist_ok=True)
+    feature_profile = {
+        "profile_id": "m1_f8",
+        "feature_dim": 8,
+        "feature_cols": [
+            "ret_1m",
+            "hl_range",
+            "co_change",
+            "vol_log1p",
+            "pos_log1p",
+            "minute_sin",
+            "minute_cos",
+            "is_session_open",
+        ],
+        "processed_root": "data/processed/m1_f8",
+        "scaler_hash": None,
+        "source_schema_versions": {"alphatrade_feature_profile": "m1_f8_v1"},
+        "normalization": {"policy": "precomputed_in_bars", "train_only": False},
+        "fingerprint": "profile123456789",
+    }
     payload_path = os.path.join(bundle_path, "model_config.json")
     payload = {
         "lookback_length": 60,
         "num_features": 8,
+        "feature_profile": feature_profile,
+        "feature_profile_id": "m1_f8",
+        "feature_cols": feature_profile["feature_cols"],
         "horizons": [1, 5, 20, 60],
         "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
         "d_model": 256,
@@ -728,6 +750,7 @@ def _make_m9_bundle_manifest(reports_dir, bundle_path="/tmp/fake_bundle"):
             "primary_best": 0.123,
             "config_hash": "cfghash_a",
         },
+        "feature_profile": feature_profile,
         "model_config": payload,
         "bundle_path": bundle_path,
         "bundle_files": [

@@ -20,15 +20,25 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-import torch
-from torch.utils.data import Dataset, DataLoader
 import yaml
+
+try:
+    import torch
+    from torch.utils.data import Dataset
+except ImportError:
+    torch = None
+
+    class Dataset:
+        pass
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import unified feature schema
-from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+from data_pipeline.feature_profiles import (
+    FeatureProfile,
+    feature_profile_to_dict,
+    resolve_feature_profile,
+)
 import runtime_paths
 
 
@@ -54,15 +64,17 @@ class M2Dataset(Dataset):
         self,
         symbols: List[str],
         processed_root: str,
+        feature_profile: FeatureProfile,
+        lookback: int,
         split: str = "train"
     ):
         self.symbols = symbols
-        self.processed_root = processed_root
+        self.feature_profile = feature_profile
+        self.processed_root = feature_profile.processed_root or processed_root
+        self.lookback = int(lookback)
         self.split = split
-        
-        # Use unified feature schema
-        self.features = FEATURE_COLS
-        self.feature_dim = FEATURE_DIM
+        self.features = list(feature_profile.feature_cols)
+        self.feature_dim = feature_profile.feature_dim
         
         # Load bars and indices
         self.bars_dict = {}
@@ -71,13 +83,16 @@ class M2Dataset(Dataset):
         
         print(f"\nLoading {split} data...")
         for symbol in symbols:
-            symbol_dir = Path(processed_root) / symbol
+            symbol_dir = Path(self.processed_root) / symbol
             
             # Load bars
             bars_path = symbol_dir / "bars.parquet"
             bars_df = pd.read_parquet(bars_path)
             
             # Extract features and handle NaN
+            missing_features = [c for c in self.features if c not in bars_df.columns]
+            if missing_features:
+                raise ValueError(f"{symbol}: missing feature columns: {missing_features}")
             feature_data = bars_df[self.features].values.astype(np.float32)
             feature_data = np.nan_to_num(feature_data, nan=0.0, posinf=0.0, neginf=0.0)
             
@@ -129,9 +144,12 @@ class M2Dataset(Dataset):
             entry["y_h60"]
         ], dtype=np.float32)
         
+        x_out = torch.from_numpy(x) if torch is not None else x
+        y_out = torch.from_numpy(y) if torch is not None else y
+
         return {
-            "x": torch.from_numpy(x),
-            "y": torch.from_numpy(y),
+            "x": x_out,
+            "y": y_out,
             "symbol": symbol,
             "x_start": x_start,
             "x_end": x_end,
@@ -144,23 +162,25 @@ class M2Dataset(Dataset):
 
 def validate_sample(sample: dict, dataset: M2Dataset) -> dict:
     """Validate a single sample."""
+    x_arr = np.asarray(sample["x"])
+    y_arr = np.asarray(sample["y"])
     result = {
         "symbol": sample["symbol"],
         "x_start": sample["x_start"],
         "x_end": sample["x_end"],
         "segment_id": sample["segment_id"],
-        "x_shape": tuple(sample["x"].shape),
-        "y_shape": tuple(sample["y"].shape),
-        "x_has_nan": bool(torch.isnan(sample["x"]).any()),
-        "x_has_inf": bool(torch.isinf(sample["x"]).any()),
-        "y_has_nan": bool(torch.isnan(sample["y"]).any()),
-        "y_has_inf": bool(torch.isinf(sample["y"]).any()),
+        "x_shape": tuple(x_arr.shape),
+        "y_shape": tuple(y_arr.shape),
+        "x_has_nan": bool(np.isnan(x_arr).any()),
+        "x_has_inf": bool(np.isinf(x_arr).any()),
+        "y_has_nan": bool(np.isnan(y_arr).any()),
+        "y_has_inf": bool(np.isinf(y_arr).any()),
         "segment_consistent": False,
         "errors": []
     }
     
     # Check shape
-    expected_x_shape = (60, 8)
+    expected_x_shape = (dataset.lookback, dataset.feature_dim)
     expected_y_shape = (4,)
     
     if result["x_shape"] != expected_x_shape:
@@ -259,6 +279,7 @@ def check_symbol_samples(dataset: M2Dataset, symbols: List[str], samples_per_sym
 
 def generate_reports(
     config: dict,
+    feature_profile: FeatureProfile,
     dataset: M2Dataset,
     random_results: List[dict],
     symbol_results: List[dict],
@@ -274,9 +295,10 @@ def generate_reports(
     json_report = {
         "timestamp": datetime.now().isoformat(),
         "config": {
-            "processed_dir": config['paths']['processed_dir'],
-            "feature_dim": FEATURE_DIM,
-            "feature_cols": FEATURE_COLS,
+            "processed_dir": dataset.processed_root,
+            "feature_profile": feature_profile_to_dict(feature_profile),
+            "feature_dim": feature_profile.feature_dim,
+            "feature_cols": list(feature_profile.feature_cols),
             "lookback": config['sample_index']['lookback'],
             "horizons": config['sample_index']['horizons']
         },
@@ -309,8 +331,9 @@ def generate_reports(
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
         f.write("## 配置\n\n")
-        f.write(f"- **Processed dir**: `{config['paths']['processed_dir']}`\n")
-        f.write(f"- **Feature dim**: {FEATURE_DIM}\n")
+        f.write(f"- **Processed dir**: `{dataset.processed_root}`\n")
+        f.write(f"- **Feature profile**: `{feature_profile.profile_id}`\n")
+        f.write(f"- **Feature dim**: {feature_profile.feature_dim}\n")
         f.write(f"- **Lookback**: {config['sample_index']['lookback']}\n")
         f.write(f"- **Horizons**: {config['sample_index']['horizons']}\n\n")
         
@@ -373,6 +396,8 @@ def main():
     
     # Load config
     config = load_config(args.config)
+    feature_profile = resolve_feature_profile(config)
+    processed_dir = feature_profile.processed_root or config['paths']['processed_dir']
     
     # Get symbols
     if args.smoke:
@@ -387,11 +412,19 @@ def main():
     print(f"M2-T1: Dataloader Check")
     print(f"{'='*60}")
     print(f"Symbols: {len(symbols)}")
+    print(f"Feature profile: {feature_profile.profile_id} ({feature_profile.feature_dim} cols)")
+    print(f"Processed dir: {processed_dir}")
     print(f"Num samples to check: {args.num_samples}")
     print(f"{'='*60}")
     
     # Create dataset
-    dataset = M2Dataset(symbols, config['paths']['processed_dir'], split="train")
+    dataset = M2Dataset(
+        symbols,
+        processed_dir,
+        feature_profile,
+        lookback=config['sample_index']['lookback'],
+        split="train",
+    )
     
     # Check random samples
     random_results = check_dataloader(dataset, num_samples=args.num_samples)
@@ -402,7 +435,7 @@ def main():
     # Generate reports
     print(f"\nGenerating reports...")
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
-    generate_reports(config, dataset, random_results, symbol_results, reports_dir)
+    generate_reports(config, feature_profile, dataset, random_results, symbol_results, reports_dir)
     
     # Summary
     total_checks = len(random_results) + len(symbol_results)
@@ -413,6 +446,8 @@ def main():
     print(f"{'='*60}")
     print(f"Valid: {valid_checks}/{total_checks} ({valid_checks/total_checks*100:.1f}%)")
     print(f"{'='*60}")
+    if valid_checks != total_checks:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

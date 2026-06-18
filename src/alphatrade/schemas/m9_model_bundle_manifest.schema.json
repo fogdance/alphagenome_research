@@ -4,7 +4,7 @@
   "title": "M9 Model Bundle Manifest Schema",
   "description": "Provenance record for the champion model bundle",
   "type": "object",
-  "required": ["schema_version", "bundle_format_version", "prediction_schema_version", "generated_at", "git_sha", "model_version", "bundle_id", "champion_selection", "model_config", "bundle_path", "bundle_files", "checkpoint_source", "dataset_config", "universe", "expected_seeds", "leaderboard_path"],
+  "required": ["schema_version", "bundle_format_version", "prediction_schema_version", "generated_at", "git_sha", "model_version", "bundle_id", "champion_selection", "feature_profile", "model_config", "bundle_path", "bundle_files", "checkpoint_source", "dataset_config", "universe", "expected_seeds", "leaderboard_path"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -49,12 +49,36 @@
         "config_hash": {"type": "string"}
       }
     },
+    "feature_profile": {
+      "type": "object",
+      "required": ["profile_id", "feature_dim", "feature_cols", "fingerprint"],
+      "properties": {
+        "profile_id": {"type": "string"},
+        "feature_dim": {"type": "integer", "minimum": 1},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "processed_root": {"type": ["string", "null"]},
+        "scaler_hash": {"type": ["string", "null"]},
+        "source_schema_versions": {"type": "object"},
+        "normalization": {"type": "object"},
+        "fingerprint": {"type": "string"}
+      }
+    },
     "model_config": {
       "type": "object",
       "required": ["lookback_length", "num_features", "horizons", "quantiles", "d_model", "num_transformer_layers"],
       "properties": {
         "lookback_length": {"type": "integer"},
         "num_features": {"type": "integer"},
+        "feature_profile": {"type": "object"},
+        "feature_profile_id": {"type": "string"},
+        "feature_cols": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
         "horizons": {"type": "array", "items": {"type": "integer"}},
         "quantiles": {"type": "array", "items": {"type": "number"}},
         "d_model": {"type": "integer"},

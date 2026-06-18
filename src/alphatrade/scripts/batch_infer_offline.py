@@ -73,6 +73,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from alphatrade import prediction_schema
 from alphatrade import runtime_paths
+from alphatrade.data_pipeline.feature_profiles import (
+    assert_feature_profiles_match,
+    feature_profile_from_mapping,
+    feature_profile_to_dict,
+    load_root_feature_manifest,
+)
 from alphatrade.inference import AlphaTradeBundlePredictor, load_bundle_metadata
 from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
 
@@ -148,8 +154,9 @@ def _eligible_window_indices(
 
 def _windows_for_indices(features: np.ndarray, indices: np.ndarray, lookback: int) -> np.ndarray:
     """Materialize a batch of sliding windows for integer row positions."""
+    feature_dim = int(features.shape[1]) if features.ndim == 2 else FEATURE_DIM
     if len(indices) == 0:
-        return np.empty((0, lookback, FEATURE_DIM), dtype=np.float32)
+        return np.empty((0, lookback, feature_dim), dtype=np.float32)
     starts = indices.astype(np.int64) - int(lookback) + 1
     offsets = np.arange(int(lookback), dtype=np.int64)
     return features[starts[:, None] + offsets[None, :]].astype(np.float32, copy=False)
@@ -178,7 +185,13 @@ def _write_progress_event(progress_log: Path | None, event: dict) -> None:
         f.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
-def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end: str):
+def build_sliding_windows(
+    bars_df: pd.DataFrame,
+    lookback: int,
+    start: str,
+    end: str,
+    feature_cols: list[str] | tuple[str, ...] | None = None,
+):
     """Build sliding windows from bars.parquet filtered by eob range.
 
     Returns:
@@ -187,10 +200,11 @@ def build_sliding_windows(bars_df: pd.DataFrame, lookback: int, start: str, end:
     """
     bars_df = bars_df.reset_index(drop=True)
     indices = _eligible_window_indices(bars_df, lookback, start, end)
+    cols = list(feature_cols or FEATURE_COLS)
     if len(indices) == 0:
-        return np.array([]).reshape(0, lookback, FEATURE_DIM), []
+        return np.array([]).reshape(0, lookback, len(cols)), []
 
-    features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+    features = bars_df[cols].to_numpy(dtype=np.float32, copy=True)
     windows = _windows_for_indices(features, indices, lookback)
     eob_timestamps = bars_df.iloc[indices]["eob"].tolist()
     return windows, eob_timestamps
@@ -202,6 +216,7 @@ def iter_sliding_window_batches(
     start: str,
     end: str,
     batch_size: int,
+    feature_cols: list[str] | tuple[str, ...] | None = None,
     max_samples: int | None = None,
 ):
     """Yield sliding-window batches without materializing the full symbol matrix."""
@@ -212,7 +227,8 @@ def iter_sliding_window_batches(
     if len(indices) == 0:
         return
 
-    features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+    cols = list(feature_cols or FEATURE_COLS)
+    features = bars_df[cols].to_numpy(dtype=np.float32, copy=True)
     for start_idx in range(0, len(indices), int(batch_size)):
         batch_indices = indices[start_idx:start_idx + int(batch_size)]
         windows = _windows_for_indices(features, batch_indices, lookback)
@@ -225,6 +241,25 @@ def smoke_limit_per_symbol(symbol_count: int, total_limit: int = 100) -> int:
     if symbol_count <= 0:
         return 0
     return max(1, int(total_limit) // int(symbol_count))
+
+
+def verify_data_dir_feature_profile(data_dir: str | os.PathLike[str], bundle_profile):
+    """Load and verify the processed data root feature profile."""
+    data_manifest = load_root_feature_manifest(data_dir)
+    if data_manifest is None:
+        raise ValueError(
+            "data-dir missing feature_manifest.json; official inference "
+            "requires data feature profile provenance"
+        )
+    if "feature_profile" not in data_manifest:
+        raise ValueError("data-dir feature_manifest.json missing feature_profile")
+    data_profile = feature_profile_from_mapping(data_manifest["feature_profile"])
+    assert_feature_profiles_match(
+        bundle_profile,
+        data_profile,
+        context="m9_inference_data_dir",
+    )
+    return data_profile
 
 
 def main():
@@ -304,7 +339,24 @@ def main():
         predictor = AlphaTradeBundlePredictor(args.bundle)
     except Exception as e:
         sys.exit(f"ERROR: failed to initialize predictor: {e}")
+    feature_cols = predictor.feature_cols
+    feature_profile_dict = feature_profile_to_dict(predictor.feature_profile)
+    if int(model_config_dict["num_features"]) != len(feature_cols):
+        sys.exit(
+            "ERROR: bundle model_config.num_features does not match feature columns: "
+            f"{model_config_dict['num_features']} vs {len(feature_cols)}"
+        )
     print(f"  Loaded checkpoint from step {predictor.checkpoint_step}\n")
+    print(
+        f"Feature profile: {predictor.feature_profile.profile_id} "
+        f"({len(feature_cols)} cols)"
+    )
+    try:
+        data_profile = verify_data_dir_feature_profile(args.data_dir, predictor.feature_profile)
+    except Exception as exc:
+        sys.exit(f"ERROR: data-dir feature profile does not match bundle: {exc}")
+    print(f"Data-dir feature profile verified: {data_profile.profile_id}")
+    data_dir_feature_profile_dict = feature_profile_to_dict(data_profile)
 
     print("Loading data and running streaming inference...")
     _write_progress_event(
@@ -317,6 +369,8 @@ def main():
             "start": args.start,
             "end": args.end,
             "jax_backend": jax.default_backend(),
+            "feature_profile": feature_profile_dict,
+            "data_dir_feature_profile": data_dir_feature_profile_dict,
             "rss_mb": _process_rss_mb(),
         },
     )
@@ -395,7 +449,10 @@ def main():
             },
         )
 
-        features = bars_df[FEATURE_COLS].to_numpy(dtype=np.float32, copy=True)
+        missing_features = [c for c in feature_cols if c not in bars_df.columns]
+        if missing_features:
+            sys.exit(f"ERROR: {symbol} missing feature columns required by bundle: {missing_features}")
+        features = bars_df[feature_cols].to_numpy(dtype=np.float32, copy=True)
         for batch_start in range(0, symbol_windows, args.batch_size):
             batch_number = batch_start // args.batch_size + 1
             batch_indices = symbol_indices[batch_start:batch_start + args.batch_size]
@@ -543,6 +600,8 @@ def main():
         "num_symbols": len(processed_symbols),
         "batch_size": args.batch_size,
         "jax_backend": jax.default_backend(),
+        "feature_profile": feature_profile_dict,
+        "data_dir_feature_profile": data_dir_feature_profile_dict,
         "progress_log_path": str(progress_log_path),
         "elapsed_seconds": round(duration, 2),
         "samples_per_second": round(N / duration, 1) if duration > 0 else 0,
@@ -554,6 +613,8 @@ def main():
             "n_predictions": N * len(horizons) * len(quantiles),
             "batch_size": args.batch_size,
             "jax_backend": jax.default_backend(),
+            "feature_profile": feature_profile_dict,
+            "data_dir_feature_profile": data_dir_feature_profile_dict,
             "progress_log_path": str(progress_log_path),
             "missing_symbols": missing_symbols,
             "duration_seconds": round(duration, 2),
@@ -580,6 +641,8 @@ def main():
         f.write(f"- Model version: `{model_version}`\n")
         f.write(f"- Bundle: `{args.bundle}`\n")
         f.write(f"- JAX backend: `{jax.default_backend()}`\n")
+        f.write(f"- Feature profile: `{predictor.feature_profile.profile_id}` ({len(feature_cols)} cols)\n")
+        f.write(f"- Data-dir feature profile: `{data_profile.profile_id}`\n")
         f.write(f"- Git SHA: {git_sha}\n\n")
         f.write("## Inference\n\n")
         f.write(f"- Symbols: {len(processed_symbols)}\n")

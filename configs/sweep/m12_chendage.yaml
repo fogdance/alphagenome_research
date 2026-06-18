@@ -1,0 +1,62 @@
+# M12-CHG-FEATURES sweep template.
+#
+# Generate these dataset roots first with build_m12_chendage_features.py:
+#   data/processed/m12_common_base8/dataset_config.yaml
+#   data/processed/m12_chendage_fN/dataset_config.yaml
+#   data/processed/m12_chendage_no_h1/dataset_config.yaml
+#   data/processed/m12_chendage_no_m5/dataset_config.yaml
+#   data/processed/m12_chendage_no_minute_behavior/dataset_config.yaml
+#   data/processed/m12_chendage_full/dataset_config.yaml
+#
+# This sweep is a feature-ablation evaluation only. It must not promote a
+# champion unless later M10/M11-style evaluation beats base8 control and rolling
+# historical baselines on common rows.
+
+profile: m12_chendage_features
+universe: m12_common_rows
+dataset: m12_chendage_processed_features
+dataset_config: data/processed/m12_common_base8/dataset_config.yaml
+expected_seeds: [42, 43, 44]
+primary_metric: pinball_loss.overall
+
+defaults:
+  max_steps: 1000
+  batch_size: 256
+  jit: 1
+  clip_norm: 1.0
+  save_every: 500
+  keep_last: 3
+  window_cache: auto
+  eval_split: val
+  ckpt_step: best
+
+experiments:
+  - exp_id: base8_control_common_rows
+    description: Base 8D features on the exact M12 common rows.
+    dataset_config: data/processed/m12_common_base8/dataset_config.yaml
+    overrides: {}
+
+  - exp_id: chg_core
+    description: Base 8D plus compact Chendage processed feature groups.
+    dataset_config: data/processed/m12_chendage_fN/dataset_config.yaml
+    overrides: {}
+
+  - exp_id: chg_core_no_h1
+    description: chg_core ablation excluding H1 structure group.
+    dataset_config: data/processed/m12_chendage_no_h1/dataset_config.yaml
+    overrides: {}
+
+  - exp_id: chg_core_no_m5
+    description: chg_core ablation excluding M5 MACD/momentum group.
+    dataset_config: data/processed/m12_chendage_no_m5/dataset_config.yaml
+    overrides: {}
+
+  - exp_id: chg_core_no_minute_behavior
+    description: chg_core ablation excluding minute behavior group.
+    dataset_config: data/processed/m12_chendage_no_minute_behavior/dataset_config.yaml
+    overrides: {}
+
+  - exp_id: chg_full_diagnostic
+    description: Full stable numeric Chendage processed features, diagnostic only.
+    dataset_config: data/processed/m12_chendage_full/dataset_config.yaml
+    overrides: {}

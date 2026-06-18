@@ -16,6 +16,7 @@ from flax.training import checkpoints as flax_ckpt
 
 from alphatrade.core import model as model_lib
 from alphatrade.core import schemas
+from alphatrade.data_pipeline.feature_profiles import FeatureProfile, feature_profile_from_mapping
 from alphatrade.prediction_schema import build_prediction_frame
 
 
@@ -54,6 +55,15 @@ def config_from_model_config(model_config: dict[str, Any]) -> schemas.AlphaTrade
     return schemas.AlphaTradeConfig(**config_kwargs)
 
 
+def feature_profile_from_bundle(manifest: dict[str, Any], model_config: dict[str, Any]) -> FeatureProfile:
+    profile_data = manifest.get("feature_profile") or model_config.get("feature_profile")
+    if profile_data is None and "feature_cols" in model_config:
+        profile_data = model_config
+    if profile_data is None:
+        raise ValueError("bundle is missing required feature_profile metadata")
+    return feature_profile_from_mapping(profile_data)
+
+
 def make_forward(config: schemas.AlphaTradeConfig) -> hk.TransformedWithState:
     """Create the Haiku transformed forward used by training and inference."""
 
@@ -73,6 +83,12 @@ class AlphaTradeBundlePredictor:
         self.manifest = metadata["manifest"]
         self.model_config_dict = metadata["model_config"]
         self.config = config_from_model_config(self.model_config_dict)
+        self.feature_profile = feature_profile_from_bundle(self.manifest, self.model_config_dict)
+        if self.feature_profile.feature_dim != self.config.num_features:
+            raise ValueError(
+                "bundle feature_profile.feature_dim does not match model_config.num_features: "
+                f"{self.feature_profile.feature_dim} vs {self.config.num_features}"
+            )
         self.model_version = self.manifest["model_version"]
         self.forward = make_forward(self.config)
 
@@ -101,6 +117,10 @@ class AlphaTradeBundlePredictor:
     @property
     def quantiles(self) -> list[float]:
         return list(self.config.quantiles)
+
+    @property
+    def feature_cols(self) -> list[str]:
+        return list(self.feature_profile.feature_cols)
 
     def _predict_arrays(self, features: jax.Array):
         output, _ = self.forward.apply(

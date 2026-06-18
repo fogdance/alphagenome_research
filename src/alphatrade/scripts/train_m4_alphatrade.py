@@ -45,7 +45,11 @@ from alphatrade.core import schemas
 from alphatrade import quality_metrics
 from alphatrade import runtime_paths
 from alphatrade import window_cache
-from data_pipeline.feature_schema import FEATURE_COLS, FEATURE_DIM
+from data_pipeline.feature_profiles import (
+    FeatureProfile,
+    feature_profile_to_dict,
+    resolve_feature_profile,
+)
 
 
 def parse_args():
@@ -143,20 +147,24 @@ class M3Dataset:
         self,
         symbols: List[str],
         processed_root: str,
+        feature_profile: FeatureProfile,
         split: str = "train",
         cache_dir: str | os.PathLike[str] | None = None,
         cache_mode: str = "auto",
     ):
         self.symbols = symbols
-        self.processed_root = processed_root
+        self.feature_profile = feature_profile
+        self.processed_root = feature_profile.processed_root or processed_root
         self.split = split
-        self.features = FEATURE_COLS
+        self.features = list(feature_profile.feature_cols)
         self.cached = window_cache.load_or_build(
             symbols=symbols,
-            processed_root=processed_root,
+            processed_root=self.processed_root,
             split=split,
             features=self.features,
+            feature_profile_id=feature_profile.profile_id,
             cache_dir=cache_dir,
+            scaler_hash=feature_profile.scaler_hash,
             mode=cache_mode,
             mmap=False,
         )
@@ -356,6 +364,9 @@ def make_eval_step(
 def main():
     args = parse_args()
     config_dict = load_config(args.config)
+    feature_profile = resolve_feature_profile(config_dict)
+    feature_profile_dict = feature_profile_to_dict(feature_profile)
+    processed_dir = feature_profile.processed_root or config_dict['paths']['processed_dir']
     output_root = runtime_paths.resolve_output_root(args.output_root)
     reports_dir = runtime_paths.reports_dir(args.output_root, args.reports_dir)
     checkpoints_root = runtime_paths.checkpoints_dir(args.output_root)
@@ -369,6 +380,7 @@ def main():
     max_steps = args.max_steps
     batch_size = args.batch_size
     seed = args.seed
+    lookback = int(config_dict.get("sample_index", {}).get("lookback", 60))
     np.random.seed(seed)
 
     # Select symbols
@@ -388,37 +400,41 @@ def main():
     print(f"Batch size: {batch_size}")
     print(f"Clip norm: {args.clip_norm}")
     print(f"Seed: {seed}")
+    print(f"Lookback: {lookback}")
     print(f"Output root: {output_root}")
     print(f"Reports dir: {reports_dir}")
     print(f"Window cache: {args.window_cache} ({window_cache_dir})")
+    print(f"Feature profile: {feature_profile.profile_id} ({feature_profile.feature_dim} cols)")
+    print(f"Processed dir: {processed_dir}")
     print(f"{'='*60}")
 
     # Load datasets
     train_dataset = M3Dataset(
         symbols,
-        config_dict['paths']['processed_dir'],
+        processed_dir,
+        feature_profile,
         "train",
         cache_dir=window_cache_dir,
         cache_mode=args.window_cache,
     )
     val_dataset = M3Dataset(
         symbols,
-        config_dict['paths']['processed_dir'],
+        processed_dir,
+        feature_profile,
         "val",
         cache_dir=window_cache_dir,
         cache_mode=args.window_cache,
     )
 
     # Create AlphaTrade config
-    # Note: lookback=60 is too short for 6 stages (requires 64x downsample)
-    # Use 2 stages for 4x downsample (60/4 = 15 sequence length)
+    # Use 2 stages for short M2/M12 windows; 6 stages require 64x downsample.
     alphatrade_config = schemas.AlphaTradeConfig(
-        lookback_length=60,
-        num_features=8,
+        lookback_length=lookback,
+        num_features=feature_profile.feature_dim,
         horizons=[1, 5, 20, 60],
         quantiles=[0.1, 0.3, 0.5, 0.7, 0.9],
         stem_channels=128,
-        num_encoder_stages=2,  # 2 stages = 4x downsample (60/4=15)
+        num_encoder_stages=2,
         channel_increment=64,
         d_model=256,  # Reduced for shorter sequences
         num_transformer_layers=4,  # Reduced for shorter sequences
@@ -675,6 +691,7 @@ def main():
         "created_at": datetime.now().isoformat(),
         "config_path": args.config,
         "seed": seed,
+        "feature_profile": feature_profile_dict,
         "best_step": best_step,
         "best_val_loss": float(best_val_loss),
         "best_ckpt_step": best_ckpt_step,
@@ -682,6 +699,9 @@ def main():
         "model_config": {
             "lookback_length": alphatrade_config.lookback_length,
             "num_features": alphatrade_config.num_features,
+            "feature_profile": feature_profile_dict,
+            "feature_profile_id": feature_profile.profile_id,
+            "feature_cols": list(feature_profile.feature_cols),
             "horizons": alphatrade_config.horizons,
             "quantiles": alphatrade_config.quantiles,
             "d_model": alphatrade_config.d_model,
@@ -706,14 +726,15 @@ def main():
         "dataset": {
             "name": "m2",
             "config_path": args.config,
-            "processed_dir": config_dict['paths']['processed_dir'],
+            "processed_dir": processed_dir,
             "symbols": len(symbols),
             "train_samples": len(train_dataset),
             "val_samples": len(val_dataset),
             "test_samples": 0,
-            "feature_dim": FEATURE_DIM,
-            "feature_cols": FEATURE_COLS,
-            "lookback": 60,
+            "feature_profile": feature_profile_dict,
+            "feature_dim": feature_profile.feature_dim,
+            "feature_cols": list(feature_profile.feature_cols),
+            "lookback": lookback,
             "horizons": [1, 5, 20, 60],
             "quantiles": [0.1, 0.3, 0.5, 0.7, 0.9],
             "window_cache": {
@@ -732,6 +753,9 @@ def main():
             "config": {
                 "lookback_length": alphatrade_config.lookback_length,
                 "num_features": alphatrade_config.num_features,
+                "feature_profile": feature_profile_dict,
+                "feature_profile_id": feature_profile.profile_id,
+                "feature_cols": list(feature_profile.feature_cols),
                 "stem_channels": alphatrade_config.stem_channels,
                 "num_encoder_stages": alphatrade_config.num_encoder_stages,
                 "d_model": alphatrade_config.d_model,
@@ -819,6 +843,8 @@ def main():
         f.write(f"- JIT: {'enabled' if use_jit else 'disabled'}\n")
         f.write(f"- Device: {metrics_output['run']['device']}\n")
         f.write(f"- Symbols: {len(symbols)}\n")
+        f.write(f"- Feature profile: `{feature_profile.profile_id}` ({feature_profile.feature_dim} cols)\n")
+        f.write(f"- Processed dir: `{processed_dir}`\n")
         f.write(f"- Train samples: {len(train_dataset):,}\n")
         f.write(f"- Val samples: {len(val_dataset):,}\n\n")
 
