@@ -16,6 +16,7 @@ import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -39,6 +40,64 @@ DEFAULT_SYMBOLS = ("CZCE.FG", "SHFE.SP", "DCE.JM", "SHFE.RB", "CZCE.MA")
 FEATURE_COLS = list(BASE_FEATURE_COLS)
 SOURCE_SCHEMA_VERSION = m12.SOURCE_SCHEMA_VERSION
 CONTRACT_SCHEMA_VERSION = m12.SCHEMA_VERSION
+FORMAL_DATASET_SPECS = (
+    {
+        "name": "chg_core",
+        "exp_id": "chg_core_common_rows",
+        "root_name": "m12_chg_core_formal",
+        "profile_id": "m12_chg_core",
+        "feature_set": "core",
+        "exclude_feature_groups": (),
+        "description": "Base 8D plus compact Chendage processed feature groups.",
+    },
+    {
+        "name": "chg_core_no_daily",
+        "exp_id": "chg_core_no_daily",
+        "root_name": "m12_chg_core_no_daily_formal",
+        "profile_id": "m12_chg_core_no_daily",
+        "feature_set": "core",
+        "exclude_feature_groups": ("daily",),
+        "description": "Chendage core without daily feature group.",
+    },
+    {
+        "name": "chg_core_no_h1",
+        "exp_id": "chg_core_no_h1",
+        "root_name": "m12_chg_core_no_h1_formal",
+        "profile_id": "m12_chg_core_no_h1",
+        "feature_set": "core",
+        "exclude_feature_groups": ("h1",),
+        "description": "Chendage core without H1 feature group.",
+    },
+    {
+        "name": "chg_core_no_m5",
+        "exp_id": "chg_core_no_m5",
+        "root_name": "m12_chg_core_no_m5_formal",
+        "profile_id": "m12_chg_core_no_m5",
+        "feature_set": "core",
+        "exclude_feature_groups": ("m5",),
+        "description": "Chendage core without M5 feature group.",
+    },
+    {
+        "name": "chg_core_no_minute_behavior",
+        "exp_id": "chg_core_no_minute_behavior",
+        "root_name": "m12_chg_core_no_minute_behavior_formal",
+        "profile_id": "m12_chg_core_no_minute_behavior",
+        "feature_set": "core",
+        "exclude_feature_groups": ("minute_behavior",),
+        "description": "Chendage core without minute-behavior feature group.",
+    },
+    {
+        "name": "chg_full_diagnostic",
+        "exp_id": "chg_full_diagnostic",
+        "root_name": "m12_chg_full_diagnostic_formal",
+        "profile_id": "m12_chg_full_diagnostic",
+        "feature_set": "full",
+        "exclude_feature_groups": (),
+        "description": "Diagnostic full processed numeric Chendage feature set.",
+    },
+)
+CONTROL_ROOT_NAME = "m12_common_base8_formal"
+CONTROL_PROFILE_ID = "m12_base8_control_common_rows"
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,10 +122,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lookback", type=int, default=60)
     parser.add_argument("--stride", type=int, default=5)
     parser.add_argument("--horizons", default="1,5,20,60")
-    parser.add_argument("--feature-profile-id", default="m12_chg_core")
-    parser.add_argument("--feature-set", choices=["core", "full"], default="core")
-    parser.add_argument("--feature-keys", default=None)
-    parser.add_argument("--exclude-feature-groups", default="")
     parser.add_argument("--max-missing-feature-rate", type=float, default=0.0)
     parser.add_argument("--causality-samples-per-symbol", type=int, default=5)
     parser.add_argument("--causality-tolerance", type=float, default=1e-9)
@@ -75,6 +130,56 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=50_000,
         help="Rows per parquet write chunk for processed snapshots",
+    )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="Parallel symbol workers for DB/export and per-dataset materialization",
+    )
+    parser.add_argument(
+        "--reuse-existing-processed",
+        action="store_true",
+        help="Reuse existing base_m1_f8, processed_full, and export_summary under output-root",
+    )
+    parser.add_argument(
+        "--sweep-max-steps",
+        type=int,
+        default=3000,
+        help="Generated formal sweep max_steps. This controls training budget.",
+    )
+    parser.add_argument(
+        "--sweep-batch-size",
+        type=int,
+        default=256,
+        help="Generated formal sweep batch_size.",
+    )
+    parser.add_argument(
+        "--sweep-save-every",
+        type=int,
+        default=500,
+        help="Generated formal sweep save interval.",
+    )
+    parser.add_argument(
+        "--sweep-keep-last",
+        type=int,
+        default=3,
+        help="Generated formal sweep checkpoint retention.",
+    )
+    parser.add_argument(
+        "--sweep-seeds",
+        default="42,43,44",
+        help="Comma-separated seeds for the generated formal sweep config.",
+    )
+    parser.add_argument(
+        "--sweep-eval-split",
+        default="val",
+        help="Generated formal sweep eval split.",
+    )
+    parser.add_argument(
+        "--sweep-ckpt-step",
+        default="best",
+        help="Generated formal sweep checkpoint selection.",
     )
     parser.add_argument(
         "--chendage-src",
@@ -127,6 +232,150 @@ def sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def formal_dataset_specs_payload() -> list[dict[str, Any]]:
+    return [
+        {
+            "name": spec["name"],
+            "exp_id": spec["exp_id"],
+            "root_name": spec["root_name"],
+            "profile_id": spec["profile_id"],
+            "feature_set": spec["feature_set"],
+            "exclude_feature_groups": list(spec["exclude_feature_groups"]),
+        }
+        for spec in FORMAL_DATASET_SPECS
+    ]
+
+
+def export_request_payload(
+    *,
+    symbols: list[str],
+    args: argparse.Namespace,
+    chendage_commit: str,
+) -> dict[str, Any]:
+    return {
+        "symbols": symbols,
+        "date_ranges": {
+            "source_start": args.source_start,
+            "source_end": args.source_end,
+            "eval_start": args.eval_start,
+            "eval_end": args.eval_end,
+            "train_start": args.train_start,
+            "train_end": args.train_end,
+            "val_start": args.val_start,
+            "val_end": args.val_end,
+            "test_start": args.test_start,
+            "test_end": args.test_end,
+        },
+        "chendage_commit": chendage_commit,
+        "chendage_src": str(Path(args.chendage_src).expanduser().resolve()),
+    }
+
+
+def export_file_hashes(
+    *,
+    processed_paths: dict[str, str],
+    base_paths: dict[str, str],
+) -> dict[str, dict[str, str]]:
+    return {
+        "processed_paths": {
+            symbol: sha256_file(path)
+            for symbol, path in sorted(processed_paths.items())
+        },
+        "base_paths": {
+            symbol: sha256_file(path)
+            for symbol, path in sorted(base_paths.items())
+        },
+    }
+
+
+def existing_summary_chendage_commit(export_summary: dict[str, Any]) -> str | None:
+    if export_summary.get("chendage_commit"):
+        return str(export_summary["chendage_commit"])
+    contract_json = (
+        (export_summary.get("m12_outputs") or {}).get("contract_json")
+        if isinstance(export_summary.get("m12_outputs"), dict)
+        else None
+    )
+    if not contract_json:
+        return None
+    path = Path(contract_json)
+    if not path.exists():
+        return None
+    try:
+        report = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    value = (report.get("source_boundary") or {}).get("chendage_commit")
+    return str(value) if value else None
+
+
+def validate_reused_export_summary(
+    *,
+    export_summary: dict[str, Any],
+    expected_request: dict[str, Any],
+    processed_paths: dict[str, str],
+    base_paths: dict[str, str],
+) -> None:
+    mismatches: list[dict[str, Any]] = []
+    if list(export_summary.get("symbols") or []) != list(expected_request["symbols"]):
+        mismatches.append(
+            {
+                "field": "symbols",
+                "expected": expected_request["symbols"],
+                "observed": export_summary.get("symbols"),
+            }
+        )
+    observed_ranges = export_summary.get("date_ranges") or {}
+    for key, expected in expected_request["date_ranges"].items():
+        observed = observed_ranges.get(key)
+        if observed != expected:
+            mismatches.append(
+                {"field": f"date_ranges.{key}", "expected": expected, "observed": observed}
+            )
+    observed_commit = existing_summary_chendage_commit(export_summary)
+    if observed_commit != expected_request["chendage_commit"]:
+        mismatches.append(
+            {
+                "field": "chendage_commit",
+                "expected": expected_request["chendage_commit"],
+                "observed": observed_commit,
+            }
+        )
+    expected_symbols = set(expected_request["symbols"])
+    for field_name, paths in (("processed_paths", processed_paths), ("base_paths", base_paths)):
+        missing_symbols = sorted(expected_symbols - set(paths))
+        extra_symbols = sorted(set(paths) - expected_symbols)
+        if missing_symbols or extra_symbols:
+            mismatches.append(
+                {
+                    "field": field_name,
+                    "missing_symbols": missing_symbols,
+                    "extra_symbols": extra_symbols,
+                }
+            )
+    recorded_hashes = export_summary.get("file_hashes")
+    if not recorded_hashes:
+        mismatches.append({"field": "file_hashes", "expected": "present", "observed": None})
+    else:
+        current_hashes = export_file_hashes(
+            processed_paths=processed_paths,
+            base_paths=base_paths,
+        )
+        if recorded_hashes != current_hashes:
+            mismatches.append(
+                {
+                    "field": "file_hashes",
+                    "expected": recorded_hashes,
+                    "observed": current_hashes,
+                }
+            )
+    if mismatches:
+        raise ValueError(
+            "reuse_existing_processed_config_mismatch: "
+            + json.dumps(mismatches[:20], ensure_ascii=False, sort_keys=True)
+        )
 
 
 def connect() -> Any:
@@ -327,6 +576,42 @@ def write_processed_symbol(
     summary["snapshot_mode"] = "streaming_iterator"
     summary["materialized_snapshots"] = False
     return summary
+
+
+def export_symbol_worker(payload: dict[str, Any]) -> dict[str, Any]:
+    """Load DB bars and write base/processed files for one symbol."""
+    root = Path(payload["root"])
+    symbol = str(payload["symbol"])
+    install_chendage_import(str(payload["chendage_src"]))
+    started = time.time()
+    bars_df = load_continuous_bars(
+        symbol,
+        source_start=str(payload["source_start"]),
+        source_end=str(payload["source_end"]),
+    )
+    base_summary = write_base_symbol(root, symbol, bars_df)
+    processed_summary = write_processed_symbol(
+        root=root,
+        csymbol=symbol,
+        bars_df=bars_df,
+        eval_start=str(payload["eval_start"]),
+        eval_end=str(payload["eval_end"]),
+        source_start=str(payload["source_start"]),
+        source_end=str(payload["source_end"]),
+        write_chunk_size=int(payload["processed_write_chunk_size"]),
+    )
+    del bars_df
+    gc.collect()
+    return {
+        "symbol": symbol,
+        "base_path": str(root / "base_m1_f8" / symbol / "bars.parquet"),
+        "processed_path": processed_summary["path"],
+        "detail": {
+            "base": base_summary,
+            "processed": processed_summary,
+            "elapsed_seconds": time.time() - started,
+        },
+    }
 
 
 def flat_processed_snapshot_record(snapshot: Any) -> dict[str, Any]:
@@ -553,6 +838,11 @@ def select_feature_keys(
     return sorted(keys)
 
 
+def rule_only_selected_names(feature_keys: list[str], feature_cols: list[str]) -> list[str]:
+    names = list(feature_keys) + list(feature_cols)
+    return [name for name in names if m12._is_rule_only_name(name)]
+
+
 def observed_schema_versions(processed_paths: dict[str, str]) -> dict[str, list[str]]:
     versions: dict[str, set[str]] = {
         "schema_version": set(),
@@ -623,6 +913,107 @@ def fit_scaler_from_parquet(
     return payload
 
 
+def control_feature_profile(control_output_dir: Path) -> FeatureProfile:
+    return FeatureProfile(
+        profile_id=CONTROL_PROFILE_ID,
+        feature_cols=tuple(BASE_FEATURE_COLS),
+        feature_dim=len(BASE_FEATURE_COLS),
+        processed_root=str(control_output_dir),
+        source_schema_versions={"alphatrade_feature_profile": "m1_f8_v1"},
+        normalization={"policy": "precomputed_in_bars", "train_only": False},
+    )
+
+
+def write_single_root_manifests(
+    *,
+    root: Path,
+    feature_manifest: dict[str, Any],
+    source_manifest: dict[str, Any],
+) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    with (root / "feature_manifest.json").open("w", encoding="utf-8") as handle:
+        json.dump(feature_manifest, handle, indent=2)
+    with (root / "source_manifest.json").open("w", encoding="utf-8") as handle:
+        json.dump(source_manifest, handle, indent=2)
+
+
+def build_dataset_artifacts(
+    *,
+    spec: dict[str, Any],
+    all_keys: list[str],
+    processed_paths: dict[str, str],
+    output_dir: Path,
+    observed_versions: dict[str, list[str]],
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    selected_keys = select_feature_keys(
+        all_keys,
+        feature_set=spec["feature_set"],
+        exclude_groups=list(spec["exclude_feature_groups"]),
+        explicit_keys=None,
+    )
+    selected_feature_groups = m12.feature_groups_for_keys(selected_keys)
+    key_to_col = m12.feature_key_column_map(selected_keys)
+    scaler = fit_scaler_from_parquet(
+        processed_paths=processed_paths,
+        feature_keys=selected_keys,
+        train_start=args.train_start,
+        train_end=args.train_end,
+    )
+    chg_cols = [key_to_col[key] for key in selected_keys]
+    feature_cols = list(BASE_FEATURE_COLS) + chg_cols
+    feature_profile = FeatureProfile(
+        profile_id=str(spec["profile_id"]),
+        feature_cols=tuple(feature_cols),
+        feature_dim=len(feature_cols),
+        processed_root=str(output_dir),
+        scaler_hash=scaler["scaler_hash"],
+        source_schema_versions={
+            "alphatrade_feature_profile": "m12_chendage_processed_features_v1",
+            **observed_versions,
+        },
+        normalization={
+            "policy": scaler["policy"],
+            "train_only": True,
+            "scaler_hash": scaler["scaler_hash"],
+        },
+    )
+    feature_manifest = {
+        "schema_version": SOURCE_SCHEMA_VERSION,
+        "generated_at": datetime.now().isoformat(),
+        "dataset_name": spec["name"],
+        "root_name": spec["root_name"],
+        "exp_id": spec["exp_id"],
+        "feature_profile": feature_profile_to_dict(feature_profile),
+        "base_feature_cols": list(BASE_FEATURE_COLS),
+        "chendage_feature_keys": selected_keys,
+        "chendage_feature_cols": chg_cols,
+        "feature_groups": selected_feature_groups,
+        "excluded_feature_groups": list(spec["exclude_feature_groups"]),
+        "feature_set": spec["feature_set"],
+        "source_schema_versions": observed_versions,
+        "normalization": {
+            "policy": scaler["policy"],
+            "train_only": True,
+            "scaler_hash": scaler["scaler_hash"],
+            "train_start": scaler["train_start"],
+            "train_end": scaler["train_end"],
+            "params": scaler["params"],
+        },
+    }
+    return {
+        "spec": spec,
+        "output_dir": output_dir,
+        "selected_keys": selected_keys,
+        "selected_feature_groups": selected_feature_groups,
+        "key_to_col": key_to_col,
+        "scaler": scaler,
+        "chg_cols": chg_cols,
+        "feature_profile": feature_profile,
+        "feature_manifest": feature_manifest,
+    }
+
+
 def processed_frame_from_parquet(
     path: str | Path,
     *,
@@ -653,7 +1044,7 @@ def process_dataset_symbol(
     base_dir: Path,
     processed_path: str,
     output_dir: Path,
-    control_output_dir: Path,
+    control_output_dir: Path | None,
     feature_keys: list[str],
     key_to_col: dict[str, str],
     scaler: dict[str, Any],
@@ -743,25 +1134,31 @@ def process_dataset_symbol(
     )
 
     candidate_symbol_dir = output_dir / symbol
-    control_symbol_dir = control_output_dir / symbol
+    control_symbol_dir = control_output_dir / symbol if control_output_dir is not None else None
     if args.force:
-        for directory in (candidate_symbol_dir, control_symbol_dir):
+        directories = [candidate_symbol_dir]
+        if control_symbol_dir is not None:
+            directories.append(control_symbol_dir)
+        for directory in directories:
             if directory.exists():
                 for path in directory.iterdir():
                     if path.is_file():
                         path.unlink()
     candidate_symbol_dir.mkdir(parents=True, exist_ok=True)
-    control_symbol_dir.mkdir(parents=True, exist_ok=True)
+    if control_symbol_dir is not None:
+        control_symbol_dir.mkdir(parents=True, exist_ok=True)
 
     label_cols = [f"y_h{h}" for h in horizons]
     base_bar_cols = [c for c in base_df.columns if c not in label_cols]
     candidate_bars = common_df[base_bar_cols + chg_cols].copy()
-    control_bars = common_df[base_bar_cols].copy()
     candidate_bars.to_parquet(candidate_symbol_dir / "bars.parquet", index=False)
-    control_bars.to_parquet(control_symbol_dir / "bars.parquet", index=False)
+    if control_symbol_dir is not None:
+        control_bars = common_df[base_bar_cols].copy()
+        control_bars.to_parquet(control_symbol_dir / "bars.parquet", index=False)
     for split_name, split_df in (("train", train_df), ("val", val_df), ("test", test_df)):
         split_df.to_parquet(candidate_symbol_dir / f"index_{split_name}.parquet", index=False)
-        split_df.to_parquet(control_symbol_dir / f"index_{split_name}.parquet", index=False)
+        if control_symbol_dir is not None:
+            split_df.to_parquet(control_symbol_dir / f"index_{split_name}.parquet", index=False)
 
     source_manifest = {
         "schema_version": SOURCE_SCHEMA_VERSION,
@@ -792,23 +1189,18 @@ def process_dataset_symbol(
         source_manifest=source_manifest,
         feature_manifest=symbol_feature_manifest,
     )
-    m12.write_symbol_manifests(
-        symbol_dir=control_symbol_dir,
-        source_manifest={**source_manifest, "control": "base8_common_rows"},
-        feature_manifest={
-            **symbol_feature_manifest,
-            "feature_profile": feature_profile_to_dict(
-                FeatureProfile(
-                    profile_id="m12_base8_control_common_rows",
-                    feature_cols=tuple(BASE_FEATURE_COLS),
-                    feature_dim=len(BASE_FEATURE_COLS),
-                    processed_root=str(control_output_dir),
-                    source_schema_versions={"alphatrade_feature_profile": "m1_f8_v1"},
-                )
-            ),
-            "chendage_feature_cols": [],
-        },
-    )
+    if control_symbol_dir is not None and control_output_dir is not None:
+        m12.write_symbol_manifests(
+            symbol_dir=control_symbol_dir,
+            source_manifest={**source_manifest, "control": "base8_common_rows"},
+            feature_manifest={
+                **symbol_feature_manifest,
+                "feature_profile": feature_profile_to_dict(
+                    control_feature_profile(control_output_dir)
+                ),
+                "chendage_feature_cols": [],
+            },
+        )
 
     return {
         "symbol": symbol,
@@ -828,6 +1220,157 @@ def process_dataset_symbol(
     }
 
 
+def process_dataset_symbol_worker(payload: dict[str, Any]) -> dict[str, Any]:
+    return process_dataset_symbol(**payload)
+
+
+def empty_causality_variant_stats(sample_count: int) -> dict[str, Any]:
+    return {
+        "status": "FAIL",
+        "sample_count": int(sample_count),
+        "compared_values": 0,
+        "missing_count": 0,
+        "mismatch_count": 0,
+        "max_abs_diff": 0.0,
+    }
+
+
+def finalize_causality_variant_stats(stats: dict[str, Any]) -> dict[str, Any]:
+    stats["status"] = (
+        "PASS"
+        if int(stats.get("compared_values", 0)) > 0
+        and int(stats.get("missing_count", 0)) == 0
+        and int(stats.get("mismatch_count", 0)) == 0
+        else "FAIL"
+    )
+    return stats
+
+
+def merge_causality_variant_stats(
+    target: dict[str, Any],
+    item: dict[str, Any],
+) -> None:
+    target["sample_count"] += int(item.get("sample_count", 0))
+    target["compared_values"] += int(item.get("compared_values", 0))
+    target["missing_count"] += int(item.get("missing_count", 0))
+    target["mismatch_count"] += int(item.get("mismatch_count", 0))
+    target["max_abs_diff"] = max(
+        float(target.get("max_abs_diff", 0.0)),
+        float(item.get("max_abs_diff", 0.0)),
+    )
+
+
+def build_causality_symbol_check(payload: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("chendage_src"):
+        install_chendage_import(str(payload["chendage_src"]))
+    from chendage_signal.processed.features import build_processed_snapshots
+
+    symbol = str(payload["symbol"])
+    base_path = str(payload["base_path"])
+    feature_keys = list(payload["feature_keys"])
+    samples_per_symbol = int(payload["samples_per_symbol"])
+    tolerance = float(payload["tolerance"])
+
+    base_df = pd.read_parquet(base_path)
+    base_df["eob"] = pd.to_datetime(base_df["eob"])
+    if base_df.empty:
+        return {
+            "symbol": symbol,
+            "check": {"status": "FAIL", "reason": "empty base bars"},
+            "checks_by_variant": {},
+            "mismatch_sample": [],
+        }
+    sample_count = min(samples_per_symbol, len(base_df))
+    positions = np.linspace(0, len(base_df) - 1, num=sample_count, dtype=int)
+    as_of_list = [base_df.iloc[int(pos)]["eob"].to_pydatetime() for pos in positions]
+    candles = candles_from_frame(
+        base_df.assign(
+            trading_day=base_df["eob"].dt.date.astype(str),
+            provider="",
+        ),
+        symbol,
+    )
+    full_snaps = build_processed_snapshots(candles, symbol, as_of_list)
+
+    checks_by_variant = {
+        "truncated": empty_causality_variant_stats(sample_count),
+        "mutated": empty_causality_variant_stats(sample_count),
+    }
+    mismatch_sample = []
+    for pos, as_of, full_snapshot in zip(positions, as_of_list, full_snaps):
+        truncated_candles = candles[: int(pos) + 1]
+        mutated_candles = []
+        for candle_index, candle in enumerate(candles):
+            if candle_index <= int(pos):
+                mutated_candles.append(candle)
+                continue
+            mutated = type(candle)(
+                datetime=candle.datetime,
+                open=candle.open * 1.25,
+                high=candle.high * 1.25,
+                low=candle.low * 1.25,
+                close=candle.close * 1.25,
+                volume=candle.volume * 3.0,
+                open_interest=candle.open_interest * 2.0,
+                symbol=candle.symbol,
+                underlying=candle.underlying,
+                trading_day=candle.trading_day,
+                bob=candle.bob,
+                source=candle.source,
+                provider=candle.provider,
+            )
+            mutated_candles.append(mutated)
+        truncated = build_processed_snapshots(truncated_candles, symbol, [as_of])[0]
+        mutated = build_processed_snapshots(mutated_candles, symbol, [as_of])[0]
+        full_features = full_snapshot.to_feature_dict()
+        truncated_features = truncated.to_feature_dict()
+        mutated_features = mutated.to_feature_dict()
+        for feature_key in feature_keys:
+            for variant, candidate_features in (
+                ("truncated", truncated_features),
+                ("mutated", mutated_features),
+            ):
+                stats = checks_by_variant[variant]
+                if feature_key not in full_features or feature_key not in candidate_features:
+                    stats["missing_count"] += 1
+                    continue
+                diff = abs(float(full_features[feature_key]) - float(candidate_features[feature_key]))
+                stats["compared_values"] += 1
+                stats["max_abs_diff"] = max(float(stats["max_abs_diff"]), diff)
+                if diff > tolerance:
+                    stats["mismatch_count"] += 1
+                    if len(mismatch_sample) < 10:
+                        mismatch_sample.append(
+                            {
+                                "symbol": symbol,
+                                "as_of": str(as_of),
+                                "variant": variant,
+                                "feature": feature_key,
+                                "abs_diff": diff,
+                            }
+                        )
+    for stats in checks_by_variant.values():
+        finalize_causality_variant_stats(stats)
+    status = "PASS" if all(stats["status"] == "PASS" for stats in checks_by_variant.values()) else "FAIL"
+    compared = sum(int(stats["compared_values"]) for stats in checks_by_variant.values())
+    missing = sum(int(stats["missing_count"]) for stats in checks_by_variant.values())
+    mismatches = sum(int(stats["mismatch_count"]) for stats in checks_by_variant.values())
+    max_abs_diff = max(float(stats["max_abs_diff"]) for stats in checks_by_variant.values())
+    return {
+        "symbol": symbol,
+        "check": {
+            "status": status,
+            "sample_count": int(sample_count),
+            "compared_values": int(compared),
+            "missing_count": int(missing),
+            "mismatch_count": int(mismatches),
+            "max_abs_diff": float(max_abs_diff),
+        },
+        "checks_by_variant": checks_by_variant,
+        "mismatch_sample": mismatch_sample,
+    }
+
+
 def build_causality_check(
     *,
     base_paths: dict[str, str],
@@ -835,126 +1378,98 @@ def build_causality_check(
     symbols: list[str],
     samples_per_symbol: int,
     tolerance: float,
+    jobs: int = 1,
+    chendage_src: str | None = None,
 ) -> dict[str, Any]:
-    from chendage_signal.processed.features import build_processed_snapshots
-
     checks = {}
-    overall_missing = 0
-    overall_mismatch = 0
-    overall_compared = 0
-    overall_max_abs_diff = 0.0
+    variant_totals = {
+        "truncated": empty_causality_variant_stats(0),
+        "mutated": empty_causality_variant_stats(0),
+    }
+    variant_by_symbol: dict[str, dict[str, Any]] = {"truncated": {}, "mutated": {}}
+    variant_mismatch_samples: dict[str, list[dict[str, Any]]] = {"truncated": [], "mutated": []}
     mismatch_sample = []
 
-    for symbol in symbols:
-        base_df = pd.read_parquet(base_paths[symbol])
-        base_df["eob"] = pd.to_datetime(base_df["eob"])
-        if base_df.empty:
-            checks[symbol] = {"status": "FAIL", "reason": "empty base bars"}
-            continue
-        sample_count = min(samples_per_symbol, len(base_df))
-        positions = np.linspace(0, len(base_df) - 1, num=sample_count, dtype=int)
-        as_of_list = [base_df.iloc[int(pos)]["eob"].to_pydatetime() for pos in positions]
-        candles = candles_from_frame(
-            base_df.assign(
-                trading_day=base_df["eob"].dt.date.astype(str),
-                provider="",
-            ),
-            symbol,
-        )
-        full_snaps = build_processed_snapshots(candles, symbol, as_of_list)
-
-        missing = 0
-        mismatches = 0
-        compared = 0
-        max_abs_diff = 0.0
-        for as_of, full_snapshot in zip(as_of_list, full_snaps):
-            truncated_candles = [candle for candle in candles if candle.datetime <= as_of]
-            mutated_candles = []
-            for candle in candles:
-                if candle.datetime <= as_of:
-                    mutated_candles.append(candle)
-                    continue
-                mutated = type(candle)(
-                    datetime=candle.datetime,
-                    open=candle.open * 1.25,
-                    high=candle.high * 1.25,
-                    low=candle.low * 1.25,
-                    close=candle.close * 1.25,
-                    volume=candle.volume * 3.0,
-                    open_interest=candle.open_interest * 2.0,
-                    symbol=candle.symbol,
-                    underlying=candle.underlying,
-                    trading_day=candle.trading_day,
-                    bob=candle.bob,
-                    source=candle.source,
-                    provider=candle.provider,
-                )
-                mutated_candles.append(mutated)
-            truncated = build_processed_snapshots(truncated_candles, symbol, [as_of])[0]
-            mutated = build_processed_snapshots(mutated_candles, symbol, [as_of])[0]
-            full_features = full_snapshot.to_feature_dict()
-            truncated_features = truncated.to_feature_dict()
-            mutated_features = mutated.to_feature_dict()
-            for feature_key in feature_keys:
-                if (
-                    feature_key not in full_features
-                    or feature_key not in truncated_features
-                    or feature_key not in mutated_features
-                ):
-                    missing += 1
-                    continue
-                for variant, candidate_features in (
-                    ("truncated", truncated_features),
-                    ("mutated", mutated_features),
-                ):
-                    diff = abs(float(full_features[feature_key]) - float(candidate_features[feature_key]))
-                    compared += 1
-                    max_abs_diff = max(max_abs_diff, diff)
-                    if diff > tolerance:
-                        mismatches += 1
-                        if len(mismatch_sample) < 10:
-                            mismatch_sample.append(
-                                {
-                                    "symbol": symbol,
-                                    "as_of": str(as_of),
-                                    "variant": variant,
-                                    "feature": feature_key,
-                                    "abs_diff": diff,
-                                }
-                            )
-        status = "PASS" if compared > 0 and missing == 0 and mismatches == 0 else "FAIL"
-        checks[symbol] = {
-            "status": status,
-            "sample_count": int(sample_count),
-            "compared_values": int(compared),
-            "missing_count": int(missing),
-            "mismatch_count": int(mismatches),
-            "max_abs_diff": float(max_abs_diff),
+    payloads = [
+        {
+            "symbol": symbol,
+            "base_path": base_paths[symbol],
+            "feature_keys": feature_keys,
+            "samples_per_symbol": samples_per_symbol,
+            "tolerance": tolerance,
+            "chendage_src": chendage_src,
         }
-        overall_missing += missing
-        overall_mismatch += mismatches
-        overall_compared += compared
-        overall_max_abs_diff = max(overall_max_abs_diff, max_abs_diff)
+        for symbol in symbols
+    ]
+    jobs = max(1, min(int(jobs), len(symbols)))
+    if jobs == 1:
+        symbol_results = []
+        for payload in payloads:
+            result = build_causality_symbol_check(payload)
+            print(
+                f"  causality {result['symbol']}: {result['check'].get('status')}",
+                flush=True,
+            )
+            symbol_results.append(result)
+    else:
+        print(f"  causality with {jobs} parallel symbol workers", flush=True)
+        results_by_symbol: dict[str, dict[str, Any]] = {}
+        with ProcessPoolExecutor(max_workers=jobs) as executor:
+            futures = {
+                executor.submit(build_causality_symbol_check, payload): payload["symbol"]
+                for payload in payloads
+            }
+            for completed, future in enumerate(as_completed(futures), start=1):
+                symbol = futures[future]
+                result = future.result()
+                results_by_symbol[symbol] = result
+                print(
+                    f"  [{completed}/{len(symbols)}] causality {symbol}: "
+                    f"{result['check'].get('status')}",
+                    flush=True,
+                )
+        symbol_results = [results_by_symbol[symbol] for symbol in symbols]
+
+    for result in symbol_results:
+        symbol = result["symbol"]
+        check = result["check"]
+        checks[symbol] = check
+        mismatch_sample.extend(result.get("mismatch_sample", [])[: max(0, 10 - len(mismatch_sample))])
+        for variant in ("truncated", "mutated"):
+            variant_check = (result.get("checks_by_variant") or {}).get(
+                variant,
+                empty_causality_variant_stats(0),
+            )
+            variant_by_symbol[variant][symbol] = variant_check
+            merge_causality_variant_stats(variant_totals[variant], variant_check)
+        for item in result.get("mismatch_sample", []):
+            variant = item.get("variant")
+            if variant in variant_mismatch_samples and len(variant_mismatch_samples[variant]) < 10:
+                variant_mismatch_samples[variant].append(item)
 
     overall_status = (
         "PASS"
         if checks and all(item.get("status") == "PASS" for item in checks.values())
         else "FAIL"
     )
-    common_payload = {
-        "status": overall_status,
-        "compared_values": int(overall_compared),
-        "missing_count": int(overall_missing),
-        "mismatch_count": int(overall_mismatch),
-        "max_abs_diff": float(overall_max_abs_diff),
-        "by_symbol": checks,
-        "mismatch_sample": mismatch_sample,
-    }
+    variant_payloads = {}
+    for variant, stats in variant_totals.items():
+        finalize_causality_variant_stats(stats)
+        variant_payloads[variant] = {
+            **stats,
+            "by_symbol": variant_by_symbol[variant],
+            "mismatch_sample": variant_mismatch_samples[variant],
+        }
     return {
         "required": True,
+        "overall": {
+            "status": overall_status,
+            "by_symbol": checks,
+            "mismatch_sample": mismatch_sample,
+        },
         "checks": {
-            "truncated": common_payload,
-            "mutated": common_payload,
+            "truncated": variant_payloads["truncated"],
+            "mutated": variant_payloads["mutated"],
         },
     }
 
@@ -987,42 +1502,54 @@ def write_symbol_map(path: Path, symbols: list[str], export_summary: dict[str, A
     return symbol_map
 
 
-def write_formal_sweep_config(root: Path, candidate_config: Path, control_config: Path) -> Path:
+def write_formal_sweep_config(
+    root: Path,
+    *,
+    dataset_artifacts: list[dict[str, Any]],
+    control_config: Path,
+    args: argparse.Namespace,
+    seeds: list[int],
+) -> Path:
     path = root / "configs" / "m12_chendage_formal5.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
+    experiments = [
+        {
+            "exp_id": "base8_control_common_rows",
+            "description": "Base 8D features on the exact M12 common rows.",
+            "dataset_config": str(control_config),
+            "overrides": {},
+        }
+    ]
+    for artifact in dataset_artifacts:
+        spec = artifact["spec"]
+        experiments.append(
+            {
+                "exp_id": spec["exp_id"],
+                "description": spec["description"],
+                "dataset_config": str(artifact["output_dir"] / "dataset_config.yaml"),
+                "overrides": {},
+            }
+        )
     config = {
         "profile": "m12_chendage_features_formal5",
         "universe": "m12_formal5_common_rows",
         "dataset": "m12_chendage_processed_features",
         "dataset_config": str(control_config),
-        "expected_seeds": [42, 43, 44],
+        "expected_seeds": seeds,
         "primary_metric": "pinball_loss.overall",
         "defaults": {
-            "max_steps": 1000,
-            "batch_size": 256,
+            "max_steps": int(args.sweep_max_steps),
+            "batch_size": int(args.sweep_batch_size),
             "jit": 1,
             "clip_norm": 1.0,
-            "save_every": 500,
-            "keep_last": 3,
+            "save_every": int(args.sweep_save_every),
+            "keep_last": int(args.sweep_keep_last),
             "window_cache": "auto",
             "window_cache_dir": str(root / "cache" / "window_cache"),
-            "eval_split": "val",
-            "ckpt_step": "best",
+            "eval_split": str(args.sweep_eval_split),
+            "ckpt_step": str(args.sweep_ckpt_step),
         },
-        "experiments": [
-            {
-                "exp_id": "base8_control_common_rows",
-                "description": "Base 8D features on the exact M12 common rows.",
-                "dataset_config": str(control_config),
-                "overrides": {},
-            },
-            {
-                "exp_id": "chg_core",
-                "description": "Base 8D plus compact Chendage processed feature groups.",
-                "dataset_config": str(candidate_config),
-                "overrides": {},
-            },
-        ],
+        "experiments": experiments,
     }
     with path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(config, handle, sort_keys=False)
@@ -1051,14 +1578,16 @@ def main() -> int:
     install_chendage_import(args.chendage_src)
     symbols = csv_list(args.symbols)
     horizons = csv_list(args.horizons, cast=int)
-    exclude_groups = csv_list(args.exclude_feature_groups)
-    invalid_groups = sorted(set(exclude_groups) - {"daily", "h1", "m5", "minute_behavior", "other"})
-    if invalid_groups:
-        raise SystemExit(f"ERROR: invalid --exclude-feature-groups: {invalid_groups}")
+    sweep_seeds = csv_list(args.sweep_seeds, cast=int)
 
     chendage_commit = (
         args.chendage_commit
         or get_git_sha(Path(args.chendage_src).expanduser().resolve().parents[0])
+    )
+    expected_export_request = export_request_payload(
+        symbols=symbols,
+        args=args,
+        chendage_commit=chendage_commit,
     )
     started = time.time()
     print("\n" + "=" * 72)
@@ -1074,6 +1603,8 @@ def main() -> int:
     export_summary: dict[str, Any] = {
         "root": str(root),
         "symbols": symbols,
+        "export_request": expected_export_request,
+        "chendage_commit": chendage_commit,
         "date_ranges": {
             "source_start": args.source_start,
             "source_end": args.source_end,
@@ -1092,60 +1623,122 @@ def main() -> int:
     }
     processed_paths: dict[str, str] = {}
     base_paths: dict[str, str] = {}
-
-    for index, symbol in enumerate(symbols, start=1):
-        symbol_started = time.time()
-        print(f"[{index}/{len(symbols)}] DB load {symbol}", flush=True)
-        bars_df = load_continuous_bars(
-            symbol,
-            source_start=args.source_start,
-            source_end=args.source_end,
-        )
-        base_summary = write_base_symbol(root, symbol, bars_df)
-        base_paths[symbol] = str(root / "base_m1_f8" / symbol / "bars.parquet")
-        print(
-            f"  bars rows={base_summary['rows']:,} "
-            f"range={base_summary['min_eob']}..{base_summary['max_eob']} "
-            f"contracts={len(base_summary['contracts'])}",
-            flush=True,
-        )
-        processed_summary = write_processed_symbol(
-            root=root,
-            csymbol=symbol,
-            bars_df=bars_df,
-            eval_start=args.eval_start,
-            eval_end=args.eval_end,
-            source_start=args.source_start,
-            source_end=args.source_end,
-            write_chunk_size=args.processed_write_chunk_size,
-        )
-        processed_paths[symbol] = processed_summary["path"]
-        export_summary["symbols_detail"][symbol] = {
-            "base": base_summary,
-            "processed": processed_summary,
-            "elapsed_seconds": time.time() - symbol_started,
+    jobs = max(1, int(args.jobs))
+    jobs = min(jobs, len(symbols))
+    export_summary["jobs"] = jobs
+    export_summary_path = root / "inputs" / "export_summary.json"
+    if args.reuse_existing_processed:
+        if not export_summary_path.exists():
+            raise FileNotFoundError(f"--reuse-existing-processed missing {export_summary_path}")
+        export_summary = json.loads(export_summary_path.read_text(encoding="utf-8"))
+        export_summary["reuse_existing_processed"] = True
+        export_summary["jobs"] = jobs
+        processed_paths = {
+            symbol: str(export_summary["processed_paths"][symbol])
+            for symbol in symbols
         }
+        base_paths = {
+            symbol: str(root / "base_m1_f8" / symbol / "bars.parquet")
+            for symbol in symbols
+        }
+        missing = [
+            path
+            for path in list(processed_paths.values()) + list(base_paths.values())
+            if not Path(path).exists()
+        ]
+        if missing:
+            raise FileNotFoundError(f"--reuse-existing-processed missing files: {missing}")
+        validate_reused_export_summary(
+            export_summary=export_summary,
+            expected_request=expected_export_request,
+            processed_paths=processed_paths,
+            base_paths=base_paths,
+        )
         print(
-            f"  processed snapshots={processed_summary['snapshots']:,} "
-            f"size_mb={processed_summary['size_bytes'] / 1024 / 1024:.1f} "
-            f"elapsed={export_summary['symbols_detail'][symbol]['elapsed_seconds']:.1f}s",
+            f"Reusing existing base/processed exports from {root} "
+            f"({len(symbols)} symbols)",
             flush=True,
         )
-        del bars_df
-        gc.collect()
+    else:
+        export_payloads = [
+            {
+                "root": str(root),
+                "symbol": symbol,
+                "source_start": args.source_start,
+                "source_end": args.source_end,
+                "eval_start": args.eval_start,
+                "eval_end": args.eval_end,
+                "processed_write_chunk_size": args.processed_write_chunk_size,
+                "chendage_src": args.chendage_src,
+            }
+            for symbol in symbols
+        ]
+        if jobs == 1:
+            export_results = []
+            for index, payload in enumerate(export_payloads, start=1):
+                print(f"[{index}/{len(symbols)}] DB/export {payload['symbol']}", flush=True)
+                result = export_symbol_worker(payload)
+                export_results.append(result)
+                detail = result["detail"]
+                print(
+                    f"  bars rows={detail['base']['rows']:,} "
+                    f"range={detail['base']['min_eob']}..{detail['base']['max_eob']} "
+                    f"contracts={len(detail['base']['contracts'])}",
+                    flush=True,
+                )
+                print(
+                    f"  processed snapshots={detail['processed']['snapshots']:,} "
+                    f"size_mb={detail['processed']['size_bytes'] / 1024 / 1024:.1f} "
+                    f"elapsed={detail['elapsed_seconds']:.1f}s",
+                    flush=True,
+                )
+        else:
+            print(f"Running DB/export with {jobs} parallel symbol workers", flush=True)
+            export_results_by_symbol: dict[str, dict[str, Any]] = {}
+            with ProcessPoolExecutor(max_workers=jobs) as executor:
+                futures = {
+                    executor.submit(export_symbol_worker, payload): payload["symbol"]
+                    for payload in export_payloads
+                }
+                for completed, future in enumerate(as_completed(futures), start=1):
+                    symbol = futures[future]
+                    result = future.result()
+                    export_results_by_symbol[symbol] = result
+                    detail = result["detail"]
+                    print(
+                        f"[{completed}/{len(symbols)}] export complete {symbol}: "
+                        f"bars={detail['base']['rows']:,}, "
+                        f"snapshots={detail['processed']['snapshots']:,}, "
+                        f"size_mb={detail['processed']['size_bytes'] / 1024 / 1024:.1f}, "
+                        f"elapsed={detail['elapsed_seconds']:.1f}s",
+                        flush=True,
+                    )
+            export_results = [export_results_by_symbol[symbol] for symbol in symbols]
+
+        for result in export_results:
+            symbol = result["symbol"]
+            base_paths[symbol] = result["base_path"]
+            processed_paths[symbol] = result["processed_path"]
+            export_summary["symbols_detail"][symbol] = result["detail"]
 
     symbol_map_path = root / "inputs" / "symbol_map.json"
     symbol_map = write_symbol_map(symbol_map_path, symbols, export_summary)
     export_summary["symbol_map"] = str(symbol_map_path)
     export_summary["processed_paths"] = processed_paths
-    export_summary["elapsed_seconds_export"] = time.time() - started
-    export_summary_path = root / "inputs" / "export_summary.json"
+    export_summary["export_request"] = expected_export_request
+    export_summary["chendage_commit"] = chendage_commit
+    export_summary["file_hashes"] = export_file_hashes(
+        processed_paths=processed_paths,
+        base_paths=base_paths,
+    )
+    if not args.reuse_existing_processed:
+        export_summary["elapsed_seconds_export"] = time.time() - started
     export_summary_path.write_text(
         json.dumps(export_summary, ensure_ascii=False, indent=2, sort_keys=True),
         encoding="utf-8",
     )
 
-    print("\nSelecting features and fitting train-only scaler...", flush=True)
+    print("\nSelecting features and fitting train-only scalers...", flush=True)
     key_sets = [set(parquet_feature_keys(path)) for path in processed_paths.values()]
     all_keys = sorted(set.union(*key_sets))
     common_keys = sorted(set.intersection(*key_sets))
@@ -1155,61 +1748,33 @@ def main() -> int:
             for symbol, path in processed_paths.items()
         }
         raise RuntimeError(f"processed feature key mismatch by symbol: {missing_by_symbol}")
-    selected_keys = select_feature_keys(
-        all_keys,
-        feature_set=args.feature_set,
-        exclude_groups=exclude_groups,
-        explicit_keys=csv_list(args.feature_keys) if args.feature_keys else None,
-    )
-    selected_feature_groups = m12.feature_groups_for_keys(selected_keys)
-    key_to_col = m12.feature_key_column_map(selected_keys)
-    scaler = fit_scaler_from_parquet(
-        processed_paths=processed_paths,
-        feature_keys=selected_keys,
-        train_start=args.train_start,
-        train_end=args.train_end,
-    )
-    chg_cols = [key_to_col[key] for key in selected_keys]
-    feature_cols = list(BASE_FEATURE_COLS) + chg_cols
+    observed_versions = observed_schema_versions(processed_paths)
+    control_output_dir = root / "data" / "processed" / CONTROL_ROOT_NAME
+    dataset_artifacts = []
+    for spec in FORMAL_DATASET_SPECS:
+        artifact = build_dataset_artifacts(
+            spec=spec,
+            all_keys=all_keys,
+            processed_paths=processed_paths,
+            output_dir=root / "data" / "processed" / str(spec["root_name"]),
+            observed_versions=observed_versions,
+            args=args,
+        )
+        dataset_artifacts.append(artifact)
+        print(
+            f"  {spec['name']}: {len(artifact['selected_keys'])} Chendage features, "
+            f"F={artifact['feature_profile'].feature_dim}, scaler={artifact['scaler']['scaler_hash']}",
+            flush=True,
+        )
 
-    output_dir = root / "data" / "processed" / "m12_chendage_fN"
-    control_output_dir = root / "data" / "processed" / "m12_common_base8"
-    feature_profile = FeatureProfile(
-        profile_id=args.feature_profile_id,
-        feature_cols=tuple(feature_cols),
-        feature_dim=len(feature_cols),
-        processed_root=str(output_dir),
-        scaler_hash=scaler["scaler_hash"],
-        source_schema_versions={
-            "alphatrade_feature_profile": "m12_chendage_processed_features_v1",
-            **observed_schema_versions(processed_paths),
-        },
-        normalization={
-            "policy": scaler["policy"],
-            "train_only": True,
-            "scaler_hash": scaler["scaler_hash"],
-        },
-    )
-    feature_manifest = {
-        "schema_version": SOURCE_SCHEMA_VERSION,
-        "generated_at": datetime.now().isoformat(),
-        "feature_profile": feature_profile_to_dict(feature_profile),
-        "base_feature_cols": list(BASE_FEATURE_COLS),
-        "chendage_feature_keys": selected_keys,
-        "chendage_feature_cols": chg_cols,
-        "feature_groups": selected_feature_groups,
-        "excluded_feature_groups": exclude_groups,
-        "feature_set": args.feature_set,
-        "source_schema_versions": observed_schema_versions(processed_paths),
-        "normalization": {
-            "policy": scaler["policy"],
-            "train_only": True,
-            "scaler_hash": scaler["scaler_hash"],
-            "train_start": scaler["train_start"],
-            "train_end": scaler["train_end"],
-            "params": scaler["params"],
-        },
-    }
+    primary_artifact = dataset_artifacts[0]
+    output_dir = primary_artifact["output_dir"]
+    selected_keys = primary_artifact["selected_keys"]
+    selected_feature_groups = primary_artifact["selected_feature_groups"]
+    chg_cols = primary_artifact["chg_cols"]
+    feature_profile = primary_artifact["feature_profile"]
+    scaler = primary_artifact["scaler"]
+    feature_manifest = primary_artifact["feature_manifest"]
     source_manifest = {
         "schema_version": SOURCE_SCHEMA_VERSION,
         "generated_at": datetime.now().isoformat(),
@@ -1236,12 +1801,11 @@ def main() -> int:
             if hasattr(args, "expected_feature_vector_version")
             else "processed_feature_vector.v1",
         },
-        "observed_source_schema_versions": observed_schema_versions(processed_paths),
+        "observed_source_schema_versions": observed_versions,
         "symbol_map": symbol_map,
     }
 
     checks: list[dict[str, Any]] = []
-    observed_versions = source_manifest["observed_source_schema_versions"]
     schema_versions_ok = m12.source_schema_versions_match_expected(
         observed_versions,
         expected_schema_version=source_manifest["expected_source_schema_versions"]["schema_version"],
@@ -1256,28 +1820,66 @@ def main() -> int:
             "observed": observed_versions,
         },
     )
-    m12.add_check(checks, "rule_only_fields_absent", True, observed=[])
+    rule_only_by_dataset = {
+        artifact["spec"]["name"]: rule_only_selected_names(
+            artifact["selected_keys"],
+            artifact["chg_cols"],
+        )
+        for artifact in dataset_artifacts
+    }
+    m12.add_check(
+        checks,
+        "rule_only_fields_absent",
+        all(not values for values in rule_only_by_dataset.values()),
+        observed=rule_only_by_dataset,
+    )
     m12.add_check(checks, "selected_feature_keys_non_empty", bool(selected_keys), observed=selected_keys[:10])
+    m12.add_check(
+        checks,
+        "formal_dataset_profiles_declared",
+        len(dataset_artifacts) == len(FORMAL_DATASET_SPECS),
+        observed=[
+            {
+                "name": artifact["spec"]["name"],
+                "root": str(artifact["output_dir"]),
+                "feature_dim": artifact["feature_profile"].feature_dim,
+                "chendage_feature_count": len(artifact["selected_keys"]),
+            }
+            for artifact in dataset_artifacts
+        ],
+    )
     m12.add_check(checks, "symbol_map_explicit", True, observed=symbol_map)
     m12.add_check(
         checks,
         "train_only_scaler_fitted",
-        bool(scaler.get("scaler_hash")) and scaler.get("policy") == "train_split_robust_zscore",
+        all(
+            bool(artifact["scaler"].get("scaler_hash"))
+            and artifact["scaler"].get("policy") == "train_split_robust_zscore"
+            for artifact in dataset_artifacts
+        ),
         observed={
-            "scaler_hash": scaler.get("scaler_hash"),
-            "train_start": scaler.get("train_start"),
-            "train_end": scaler.get("train_end"),
-            "feature_count": scaler.get("feature_count"),
+            artifact["spec"]["name"]: {
+                "scaler_hash": artifact["scaler"].get("scaler_hash"),
+                "train_start": artifact["scaler"].get("train_start"),
+                "train_end": artifact["scaler"].get("train_end"),
+                "feature_count": artifact["scaler"].get("feature_count"),
+            }
+            for artifact in dataset_artifacts
         },
     )
 
     print("Running selected-timestamp causality check...", flush=True)
+    causality_feature_keys = sorted(
+        set().union(*(set(artifact["selected_keys"]) for artifact in dataset_artifacts))
+    )
     causality = build_causality_check(
         base_paths=base_paths,
-        feature_keys=selected_keys,
+        feature_keys=causality_feature_keys,
         symbols=symbols,
         samples_per_symbol=args.causality_samples_per_symbol,
         tolerance=args.causality_tolerance,
+        jobs=jobs,
+        chendage_src=args.chendage_src,
     )
     causality_pass = all(item.get("status") == "PASS" for item in causality["checks"].values())
     m12.add_check(
@@ -1291,44 +1893,114 @@ def main() -> int:
         observed=causality,
     )
 
-    results = []
-    for index, symbol in enumerate(symbols, start=1):
-        print(f"[{index}/{len(symbols)}] Build AlphaTrade M12 dataset {symbol}", flush=True)
-        try:
-            result = process_dataset_symbol(
-                symbol=symbol,
-                symbol_spec=symbol_map[symbol],
-                base_dir=root / "base_m1_f8",
-                processed_path=processed_paths[symbol],
-                output_dir=output_dir,
-                control_output_dir=control_output_dir,
-                feature_keys=selected_keys,
-                key_to_col=key_to_col,
-                scaler=scaler,
-                feature_profile=feature_profile,
-                feature_manifest_root=feature_manifest,
-                horizons=horizons,
-                args=args,
-            )
-        except Exception as exc:
-            result = {"symbol": symbol, "status": "FAIL", "error": str(exc)}
-        results.append(result)
-        print(f"  {result['status']}: {result.get('common_rows', result.get('error', ''))}", flush=True)
+    for artifact_index, artifact in enumerate(dataset_artifacts, start=1):
+        spec = artifact["spec"]
+        print(
+            f"\n[{artifact_index}/{len(dataset_artifacts)}] Build dataset {spec['root_name']}",
+            flush=True,
+        )
+        write_control = artifact_index == 1
+        payloads = [
+            {
+                "symbol": symbol,
+                "symbol_spec": symbol_map[symbol],
+                "base_dir": root / "base_m1_f8",
+                "processed_path": processed_paths[symbol],
+                "output_dir": artifact["output_dir"],
+                "control_output_dir": control_output_dir if write_control else None,
+                "feature_keys": artifact["selected_keys"],
+                "key_to_col": artifact["key_to_col"],
+                "scaler": artifact["scaler"],
+                "feature_profile": artifact["feature_profile"],
+                "feature_manifest_root": artifact["feature_manifest"],
+                "horizons": horizons,
+                "args": args,
+            }
+            for symbol in symbols
+        ]
+        if jobs == 1:
+            results = []
+            for index, payload in enumerate(payloads, start=1):
+                print(f"  [{index}/{len(symbols)}] {payload['symbol']}", flush=True)
+                try:
+                    result = process_dataset_symbol_worker(payload)
+                except Exception as exc:
+                    result = {"symbol": payload["symbol"], "status": "FAIL", "error": str(exc)}
+                results.append(result)
+                print(
+                    f"    {result['status']}: {result.get('common_rows', result.get('error', ''))}",
+                    flush=True,
+                )
+        else:
+            print(f"  materializing with {jobs} parallel symbol workers", flush=True)
+            results_by_symbol: dict[str, dict[str, Any]] = {}
+            with ProcessPoolExecutor(max_workers=jobs) as executor:
+                futures = {
+                    executor.submit(process_dataset_symbol_worker, payload): payload["symbol"]
+                    for payload in payloads
+                }
+                for completed, future in enumerate(as_completed(futures), start=1):
+                    symbol = futures[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        result = {"symbol": symbol, "status": "FAIL", "error": str(exc)}
+                    results_by_symbol[symbol] = result
+                    print(
+                        f"    [{completed}/{len(symbols)}] {symbol} "
+                        f"{result['status']}: {result.get('common_rows', result.get('error', ''))}",
+                        flush=True,
+                    )
+            results = [results_by_symbol[symbol] for symbol in symbols]
+        artifact["results"] = results
+        artifact_success = [result for result in results if result["status"] == "SUCCESS"]
+        artifact["success_results"] = artifact_success
 
-    success_results = [result for result in results if result["status"] == "SUCCESS"]
+    results = primary_artifact["results"]
+    success_results = primary_artifact["success_results"]
+    all_results = [
+        result
+        for artifact in dataset_artifacts
+        for result in artifact.get("results", [])
+    ]
+    m12.add_check(
+        checks,
+        "all_formal_datasets_built",
+        all(
+            len(artifact.get("success_results", [])) == len(symbols)
+            for artifact in dataset_artifacts
+        ),
+        observed={
+            artifact["spec"]["name"]: artifact.get("results", [])
+            for artifact in dataset_artifacts
+        },
+    )
     m12.add_check(checks, "all_symbols_built", len(success_results) == len(symbols), observed=results)
     m12.add_check(
         checks,
         "common_rows_positive",
-        all(result.get("common_rows", 0) > 0 for result in success_results) and bool(success_results),
-        observed={result["symbol"]: result.get("common_rows", 0) for result in results},
+        all(result.get("common_rows", 0) > 0 for result in all_results)
+        and bool(all_results),
+        observed={
+            artifact["spec"]["name"]: {
+                result["symbol"]: result.get("common_rows", 0)
+                for result in artifact.get("results", [])
+            }
+            for artifact in dataset_artifacts
+        },
     )
     m12.add_check(
         checks,
         "feature_coverage_within_threshold",
-        bool(results)
-        and all(result.get("feature_coverage", {}).get("status") == "PASS" for result in results),
-        observed={result["symbol"]: result.get("feature_coverage") for result in results},
+        bool(all_results)
+        and all(result.get("feature_coverage", {}).get("status") == "PASS" for result in all_results),
+        observed={
+            artifact["spec"]["name"]: {
+                result["symbol"]: result.get("feature_coverage")
+                for result in artifact.get("results", [])
+            }
+            for artifact in dataset_artifacts
+        },
     )
     m12.add_check(
         checks,
@@ -1339,39 +2011,76 @@ def main() -> int:
     m12.add_check(
         checks,
         "feature_distribution_by_split_recorded",
-        bool(success_results)
+        bool(all_results)
         and all(
             all(split in result.get("feature_distribution_by_split", {}) for split in ("train", "val", "test"))
-            for result in success_results
+            for result in all_results
+            if result.get("status") == "SUCCESS"
         ),
         observed={
-            result["symbol"]: list(result.get("feature_distribution_by_split", {}).keys())
-            for result in success_results
+            artifact["spec"]["name"]: {
+                result["symbol"]: list(result.get("feature_distribution_by_split", {}).keys())
+                for result in artifact.get("success_results", [])
+            }
+            for artifact in dataset_artifacts
         },
     )
 
+    for artifact in dataset_artifacts:
+        artifact_source_manifest = {
+            **source_manifest,
+            "dataset_name": artifact["spec"]["name"],
+            "dataset_root": str(artifact["output_dir"]),
+            "symbols": artifact.get("results", []),
+        }
+        artifact_feature_manifest = {
+            **artifact["feature_manifest"],
+            "symbols": artifact.get("results", []),
+        }
+        write_single_root_manifests(
+            root=artifact["output_dir"],
+            feature_manifest=artifact_feature_manifest,
+            source_manifest=artifact_source_manifest,
+        )
+        m12.write_dataset_config(
+            root=artifact["output_dir"],
+            profile=artifact["feature_profile"],
+            symbols=symbols,
+            args=args,
+        )
+
     source_manifest["symbols"] = results
     feature_manifest["symbols"] = results
-    m12.write_root_manifests(
-        output_dir=output_dir,
-        control_output_dir=control_output_dir,
-        feature_manifest=feature_manifest,
-        source_manifest=source_manifest,
+    control_profile = control_feature_profile(control_output_dir)
+    control_feature_manifest = {
+        **feature_manifest,
+        "dataset_name": "base8_control_common_rows",
+        "root_name": CONTROL_ROOT_NAME,
+        "feature_profile": feature_profile_to_dict(control_profile),
+        "chendage_feature_keys": [],
+        "chendage_feature_cols": [],
+        "feature_groups": {},
+        "normalization": {"policy": "precomputed_in_bars", "train_only": False},
+        "symbols": results,
+    }
+    control_source_manifest = {
+        **source_manifest,
+        "control": "base8_common_rows",
+        "dataset_name": "base8_control_common_rows",
+        "dataset_root": str(control_output_dir),
+    }
+    write_single_root_manifests(
+        root=control_output_dir,
+        feature_manifest=control_feature_manifest,
+        source_manifest=control_source_manifest,
     )
-    control_profile = FeatureProfile(
-        profile_id="m12_base8_control_common_rows",
-        feature_cols=tuple(BASE_FEATURE_COLS),
-        feature_dim=len(BASE_FEATURE_COLS),
-        processed_root=str(control_output_dir),
-        source_schema_versions={"alphatrade_feature_profile": "m1_f8_v1"},
-        normalization={"policy": "precomputed_in_bars", "train_only": False},
-    )
-    m12.write_dataset_config(root=output_dir, profile=feature_profile, symbols=symbols, args=args)
     m12.write_dataset_config(root=control_output_dir, profile=control_profile, symbols=symbols, args=args)
     sweep_config = write_formal_sweep_config(
         root,
-        candidate_config=output_dir / "dataset_config.yaml",
+        dataset_artifacts=dataset_artifacts,
         control_config=control_output_dir / "dataset_config.yaml",
+        args=args,
+        seeds=sweep_seeds,
     )
 
     overall_status = "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL"
@@ -1385,11 +2094,10 @@ def main() -> int:
             "base_processed_root": str(root / "base_m1_f8"),
             "chendage_input": str(root / "inputs" / "processed_full"),
             "symbols": symbols,
-            "feature_set": args.feature_set,
+            "formal_dataset_specs": formal_dataset_specs_payload(),
             "lookback": args.lookback,
             "stride": args.stride,
             "horizons": horizons,
-            "excluded_feature_groups": exclude_groups,
             "max_missing_feature_rate": args.max_missing_feature_rate,
             "source_start": args.source_start,
             "source_end": args.source_end,
@@ -1401,12 +2109,29 @@ def main() -> int:
             "val_end": args.val_end,
             "test_start": args.test_start,
             "test_end": args.test_end,
+            "sweep": {
+                "seeds": sweep_seeds,
+                "max_steps": int(args.sweep_max_steps),
+                "batch_size": int(args.sweep_batch_size),
+                "save_every": int(args.sweep_save_every),
+                "keep_last": int(args.sweep_keep_last),
+                "eval_split": str(args.sweep_eval_split),
+                "ckpt_step": str(args.sweep_ckpt_step),
+            },
         },
         "outputs": {
             "candidate_processed_root": str(output_dir),
             "control_processed_root": str(control_output_dir),
             "candidate_dataset_config": str(output_dir / "dataset_config.yaml"),
             "control_dataset_config": str(control_output_dir / "dataset_config.yaml"),
+            "dataset_roots": {
+                artifact["spec"]["name"]: str(artifact["output_dir"])
+                for artifact in dataset_artifacts
+            },
+            "dataset_configs": {
+                artifact["spec"]["name"]: str(artifact["output_dir"] / "dataset_config.yaml")
+                for artifact in dataset_artifacts
+            },
             "sweep_config": str(sweep_config),
             "contract_json": str(reports_dir / "m12_chendage_feature_contract.json"),
             "contract_md": str(reports_dir / "m12_chendage_feature_contract.md"),
@@ -1416,7 +2141,20 @@ def main() -> int:
             "chendage_feature_keys": selected_keys,
             "chendage_feature_cols": chg_cols,
             "feature_groups": selected_feature_groups,
-            "excluded_feature_groups": exclude_groups,
+            "excluded_feature_groups": list(primary_artifact["spec"]["exclude_feature_groups"]),
+        },
+        "dataset_profiles": {
+            artifact["spec"]["name"]: {
+                **feature_profile_to_dict(artifact["feature_profile"]),
+                "exp_id": artifact["spec"]["exp_id"],
+                "root_name": artifact["spec"]["root_name"],
+                "chendage_feature_keys": artifact["selected_keys"],
+                "chendage_feature_cols": artifact["chg_cols"],
+                "feature_groups": artifact["selected_feature_groups"],
+                "excluded_feature_groups": list(artifact["spec"]["exclude_feature_groups"]),
+                "feature_set": artifact["spec"]["feature_set"],
+            }
+            for artifact in dataset_artifacts
         },
         "normalization": {
             "policy": scaler["policy"],
@@ -1425,6 +2163,17 @@ def main() -> int:
             "train_start": scaler["train_start"],
             "train_end": scaler["train_end"],
             "feature_count": scaler["feature_count"],
+        },
+        "normalization_by_dataset": {
+            artifact["spec"]["name"]: {
+                "policy": artifact["scaler"]["policy"],
+                "train_only": True,
+                "scaler_hash": artifact["scaler"]["scaler_hash"],
+                "train_start": artifact["scaler"]["train_start"],
+                "train_end": artifact["scaler"]["train_end"],
+                "feature_count": artifact["scaler"]["feature_count"],
+            }
+            for artifact in dataset_artifacts
         },
         "source_boundary": {
             "accepted_api": [
@@ -1444,6 +2193,10 @@ def main() -> int:
         "symbol_mapping": symbol_map,
         "causality_test": causality,
         "symbols": results,
+        "symbols_by_dataset": {
+            artifact["spec"]["name"]: artifact.get("results", [])
+            for artifact in dataset_artifacts
+        },
         "checks": checks,
     }
     m12.write_contract_reports(report, reports_dir)

@@ -1203,6 +1203,17 @@ def write_contract_reports(report: dict[str, Any], reports_dir: Path) -> None:
         for group, keys in report["feature_profile"].get("feature_groups", {}).items():
             f.write(f"| {group} | {len(keys)} |\n")
         f.write("\n")
+        if report.get("dataset_profiles"):
+            f.write("## Formal Dataset Profiles\n\n")
+            f.write("| Dataset | Feature Dim | Chendage Features | Excluded Groups |\n")
+            f.write("|---------|-------------|-------------------|-----------------|\n")
+            for name, profile in report["dataset_profiles"].items():
+                f.write(
+                    f"| {name} | {profile.get('feature_dim')} | "
+                    f"{len(profile.get('chendage_feature_cols', []))} | "
+                    f"{profile.get('excluded_feature_groups') or []} |\n"
+                )
+            f.write("\n")
         f.write("## Checks\n\n")
         f.write("| Check | Status | Detail |\n")
         f.write("|-------|--------|--------|\n")
