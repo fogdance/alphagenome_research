@@ -1,0 +1,433 @@
+{
+  "schema_version": "mg1.adjudication_rubric.v1",
+  "rubric_status": "LOCKED_BEFORE_REVIEWER_OUTPUT_ACCESS",
+  "created_at": "2026-07-13T18:27:08+08:00",
+  "adjudicator": {
+    "adjudicator_id": "AI_SIMULATED_ADJUDICATOR",
+    "identity_type": "AI_SIMULATED_ADJUDICATOR",
+    "authority": "NON_BINDING_TECHNICAL_ADJUDICATION_ONLY",
+    "human_identity_verified": false,
+    "personal_data_recorded": false,
+    "may_issue_simulated_technical_dispositions": true,
+    "may_count_as_human_reviewer": false,
+    "may_approve_or_freeze_ontology": false,
+    "may_unblock_mg1b": false,
+    "may_write_human_review_or_freeze_fields": false
+  },
+  "independence": {
+    "reviewer_a_output_seen": false,
+    "reviewer_b_output_seen": false,
+    "reviewer_output_paths_searched": false,
+    "rubric_fixed_before_reviewer_output_access": true,
+    "post_lock_policy": "Do not change this rubric after inspecting Reviewer A or B. If a material defect is discovered, preserve this file and create a new version before restarting adjudication."
+  },
+  "scope": {
+    "milestone": "MG1-A.1",
+    "target_artifact": "configs/market_genome/pattern_ontology_v2.yaml",
+    "target_decision": "DRAFT_NEEDS_HUMAN_FREEZE",
+    "assumption_total": 70,
+    "inherited_v1_assumptions": 61,
+    "new_v2_assumptions": 9,
+    "currently_frozen_assumptions": 0,
+    "mg1b_status": "BLOCKED",
+    "adjudication_scope": "Symbolic ontology and governance contract only",
+    "out_of_scope": [
+      "detector implementation",
+      "labeler implementation",
+      "real-data labels",
+      "synthetic samples",
+      "trading rules",
+      "JAX computation",
+      "model training",
+      "GPU execution",
+      "numeric detector-threshold selection"
+    ]
+  },
+  "source_artifacts": [
+    {
+      "source_id": "V1_REVIEW_LEDGER",
+      "path": "configs/market_genome/pattern_ontology_v1_review.yaml",
+      "file_sha256": "a4941b85fd92ada4e58429e2ad0ce0b73d371ac35caa7fe99847a4688c16e90b",
+      "embedded_records_sha256": "fdf2328d1fb8b63c6c342498ade11f29c47db467a28c17a190a0290cdad8132c",
+      "role": "Machine-readable v1 questions, approved invariants, required changes, blockers, and expert recommendations",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "V2_ONTOLOGY",
+      "path": "configs/market_genome/pattern_ontology_v2.yaml",
+      "file_sha256": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e",
+      "embedded_resolved_contract_sha256": "ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd",
+      "role": "Current machine-readable proposal under adjudication",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "V2_REVIEW",
+      "path": "docs/alphaTrade/market_genome/MG1_PATTERN_ONTOLOGY_V2_REVIEW.md",
+      "file_sha256": "d747a33fa308e886a07d190748325e2871ef8e4ec82e6bdfbdc420f6be947818",
+      "role": "Review summary, structural findings, remaining blockers, and execution boundary",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "V1_TO_V2_DIFF",
+      "path": "docs/alphaTrade/market_genome/MG1A_V1_TO_V2_DIFF.md",
+      "file_sha256": "57ba4766d74d85acfe3f4f5838f9e2f945d432db11256b937e102526ad24d551",
+      "role": "Migration evidence and compatibility description",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "V1_REVIEW_RENDERING",
+      "path": "docs/alphaTrade/market_genome/MG1_ASSUMPTION_REVIEW.md",
+      "file_sha256": "2f8848b2ffbdfe3944a380d340eef68be65a7fa5db8eee867d135450dbab975e",
+      "role": "Human-readable rendering of the v1 ledger",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "MG_IMPLEMENTATION_PLAN",
+      "path": "docs/market_genome/AlphaTrade_MarketGenome_Implementation_Plan_and_Codex_Prompts.md",
+      "file_sha256": "a795aececd86e731d12ac1e34e3c44939286f1077a8e91aec67334c07fe05880",
+      "role": "Milestone boundary and human-freeze requirements",
+      "freeze_proof": false
+    },
+    {
+      "source_id": "ORIGINAL_PASTED_DOMAIN_REVIEW",
+      "path": "/home/v/.codex/attachments/8a813b11-3452-49f6-9a7b-7c6e2396b92b/pasted-text-1.txt",
+      "file_sha256": "9dae45851162fe7494c3f725e600df31b8cf07fa85fa7bb2bc6e18e58eead987",
+      "repository_versioned": false,
+      "signed": false,
+      "review_type": "STATIC_CODE_AND_DOMAIN_SEMANTIC_REVIEW",
+      "test_suite_reexecuted_by_source_reviewer": false,
+      "role": "External design rationale for P0 corrections and family-specific changes",
+      "freeze_proof": false
+    }
+  ],
+  "observed_baseline": {
+    "v1_review_decision": "DOMAIN_REVIEW_COMPLETED_WITH_REQUIRED_REVISIONS",
+    "v1_draft_assessment": "APPROVED_AS_DRAFT",
+    "v1_freeze_assessment": "REVISION_REQUIRED_BEFORE_FREEZE",
+    "v1_reviewer_id": "CODEX_DOMAIN_EXPERT_01",
+    "v1_reviewer_role": "USER_APPOINTED_AI_DOMAIN_EXPERT",
+    "v1_reviewer_personal_data_recorded": false,
+    "v1_disposition_counts": {
+      "ACCEPT": 0,
+      "REVISE": 51,
+      "DEFER": 10,
+      "REJECT": 0
+    },
+    "v1_freeze_ready_count": 0,
+    "v1_unresolved_parameter_reference_count": 114,
+    "v2_human_review_status": "PENDING",
+    "v2_frozen": false,
+    "v2_reviewer_decisions_recorded": false,
+    "v2_approver": null,
+    "v2_approved_at": null,
+    "v2_frozen_sha256": null,
+    "v2_execution_flags_all_false": true,
+    "original_pasted_review_conclusion": "APPROVED_AS_DRAFT_AND_REVISION_REQUIRED_BEFORE_FREEZE",
+    "original_pasted_review_limit": "The source states that it was a static review and did not re-run the repository test suite."
+  },
+  "evidence_hierarchy": [
+    {
+      "rank": 1,
+      "evidence": "Exact current v2 machine-readable fields, invariants, family graphs, formula entries, registries, and content hashes",
+      "rule": "Use the current v2 artifact as the proposition actually being adjudicated."
+    },
+    {
+      "rank": 2,
+      "evidence": "Repository validator and targeted CPU-only test behavior for mechanically enforceable claims",
+      "rule": "A machine-enforceable claim is not considered fully closed when it exists only as prose or an unenforced flag."
+    },
+    {
+      "rank": 3,
+      "evidence": "V1 ledger questions, approved invariants, required changes, blocking items, and unresolved references",
+      "rule": "Use these to define what each inherited assumption must discharge; do not inherit the old disposition automatically."
+    },
+    {
+      "rank": 4,
+      "evidence": "V2 review and v1-to-v2 diff documents",
+      "rule": "Use as traceability and rationale; resolve any conflict against the exact current machine-readable artifact and observed validator behavior."
+    },
+    {
+      "rank": 5,
+      "evidence": "Original external pasted domain review",
+      "rule": "Use as unsigned design input, not as approval, runtime proof, identity proof, or freeze proof."
+    },
+    {
+      "rank": 6,
+      "evidence": "Implementation plan milestone requirements",
+      "rule": "Use to enforce scope, sequencing, and the separate human-freeze gate."
+    },
+    {
+      "rank": 7,
+      "evidence": "Reviewer A and Reviewer B outputs after rubric lock",
+      "rule": "Treat as advisory analyses that must cite higher-ranked evidence; agreement is not proof and disagreement is not resolved by voting."
+    }
+  ],
+  "core_invariants": [
+    "Online ontology state and evidence are prefix-only and causally timestamped.",
+    "Future-visible completion and outcome data remain in separate namespaces and are not runtime inputs.",
+    "Ontology structure does not encode trading actions, profit claims, or future-effect certainty.",
+    "Morphology, structural orientation, semantic role, and future outcome are distinct concepts.",
+    "Terminal objects are immutable; later formations require new object identity.",
+    "Cross-family and cross-scale relations do not destructively merge object identity.",
+    "Committed anchors use closed bars and append-only revision lineage.",
+    "Price geometry is normalized or dimensionless; absolute-price detector thresholds are forbidden in the ontology core.",
+    "Train-selected policy is fit on the training partition only and cannot be selected from validation or test outcomes.",
+    "Unknown and inapplicable inputs remain explicitly masked.",
+    "Ambiguity and insufficient evidence are permitted and block gold eligibility.",
+    "No AI output is independent human gold truth or human freeze approval."
+  ],
+  "dispositions": {
+    "ACCEPT": {
+      "definition": "The exact technical proposition is complete, coherent, causal, and unambiguously represented by the current v2 symbolic contract.",
+      "required_conditions": [
+        "Every essential component of the question has concrete v2 evidence paths.",
+        "Every relevant v1 required change and blocking item is RESOLVED or demonstrably NOT_APPLICABLE.",
+        "Mechanically enforceable constraints have validator or targeted test evidence, when such enforcement is part of the contract.",
+        "No essential empirical, train-fitted, registry, annotation, or identity evidence is missing.",
+        "No contradiction with the core invariants remains."
+      ],
+      "technical_gate": "PASS",
+      "human_freeze_effect": "NONE; simulated ACCEPT is non-binding and cannot satisfy the human-freeze gate."
+    },
+    "REVISE": {
+      "definition": "The design direction is supportable, but the current proposition is incomplete, ambiguous, internally inconsistent, too broad, too narrow, or missing an exact contract or enforcement binding.",
+      "required_output": [
+        "Name the exact incomplete or conflicting component.",
+        "Cite the current evidence path and the unsatisfied v1 blocker or invariant.",
+        "Specify the smallest concrete contract, validator, or wording change needed.",
+        "Do not invent a numeric threshold or train-fitted value."
+      ],
+      "technical_gate": "BLOCKED_UNTIL_REVISED_AND_REVIEWED",
+      "human_freeze_effect": "BLOCKS_FREEZE"
+    },
+    "DEFER": {
+      "definition": "The proposition cannot be decided now because an essential fact intentionally lies outside the available symbolic evidence.",
+      "valid_triggers": [
+        "An authoritative calendar, instrument, or external registry is required but unavailable.",
+        "A numeric value, clipping bound, normalizer artifact, threshold, or policy must be selected from train-partition evidence.",
+        "Real-data examples, human annotation evidence, reviewer agreement, calibration, or empirical performance are essential to the proposition.",
+        "Verified human appointment, authority, or independence is itself the proposition under review."
+      ],
+      "invalid_triggers": [
+        "GPU and training are deferred, when the proposition is purely symbolic.",
+        "The v1 ledger used DEFER, when v2 now supplies complete symbolic evidence.",
+        "A real human freeze is globally absent, when the per-assumption technical proposition can still be judged."
+      ],
+      "required_output": [
+        "Identify the exact missing evidence.",
+        "Explain why it is essential rather than downstream implementation detail.",
+        "State the non-GPU or future empirical event that will make the question decidable."
+      ],
+      "technical_gate": "BLOCKED_PENDING_EVIDENCE",
+      "human_freeze_effect": "BLOCKS_FREEZE"
+    },
+    "REJECT": {
+      "definition": "The proposition is fundamentally unsound or directly conflicts with confirmed ontology, causality, identity, normalization, leakage, or governance invariants and cannot be repaired by a narrow revision.",
+      "valid_triggers": [
+        "It uses future-visible or trading semantics as online ontology input.",
+        "It treats morphology as guaranteed future effect without causal context.",
+        "It permits same-object terminal reset, destructive identity merge, or committed partial-bar history.",
+        "It permits absolute-price core thresholds or validation/test-selected policy.",
+        "It treats model-assisted or AI agreement as independent human gold truth or freeze approval.",
+        "Its object, phase, anchor, relation, or formula semantics are irreconcilable with the confirmed core invariants."
+      ],
+      "required_output": [
+        "Cite the direct contradiction.",
+        "Explain why a narrow revision is insufficient.",
+        "Specify removal or a replacement proposition."
+      ],
+      "technical_gate": "BLOCKED_REPLACEMENT_REQUIRED",
+      "human_freeze_effect": "BLOCKS_FREEZE"
+    }
+  },
+  "decision_algorithm": [
+    "Verify the assumption ID and exact question against the 61-ID inherited registry or 9-ID new-v2 registry.",
+    "Decompose the question into essential components without changing its scope.",
+    "For inherited assumptions, enumerate every v1 approved invariant, required change, blocking item, and unresolved parameter reference.",
+    "Map each component and v1 item to exact v2 contract paths and, where mechanically enforceable, validator or targeted test evidence.",
+    "Check for a direct contradiction with core invariants. A confirmed fundamental contradiction yields REJECT.",
+    "Check whether an essential component requires unavailable external, empirical, train-fitted, annotation, or identity evidence. If yes and no known contradiction already controls, yield DEFER.",
+    "Check whether all components are conceptually supportable but any current contract detail or enforcement is incomplete. If yes, yield REVISE.",
+    "Yield ACCEPT only when all essential components pass and no relevant blocker or dependency remains.",
+    "For a conjunctive assumption with mixed component outcomes, record component findings and use the most restrictive essential-component outcome in this order: REJECT, DEFER, REVISE, ACCEPT.",
+    "Record evidence, uncertainty, required follow-up, and the separate non-binding human-freeze status."
+  ],
+  "v1_to_v2_resolution_policy": {
+    "principles": [
+      "The v1 disposition is historical evidence, not the v2 adjudication result.",
+      "A v1 DEFER may become ACCEPT or REVISE when v2 supplies the missing symbolic object, phase, anchor, relation, or formula contract.",
+      "A v1 REVISE may become ACCEPT only after every essential required change and blocker is explicitly discharged.",
+      "Copying an assumption ID into v2 is lineage only and never resolves a blocker by itself.",
+      "A prose claim that a blocker is resolved is insufficient when the corresponding exact v2 field or invariant is absent.",
+      "A policy flag alone is insufficient when the promised machine-enforceable behavior is not validated.",
+      "No numeric detector threshold is required for accepting a symbolic contract that intentionally forbids numeric thresholds; a question that explicitly requires selecting such a value remains DEFER or REVISE according to its wording."
+    ],
+    "blocker_statuses": {
+      "RESOLVED": "The v2 contract explicitly satisfies the full blocker and supporting enforcement exists where mechanically applicable.",
+      "PARTIALLY_RESOLVED": "V2 addresses the direction but one or more essential fields, states, branches, formulas, registries, or enforcement bindings remain missing.",
+      "OPEN": "No adequate v2 evidence discharges the blocker.",
+      "NOT_APPLICABLE": "V2 deliberately removed or superseded the old premise, with an explicit replacement contract and rationale."
+    },
+    "required_mapping_fields": [
+      "v1_item_id_or_text",
+      "status",
+      "v2_evidence_paths",
+      "validator_or_test_evidence",
+      "explanation"
+    ]
+  },
+  "execution_deferral_policy": {
+    "gpu_allowed_for_adjudication": false,
+    "training_allowed_for_adjudication": false,
+    "detector_or_labeler_execution_required": false,
+    "symbolic_review_requires_gpu": false,
+    "rules": [
+      "Do not run or request GPU, JAX, training, detector, labeler, real-label, or synthetic-sample work for this adjudication.",
+      "Do not penalize a purely symbolic ontology proposition because execution flags are false.",
+      "ACCEPT may cover a precise train-only fit boundary, versioning rule, hash requirement, or missingness policy without fitting an artifact.",
+      "DEFER any essential numeric value or fitted artifact that cannot exist until the declared train-partition procedure runs.",
+      "Do not use downstream predictive or trading performance to validate morphology existence or ontology semantics."
+    ]
+  },
+  "human_identity_and_authority_policy": {
+    "separation_rule": "Per-assumption technical disposition and global human-freeze eligibility are separate outputs.",
+    "personal_data_requirement": "No personal data is required; pseudonymous reviewer IDs are compatible with the v2 policy.",
+    "minimum_identity_provenance_for_real_human_freeze": [
+      "A pseudonymous reviewer ID bound outside the public artifact to a real human reviewer",
+      "Recorded role and explicit appointment or approval authority",
+      "Independence attestation for the two reviewers",
+      "Decision timestamps and hash-bound reviewed artifact",
+      "Adjudicator provenance for disagreements"
+    ],
+    "current_ai_evidence": [
+      "The v1 ledger identifies CODEX_DOMAIN_EXPERT_01 as USER_APPOINTED_AI_DOMAIN_EXPERT.",
+      "AI_SIMULATED_ADJUDICATOR is not a real human reviewer or approver.",
+      "Reviewer A and B outputs, if AI-generated, remain advisory regardless of agreement."
+    ],
+    "rules": [
+      "Missing real-human authority does not automatically DEFER every technical assumption.",
+      "A technically ACCEPTed assumption still has human_review_required=true and freeze_eligible=false in this simulated adjudication.",
+      "Even 70 simulated ACCEPT decisions cannot set human_review.status, frozen, approver, approved_at, frozen_sha256, or reviewer_decisions_recorded.",
+      "MG1-B remains BLOCKED until the repository-defined human, hash, provenance, and validation gates are actually satisfied."
+    ]
+  },
+  "reviewer_output_ingestion_and_disagreement_policy": {
+    "ingestion_preconditions": [
+      "This rubric file exists and its SHA-256 is recorded before either reviewer output is opened.",
+      "Each reviewer output declares reviewer identity type, authority, reviewed artifact hash, and whether it is human or AI.",
+      "Each output contains exactly the same 70 unique assumption IDs with a valid disposition and cited evidence."
+    ],
+    "rules": [
+      "Do not use majority voting or average confidence.",
+      "Matching A/B dispositions are re-evaluated against this rubric and do not auto-pass.",
+      "Conflicting dispositions are independently resolved using the evidence hierarchy and decision algorithm.",
+      "Unsupported ACCEPT claims are downgraded according to the observed gap, not preserved for consensus.",
+      "Missing assumptions, silent defaults, vague citations, or rationale that only restates a disposition are insufficient evidence.",
+      "Record both reviewer positions faithfully before issuing the adjudicated result."
+    ]
+  },
+  "per_assumption_output_contract": {
+    "required_fields": [
+      "assumption_id",
+      "question",
+      "generation",
+      "reviewer_a_disposition",
+      "reviewer_a_rationale",
+      "reviewer_b_disposition",
+      "reviewer_b_rationale",
+      "adjudicated_disposition",
+      "component_findings",
+      "v1_historical_disposition",
+      "v1_blocker_assessments",
+      "v2_contract_evidence_paths",
+      "validator_or_test_evidence",
+      "empirical_dependency",
+      "contradictions",
+      "rationale",
+      "required_changes",
+      "evidence_needed_to_resume",
+      "replacement_proposition",
+      "confidence",
+      "human_review_required",
+      "freeze_eligible"
+    ],
+    "generation_values": [
+      "INHERITED_V1",
+      "NEW_V2"
+    ],
+    "disposition_values": [
+      "ACCEPT",
+      "REVISE",
+      "DEFER",
+      "REJECT"
+    ],
+    "empirical_dependency_values": [
+      "NONE",
+      "DOWNSTREAM_DEFERRED_NOT_ESSENTIAL",
+      "ESSENTIAL_EXTERNAL_REGISTRY",
+      "ESSENTIAL_TRAIN_FITTED",
+      "ESSENTIAL_REAL_DATA_OR_ANNOTATION",
+      "ESSENTIAL_HUMAN_IDENTITY_OR_AUTHORITY"
+    ],
+    "confidence_values": [
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+    ],
+    "constant_fields_for_this_simulation": {
+      "human_review_required": true,
+      "freeze_eligible": false
+    }
+  },
+  "completion_gate_for_later_70_item_adjudication": [
+    "Exactly 70 unique assumption IDs are present: 61 inherited and 9 new.",
+    "No assumption has a missing or implicit disposition.",
+    "Every inherited assumption includes a disposition for each relevant v1 blocker and required change.",
+    "Every ACCEPT cites complete current-v2 evidence and has no open essential blocker.",
+    "Every REVISE states a minimal exact change.",
+    "Every DEFER states the exact evidence and resume condition.",
+    "Every REJECT cites a direct contradiction and replacement or removal path.",
+    "Disposition counts sum to 70 and are independently recomputed.",
+    "The adjudication report states that it is non-binding and cannot freeze v2 or unblock MG1-B."
+  ],
+  "freeze_gate": {
+    "current_status": "BLOCKED",
+    "simulated_results_can_freeze": false,
+    "all_non_accept_technical_dispositions_block_freeze": true,
+    "even_all_simulated_accepts_are_insufficient": true,
+    "required_before_real_freeze": [
+      "Two independent real-human decisions for all 70 assumptions",
+      "Adjudication of every disagreement and ambiguity",
+      "No remaining REVISE, DEFER, or REJECT disposition in the artifact proposed for freeze",
+      "Approver and approval time",
+      "Final file hashes, resolved-contract hash, and review-record hash",
+      "Reviewer and adjudication provenance bound to the reviewed hashes",
+      "Structural validation of the final reviewed artifact",
+      "V1 remains unmodified"
+    ],
+    "fields_that_must_not_be_changed_by_this_adjudication": [
+      "decision",
+      "human_review.status",
+      "human_review.frozen",
+      "human_review.reviewer_decisions_recorded",
+      "human_review.approver",
+      "human_review.approved_at",
+      "human_review.frozen_sha256",
+      "assumption_registry.*.reviewer_decision",
+      "review_outcome_v1.mg1b_status"
+    ]
+  },
+  "prohibited_reasoning": [
+    "Do not infer acceptance from assumption-ID inheritance.",
+    "Do not infer acceptance solely from prose saying a structural issue was resolved.",
+    "Do not carry v1 REVISE or DEFER forward without re-evaluating current v2 evidence.",
+    "Do not use deferred GPU or training as a reason to reject a symbolic contract.",
+    "Do not invent thresholds, fitted artifacts, registry contents, human identities, or approval records.",
+    "Do not equate AI agreement with two independent real-human decisions.",
+    "Do not use future outcomes or trading returns to define online morphology.",
+    "Do not treat missing personal data as missing reviewer identity when valid pseudonymous provenance exists.",
+    "Do not resolve A/B disagreement by majority, confidence averaging, or deference to the more permissive reviewer.",
+    "Do not present a hypothesis as a confirmed conclusion without exact evidence."
+  ],
+  "next_state": "WAIT_FOR_REVIEWER_A_AND_REVIEWER_B_OUTPUTS_THEN_ADJUDICATE_ALL_70"
+}

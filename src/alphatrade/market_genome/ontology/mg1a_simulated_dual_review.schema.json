@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://alphatrade.local/schemas/mg1a-simulated-dual-review-bundle-v1.json",
+  "title": "MG1-A.1 AI-simulated dual-review bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "milestone",
+    "review_type",
+    "status",
+    "created_at",
+    "target",
+    "artifacts",
+    "decisions_sha256",
+    "summary",
+    "governance",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": {"const": "mg1a.simulated_dual_review_bundle.v1"},
+    "profile": {"const": "mg1a-simulated-dual-review"},
+    "milestone": {"const": "MG1-A.1"},
+    "review_type": {"const": "AI_SIMULATED_NON_HUMAN"},
+    "status": {"const": "REVISION_AND_EXTERNAL_EVIDENCE_REQUIRED_BEFORE_HUMAN_FREEZE"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "target": {"$ref": "#/definitions/target"},
+    "artifacts": {"$ref": "#/definitions/artifacts"},
+    "decisions_sha256": {"$ref": "#/definitions/sha256"},
+    "summary": {"$ref": "#/definitions/summary"},
+    "governance": {"$ref": "#/definitions/governance"},
+    "execution": {"$ref": "#/definitions/execution"}
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/definitions/sha256"}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit",
+        "path",
+        "file_sha256",
+        "resolved_contract_sha256",
+        "v1_review_ledger_path",
+        "v1_review_ledger_sha256",
+        "v1_review_records_sha256"
+      ],
+      "properties": {
+        "git_commit": {"$ref": "#/definitions/git_commit"},
+        "path": {"const": "configs/market_genome/pattern_ontology_v2.yaml"},
+        "file_sha256": {"$ref": "#/definitions/sha256"},
+        "resolved_contract_sha256": {"$ref": "#/definitions/sha256"},
+        "v1_review_ledger_path": {"const": "configs/market_genome/pattern_ontology_v1_review.yaml"},
+        "v1_review_ledger_sha256": {"$ref": "#/definitions/sha256"},
+        "v1_review_records_sha256": {"$ref": "#/definitions/sha256"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewer_a",
+        "reviewer_b",
+        "reviewer_b_attestation",
+        "adjudication_rubric",
+        "adjudication"
+      ],
+      "properties": {
+        "reviewer_a": {"$ref": "#/definitions/artifact"},
+        "reviewer_b": {"$ref": "#/definitions/artifact"},
+        "reviewer_b_attestation": {"$ref": "#/definitions/artifact"},
+        "adjudication_rubric": {"$ref": "#/definitions/artifact"},
+        "adjudication": {"$ref": "#/definitions/artifact"}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ACCEPT", "REVISE", "DEFER", "REJECT"],
+      "properties": {
+        "ACCEPT": {"type": "integer", "minimum": 0},
+        "REVISE": {"type": "integer", "minimum": 0},
+        "DEFER": {"type": "integer", "minimum": 0},
+        "REJECT": {"type": "integer", "minimum": 0}
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ACCEPT", "REVISE", "DEFER", "REJECT"],
+      "properties": {
+        "ACCEPT": {"$ref": "#/definitions/counts"},
+        "REVISE": {"$ref": "#/definitions/counts"},
+        "DEFER": {"$ref": "#/definitions/counts"},
+        "REJECT": {"$ref": "#/definitions/counts"}
+      }
+    },
+    "alignment_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["BOTH", "A_ONLY", "B_ONLY", "NEITHER"],
+      "properties": {
+        "BOTH": {"type": "integer", "minimum": 0},
+        "A_ONLY": {"type": "integer", "minimum": 0},
+        "B_ONLY": {"type": "integer", "minimum": 0},
+        "NEITHER": {"type": "integer", "minimum": 0}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumptions_total",
+        "inherited_v1",
+        "new_v2",
+        "reviewer_a_counts",
+        "reviewer_b_counts",
+        "adjudicated_counts",
+        "a_b_agreement_count",
+        "a_b_disagreement_count",
+        "decision_matrix_rows_a_columns_b",
+        "adjudicator_alignment_counts",
+        "freeze_eligible_count"
+      ],
+      "properties": {
+        "assumptions_total": {"const": 70},
+        "inherited_v1": {"const": 61},
+        "new_v2": {"const": 9},
+        "reviewer_a_counts": {"$ref": "#/definitions/counts"},
+        "reviewer_b_counts": {"$ref": "#/definitions/counts"},
+        "adjudicated_counts": {"$ref": "#/definitions/counts"},
+        "a_b_agreement_count": {"type": "integer", "minimum": 0, "maximum": 70},
+        "a_b_disagreement_count": {"type": "integer", "minimum": 0, "maximum": 70},
+        "decision_matrix_rows_a_columns_b": {"$ref": "#/definitions/matrix"},
+        "adjudicator_alignment_counts": {"$ref": "#/definitions/alignment_counts"},
+        "freeze_eligible_count": {"const": 0}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actual_human_reviewer_count",
+        "simulated_reviewer_count",
+        "simulated_adjudicator_count",
+        "model_assisted_independent_truth_allowed",
+        "reviewer_a_freeze_ready_is_technical_only",
+        "human_review_required",
+        "human_freeze_allowed",
+        "v2_human_review_fields_modified",
+        "mg1b_allowed"
+      ],
+      "properties": {
+        "actual_human_reviewer_count": {"const": 0},
+        "simulated_reviewer_count": {"const": 2},
+        "simulated_adjudicator_count": {"const": 1},
+        "model_assisted_independent_truth_allowed": {"const": false},
+        "reviewer_a_freeze_ready_is_technical_only": {"const": true},
+        "human_review_required": {"const": true},
+        "human_freeze_allowed": {"const": false},
+        "v2_human_review_fields_modified": {"const": false},
+        "mg1b_allowed": {"const": false}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gpu_executed",
+        "jax_computation_executed",
+        "model_training_executed",
+        "detector_implemented_or_executed",
+        "labeler_implemented_or_executed",
+        "real_data_labels_created",
+        "synthetic_samples_created",
+        "trading_rules_implemented"
+      ],
+      "properties": {
+        "gpu_executed": {"const": false},
+        "jax_computation_executed": {"const": false},
+        "model_training_executed": {"const": false},
+        "detector_implemented_or_executed": {"const": false},
+        "labeler_implemented_or_executed": {"const": false},
+        "real_data_labels_created": {"const": false},
+        "synthetic_samples_created": {"const": false},
+        "trading_rules_implemented": {"const": false}
+      }
+    }
+  }
+}

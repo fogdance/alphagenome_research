@@ -1,0 +1,470 @@
+{
+  "schema_version": "mg1a.simulated_dual_review.v1",
+  "reviewer": {
+    "reviewer_id": "AI_SIMULATED_REVIEWER_B",
+    "reviewer_type": "AI_SIMULATED_DOMAIN_REVIEW",
+    "human_reviewer": false,
+    "human_freeze_authority": false
+  },
+  "independence": {
+    "statement": "This review was produced from the versioned MG1 v1 review evidence and v2 draft without consulting Reviewer A material or decisions.",
+    "reviewer_a_material_consulted": false,
+    "does_not_constitute_human_review": true,
+    "execution_boundary": "Read-only ontology review; no detector, labeler, training, JAX, synthetic-data, or GPU execution.",
+    "source_files": [
+      "configs/market_genome/pattern_ontology_v1_review.yaml",
+      "configs/market_genome/pattern_ontology_v2.yaml",
+      "configs/market_genome/reviews/mg1_common_review_v1.yaml",
+      "configs/market_genome/reviews/mg1_trend_level_family_review_v1.yaml",
+      "configs/market_genome/reviews/mg1_reversal_conversion_family_review_v1.yaml",
+      "docs/alphaTrade/market_genome/MG1_PATTERN_ONTOLOGY_V2_REVIEW.md",
+      "docs/alphaTrade/market_genome/MG1A_V1_TO_V2_DIFF.md"
+    ]
+  },
+  "decision_policy": {
+    "ACCEPT": "The v2 text is sufficiently explicit to freeze this qualitative ontology assumption without selecting a detector threshold.",
+    "REVISE": "A semantic, lifecycle, identity, or governance gap remains in the text and can be resolved at contract level.",
+    "DEFER": "A concrete registry or train-frozen empirical policy is required and is intentionally unavailable in the current no-training scope.",
+    "REJECT": "The proposed premise is unsuitable for the ontology and should be removed rather than revised."
+  },
+  "decisions": [
+    {
+      "assumption_id": "MG1A.COMMON.LIFECYCLE.001",
+      "decision": "REVISE",
+      "evidence": "common_lifecycle makes terminal objects immutable and all families have phase graphs, but persistent families terminate through administrative events such as TERMINATION_RECORDED rather than defined causal market evidence.",
+      "blockers": ["PERSISTENT_TERMINATION_EVIDENCE_UNDEFINED", "FAMILY_EVENT_SEMANTICS_SYMBOLIC"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.SCALE.001",
+      "decision": "DEFER",
+      "evidence": "scale_spec_contract requires versioned scale identifiers and train-only selection, but no legal scale registry, base-timeframe registry, scale-window statistic, or shared-versus-specific parameter matrix is supplied.",
+      "blockers": ["SCALE_REGISTRY_UNAVAILABLE", "SCALE_STATISTIC_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.NORMALIZATION.001",
+      "decision": "DEFER",
+      "evidence": "geometry_formula_contract bans absolute-price denominators and restricts fitting to training, but causal_price_scale and other normalizers lack lookback, stability floor, fitted artifact version, and hash definitions.",
+      "blockers": ["NORMALIZER_DEFINITION_INCOMPLETE", "TRAIN_FROZEN_NORMALIZER_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.SWING_CAUSALITY.001",
+      "decision": "REVISE",
+      "evidence": "anchor_contract enforces event_eob <= available_as_of_eob <= as_of_eob and source versioning, but omits the allowed source-method registry, per-method delay, tie rule, and complete replacement/retraction semantics.",
+      "blockers": ["ANCHOR_SOURCE_REGISTRY_MISSING", "ANCHOR_DELAY_AND_TIE_POLICY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.PARTIAL_BAR.001",
+      "decision": "ACCEPT",
+      "evidence": "anchor_contract explicitly requires closed bars for committed anchors, confines partial bars to PROVISIONAL_RUNTIME_ONLY, and makes committed history append-only.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.COMMON.SESSION.001",
+      "decision": "DEFER",
+      "evidence": "ScaleSpec requires VERSIONED_INSTANCE_PARAMETER session alignment and closed session-aligned bars, but the authoritative instrument-calendar registry, holiday/night-session rules, missing-bar behavior, and unsupported-instrument policy are absent.",
+      "blockers": ["AUTHORITATIVE_CALENDAR_REGISTRY_UNAVAILABLE", "SESSION_EXCEPTION_POLICY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.ROLL.001",
+      "decision": "REVISE",
+      "evidence": "The v2 resolved_contract has no roll contract and does not encode active contract identity, roll event/version, contract age, TERMINATE_AT_ROLL, or the prohibition on cross-roll anchors.",
+      "blockers": ["ROLL_CONTRACT_ABSENT"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.PROVENANCE.001",
+      "decision": "REVISE",
+      "evidence": "relationship_graph and review_protocol retain provenance and prohibit model-assisted independent truth, but do not enumerate rule, human, synthetic, and model-assisted lineages or their benchmark eligibility matrix and correction lineage.",
+      "blockers": ["BENCHMARK_PROVENANCE_MATRIX_MISSING", "CORRECTION_LINEAGE_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.MIRROR.001",
+      "decision": "REVISE",
+      "evidence": "Mirrored families remain distinct and expose separate formulas, but v2 does not normatively enumerate role/relation transforms or state that each mirrored pair has independently fitted parameters.",
+      "blockers": ["MIRROR_TRANSFORMS_NOT_ENUMERATED", "INDEPENDENT_PARAMETER_POLICY_NOT_NORMATIVE"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.OVERLAP.001",
+      "decision": "REVISE",
+      "evidence": "relationship_graph preserves cross-family and cross-scale identity with source events, but omits formation_epoch idempotency, duplicate keys, relation expiry, conflict precedence, and mandatory endpoint constraints for family links.",
+      "blockers": ["OVERLAP_IDEMPOTENCY_POLICY_MISSING", "RELATION_PRECEDENCE_AND_EXPIRY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.ZONE.001",
+      "decision": "REVISE",
+      "evidence": "Families reference derived versioned zones and normalized zone-width formulas, but there is no common zone contract for aggregation, width, touch, cross, penetration, drift, merge, version replacement, or expiry.",
+      "blockers": ["COMMON_ZONE_CONTRACT_ABSENT"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.FILTER_MISSINGNESS.001",
+      "decision": "REVISE",
+      "evidence": "Formula outputs use UNKNOWN_WITH_MASK and family rules keep optional filters outside topology, but volume/OI inputs lack a missingness enum, minimum-history baseline, roll/venue handling, and an explicit confirmation truth table.",
+      "blockers": ["OPTIONAL_FILTER_INPUT_CONTRACT_MISSING", "FILTER_UNKNOWN_TRUTH_TABLE_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.COMMON.LABEL_TIMING.001",
+      "decision": "REVISE",
+      "evidence": "The three namespaces are physically separated and all runtime_input_allowed flags are false, but completion events, horizon registry, censoring transitions, correction policy, and causal join keys are not defined.",
+      "blockers": ["TARGET_HORIZON_AND_CENSORING_CONTRACT_MISSING", "CAUSAL_JOIN_POLICY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_UP.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "trend_up fixes alternating ascending confirmed swings and defines normalized formulas, but minimum adjacent comparisons, order tolerance, sequence-readiness parameters, and the causal price-scale policy remain unselected.",
+      "blockers": ["TREND_UP_SEQUENCE_POLICY_NOT_SELECTED", "TREND_UP_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_UP.PHASE.001",
+      "decision": "REVISE",
+      "evidence": "The variable phase graph separates pullback, resumption, weakening, break, termination, and invalidation, but CAUSAL_DIRECTIONAL_IMPULSE and TERMINATION_RECORDED lack executable causal definitions.",
+      "blockers": ["TREND_UP_PHASE_EVENT_SEMANTICS_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_UP.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "ASCENDING_SEQUENCE_READY and LATEST_PULLBACK_HOLDS are listed, but their conjunction, sequence completeness, UNKNOWN propagation, and optional-filter behavior are not a frozen truth table.",
+      "blockers": ["TREND_UP_CONFIRMATION_TRUTH_TABLE_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_UP.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "The graph lists pullback breach, order break, and scale-relative expiry, but does not define pivot selection, breach observation, expiry clock, or simultaneous-event priority.",
+      "blockers": ["TREND_UP_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_DOWN.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "trend_down independently fixes descending swing topology and normalized formulas, but sequence readiness, order tolerance, and scale-specific geometry policies remain unselected.",
+      "blockers": ["TREND_DOWN_SEQUENCE_POLICY_NOT_SELECTED", "TREND_DOWN_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_DOWN.PHASE.001",
+      "decision": "REVISE",
+      "evidence": "The down-trend graph independently represents reaction, resumption, weakening, break, termination, and invalidation, but impulse and termination event tokens have no frozen causal definition.",
+      "blockers": ["TREND_DOWN_PHASE_EVENT_SEMANTICS_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_DOWN.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "DESCENDING_SEQUENCE_READY and LATEST_REACTION_HOLDS are named, but their combination, completeness requirement, UNKNOWN propagation, and optional-filter behavior are not specified.",
+      "blockers": ["TREND_DOWN_CONFIRMATION_TRUTH_TABLE_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_DOWN.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Reaction-high breach, descending-order break, and expiry are listed, but pivot identity, normalized breach observation, expiry clock, event priority, and mirror-parameter independence are incomplete.",
+      "blockers": ["TREND_DOWN_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_TRANSITION.STRUCTURE.001",
+      "decision": "ACCEPT",
+      "evidence": "trend_transition is a LEVEL_EVENT with prior_pattern_ref, last_defending_pivot, shared structure_break anchor, and INSTANCE_BOUND orientation only after causal counter-direction evidence.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.TREND_TRANSITION.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The object starts at SHARED_DEFENDING_PIVOT_BREAK, preserves independent history, then advances through counter pivot and counter sequence to a separately linked reverse trend.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.TREND_TRANSITION.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "The contract lists defending-pivot break and counter sequence while resolution requires a linked reverse trend, but it does not state the minimum confirmation predicate or truth table and leaves transition confirmation semantically overloaded.",
+      "blockers": ["TRANSITION_MINIMUM_CONFIRMATION_UNSELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.TREND_TRANSITION.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Resumption, pivot recovery, counter-sequence failure, and expiry are present, but precedence is absent and EXPIRED is reachable only from STRUCTURE_BREAK_OBSERVED, not later active phases.",
+      "blockers": ["TRANSITION_INVALIDATION_PRECEDENCE_MISSING", "TRANSITION_EXPIRY_PATH_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_TOP.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "The three confirmed anchors, horizontal derived neckline zone, linked events, and three normalized geometry measures are present, but peak compatibility and geometry/duration acceptance policies remain train-frozen and unselected.",
+      "blockers": ["DOUBLE_TOP_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_TOP.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The graph causally separates left peak, neckline pivot, right-peak candidate/confirmation, shape completion, neckline break, retest, no-retest continuation, expiry, and invalidation.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_TOP.CONFIRMATION.001",
+      "decision": "ACCEPT",
+      "evidence": "Shape completion is explicitly not bearish effect; only a causal downward cross of the pattern neckline confirms a classic reversal role and retest remains post-confirmation.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_TOP.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Peak breach, anchor-order failure, break-absence expiry, and post-break recross are separated, but their observations, expiry clock, recross boundary, and simultaneous-event precedence remain undefined.",
+      "blockers": ["DOUBLE_TOP_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_BOTTOM.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "The mirrored confirmed anchors, horizontal neckline zone, linked events, and normalized measures are explicit, but trough compatibility and geometry/duration acceptance policies remain unselected.",
+      "blockers": ["DOUBLE_BOTTOM_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_BOTTOM.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The graph separately encodes left trough, neckline pivot, right-trough candidate/confirmation, shape completion, upward break, retest, no-retest continuation, expiry, and invalidation.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_BOTTOM.CONFIRMATION.001",
+      "decision": "ACCEPT",
+      "evidence": "Shape completion is not bullish effect; a causal upward cross of the versioned pattern neckline confirms classic reversal role and retest follows confirmation.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.DOUBLE_BOTTOM.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Trough breach, order failure, break-absence expiry, and post-break recross are distinct, but observation boundaries, expiry timing, and precedence are not frozen.",
+      "blockers": ["DOUBLE_BOTTOM_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "Five confirmed extrema, two dynamic-neckline anchors, separate break/retest/continuation anchors, and normalized formulas are explicit, but shoulder compatibility and head/geometry acceptance policies remain unselected.",
+      "blockers": ["HEAD_SHOULDERS_TOP_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.HEAD_SHOULDERS_TOP.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "Every formation anchor, shape completion, dynamic-neckline break, retest, no-retest continuation, expiry, and invalidation has an explicit causal phase transition.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001",
+      "decision": "ACCEPT",
+      "evidence": "The contract separates formation evidence from effect and confirms only on a causal downward dynamic-neckline cross evaluated at the cross end-of-bar.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Head breach, shoulder topology failure, order failure, scale expiry, and post-break recross are listed, but the two expiry contexts, normalized boundaries, and precedence are not defined.",
+      "blockers": ["HEAD_SHOULDERS_TOP_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "Five causal extrema, dynamic-neckline anchors, distinct post-break anchors, and normalized measures are explicit, but mirrored shoulder/head compatibility and geometry acceptance policies are unselected.",
+      "blockers": ["INVERSE_HEAD_SHOULDERS_GEOMETRY_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The independent upward variant explicitly maps every formation anchor, shape completion, break, retest, no-retest continuation, expiry, and invalidation transition.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001",
+      "decision": "ACCEPT",
+      "evidence": "Formation is separated from future effect and confirmation requires a causal upward dynamic-neckline cross after the right shoulder.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Head breach, topology/order failure, expiry, and downward recross are represented, but normalized boundaries, separate pre/post-confirmation expiry, and precedence are not frozen.",
+      "blockers": ["INVERSE_HEAD_SHOULDERS_INVALIDATION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.BREAKOUT.STRUCTURE.001",
+      "decision": "REVISE",
+      "evidence": "The family requires a versioned reference zone and separates outward attempt from accepted break, but unlike retest and failed_breakout it has no explicit instance_fields requiring source_zone_id and source_pattern_id.",
+      "blockers": ["BREAKOUT_SOURCE_IDENTITY_NOT_INSTANCE_REQUIRED"]
+    },
+    {
+      "assumption_id": "MG1A.BREAKOUT.PHASE.001",
+      "decision": "REVISE",
+      "evidence": "Attempt, outside close, acceptance, retest, continuation, and reentry are separated, but SHARED_BOUNDARY_REENTRY lacks transitions from OUTSIDE_CLOSE, ACCEPTED_BREAK, and RETEST; expiry is reachable only from CROSS_ATTEMPT.",
+      "blockers": ["BREAKOUT_REENTRY_PATHS_INCOMPLETE", "BREAKOUT_EXPIRY_PATHS_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.BREAKOUT.CONFIRMATION.001",
+      "decision": "DEFER",
+      "evidence": "The contract correctly requires a closed outside bar followed by a separate causal hold and keeps retest post-confirmation, but the scale-specific outside-hold duration/distance policy is deliberately not selected.",
+      "blockers": ["BREAKOUT_OUTSIDE_HOLD_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.BREAKOUT.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Shared reentry and opposite-boundary/outside-hold failures are named, but reentry is not a graph transition for every applicable active phase and opposite break identity, terminal precedence, and expiry are incomplete.",
+      "blockers": ["BREAKOUT_INVALIDATION_COVERAGE_INCOMPLETE", "BREAKOUT_EVENT_PRECEDENCE_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.FAILED_BREAKOUT.STRUCTURE.001",
+      "decision": "ACCEPT",
+      "evidence": "The object is created exactly at SHARED_BOUNDARY_REENTRY, requires source_breakout_attempt_id and source_zone_id, links history through ORIGINATES_FROM, and keeps attempt, reentry, and resolution directions separate.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.FAILED_BREAKOUT.PHASE.001",
+      "decision": "REVISE",
+      "evidence": "The graph correctly begins at reentry without backfill, but exposes both REENTRY_ONLY_RESOLUTION_POLICY and inside-rejection resolution without a per-contract or per-instance policy selecting which path is authoritative.",
+      "blockers": ["FAILED_BREAKOUT_RESOLUTION_POLICY_UNSELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.FAILED_BREAKOUT.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "Reentry establishes failure topology and inside rejection is separate, but v2 still does not choose reentry-only versus reentry-plus-rejection confirmation or define UNKNOWN behavior.",
+      "blockers": ["FAILED_BREAKOUT_CONFIRMATION_POLICY_UNSELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.FAILED_BREAKOUT.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Renewed accepted break, zone redefinition, and expiry are named, but renewed-break event lineage, zone-redefinition precedence, reversal meaning, and expiry after INSIDE_REJECTION are incomplete.",
+      "blockers": ["FAILED_BREAKOUT_RENEWED_BREAK_POLICY_INCOMPLETE", "FAILED_BREAKOUT_EXPIRY_PATH_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.RETEST.STRUCTURE.001",
+      "decision": "ACCEPT",
+      "evidence": "retest is independently classified as LEVEL_EVENT and requires source_event_id, source_pattern_id, source_zone_id, origin-break direction, ordinal, and immutable ORIGINATES_FROM/RETESTS links.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.RETEST.PHASE.001",
+      "decision": "REVISE",
+      "evidence": "Return, touch, hold, penetrate-reclaim, full recross, and continuation are distinct, but expiry is only reachable from SOURCE_EVENT_LINKED and does not cover return, touch, or hold absence.",
+      "blockers": ["RETEST_EXPIRY_PATHS_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.RETEST.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "Source break and touch are prerequisites and continuation is later, but NEW_SIDE_HOLD_OR_REJECTION and PENETRATION_THEN_CAUSAL_RECLAIM lack frozen observation rules and UNKNOWN handling.",
+      "blockers": ["RETEST_HOLD_REJECTION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.RETEST.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Full recross and source invalidation are separated, but touch/hold expiry in invalidation_rules has no matching transitions, full-recross coverage is phase-limited, and event precedence is absent.",
+      "blockers": ["RETEST_INVALIDATION_GRAPH_INCOMPLETE", "RETEST_EVENT_PRECEDENCE_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A.RANGE.STRUCTURE.001",
+      "decision": "DEFER",
+      "evidence": "The range is a persistent neutral horizontal zone pair with alternating causal touches and normalized measures, but boundary-sequence readiness, boundary stability, and zone tolerance policies remain unselected.",
+      "blockers": ["RANGE_SEQUENCE_POLICY_NOT_SELECTED", "RANGE_ZONE_POLICY_NOT_SELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.RANGE.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The graph explicitly keeps ACCEPTED_BREAK active, links false and accepted breaks to their event objects, and resolves only when the persistent range records TERMINATED.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.RANGE.CONFIRMATION.001",
+      "decision": "REVISE",
+      "evidence": "Both zones, alternating readiness, and containment are listed, but they restate topology and the contract still lacks a distinct minimum confirmation predicate and UNKNOWN truth table.",
+      "blockers": ["RANGE_CONFIRMATION_PREDICATE_UNSELECTED"]
+    },
+    {
+      "assumption_id": "MG1A.RANGE.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Accepted and failed boundary events are linked and drift/dissolution are named, but drift versus containment-failure precedence, shared event identity requirements, and dissolution expiry semantics are not explicit.",
+      "blockers": ["RANGE_INVALIDATION_PRECEDENCE_MISSING", "RANGE_DISSOLUTION_POLICY_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001",
+      "decision": "ACCEPT",
+      "evidence": "Conversion is an independent STRUCTURAL_RELATION with required source breakout, retest, zone, original role, and converted role fields and exact upward/downward role transforms.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001",
+      "decision": "ACCEPT",
+      "evidence": "The v2 graph selects candidate creation at accepted breakout, then separately records return, converted-role test, confirmation, restoration, expiry, and source invalidation without backfill.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001",
+      "decision": "ACCEPT",
+      "evidence": "An accepted source break starts the relation candidate; opposite-side return and converted-zone interaction precede causal hold/rejection confirmation on the original zone lineage.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001",
+      "decision": "REVISE",
+      "evidence": "Source invalidation, full recross, original-role restoration, and expiry are named, but ordinary penetration versus full recross, restoration precedence, and expiry after later active phases are incomplete.",
+      "blockers": ["CONVERSION_INVALIDATION_BOUNDARIES_INCOMPLETE", "CONVERSION_EXPIRY_PATHS_INCOMPLETE"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.OBJECT_MODEL.001",
+      "decision": "ACCEPT",
+      "evidence": "The four object classes and exact 12-family mapping are explicit, internally coherent, and preserve retest as LEVEL_EVENT and conversion as STRUCTURAL_RELATION.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.MORPHOLOGY_EFFECT.001",
+      "decision": "ACCEPT",
+      "evidence": "structural_orientation, semantic_role, and future_outcome are explicitly separate; classic reversal roles require prior context and future effects are forbidden from family contracts.",
+      "blockers": []
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.LIFECYCLE_MAPPING.001",
+      "decision": "REVISE",
+      "evidence": "Variable-length family phases map cleanly to four common statuses, but several graphs omit applicable expiry/reentry paths and multiple transition event tokens have no normative causal definition.",
+      "blockers": ["FAMILY_GRAPH_COVERAGE_INCOMPLETE", "TRANSITION_EVENT_REGISTRY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.SCALE_SPEC.001",
+      "decision": "DEFER",
+      "evidence": "ScaleSpec fields and train-only selection boundaries are well structured, but the referenced scale, session, and prominence registries and their hashes do not yet exist as reviewable artifacts.",
+      "blockers": ["SCALE_SPEC_REGISTRIES_UNAVAILABLE"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.ANCHOR_REVISION.001",
+      "decision": "REVISE",
+      "evidence": "Stable lineage, five states, time order, closed-bar commitment, and append-only revision rules are present, but source/tie/delay policies are absent and family state_requirement tokens are not reconciled with the five anchor states.",
+      "blockers": ["ANCHOR_SOURCE_POLICY_INCOMPLETE", "ANCHOR_REQUIREMENT_VOCABULARY_UNALIGNED"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.RELATION_GRAPH.001",
+      "decision": "REVISE",
+      "evidence": "Eight typed binary relations have identity, causal timestamps, provenance, and source events, but endpoint types/cardinalities, mandatory family edges, idempotency, formation epoch, expiry, and conflict precedence are absent.",
+      "blockers": ["RELATION_ENDPOINT_CONTRACT_MISSING", "RELATION_IDEMPOTENCY_AND_EXPIRY_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.FORMULA_CONTRACT.001",
+      "decision": "REVISE",
+      "evidence": "Every listed formula declares operands, sign, unit, missingness, clipping, and fit boundary, but operands are symbolic names without a typed expression registry and key denominators such as causal_price_scale remain undefined.",
+      "blockers": ["FORMULA_OPERAND_DEFINITIONS_MISSING", "NORMALIZATION_REFERENCE_UNRESOLVED"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.REVIEW_PROTOCOL.001",
+      "decision": "REVISE",
+      "evidence": "The protocol separates online, retrospective, and outcome visibility and requires two reviewers plus adjudication, but lacks reviewer assignment independence, adjudicator independence, correction/amendment workflow, and signed hash-bound decision records.",
+      "blockers": ["REVIEWER_INDEPENDENCE_CONTROLS_INCOMPLETE", "HASH_BOUND_DECISION_RECORD_SCHEMA_MISSING"]
+    },
+    {
+      "assumption_id": "MG1A1.COMMON.FAMILY_REVISIONS.001",
+      "decision": "REVISE",
+      "evidence": "The P0 object-class and family distinctions are materially improved, but breakout/retest/conversion graph coverage, persistent termination evidence, confirmation truth tables, invalidation precedence, and empirical geometry policies remain unresolved.",
+      "blockers": ["FAMILY_REVISIONS_NOT_FREEZE_COMPLETE"]
+    }
+  ],
+  "summary": {
+    "assumptions_total": 70,
+    "ACCEPT": 19,
+    "REVISE": 39,
+    "DEFER": 12,
+    "REJECT": 0,
+    "decisions_recorded": 70,
+    "freeze_ready": false,
+    "freeze_recommendation": "DO_NOT_FREEZE",
+    "mg1b_recommendation": "REMAIN_BLOCKED",
+    "blocking_themes": [
+      "Concrete scale, calendar, normalization, zone, roll, and optional-filter contracts are missing.",
+      "Several family phase graphs omit applicable expiry or reentry paths and use undefined event tokens.",
+      "Confirmation truth tables and invalidation boundary/precedence rules remain incomplete.",
+      "Relation, formula, provenance, and review-governance contracts need stronger identity and hash-bound records.",
+      "This AI simulation cannot satisfy the repository's stated human-review freeze gate."
+    ]
+  }
+}

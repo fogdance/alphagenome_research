@@ -1,0 +1,79 @@
+{
+  "schema_version": "mg1a.simulated_dual_review_bundle.v1",
+  "profile": "mg1a-simulated-dual-review",
+  "milestone": "MG1-A.1",
+  "review_type": "AI_SIMULATED_NON_HUMAN",
+  "status": "REVISION_AND_EXTERNAL_EVIDENCE_REQUIRED_BEFORE_HUMAN_FREEZE",
+  "created_at": "2026-07-13T18:44:06+08:00",
+  "target": {
+    "git_commit": "0d378954d49b6467d05fdef152c522e94b660978",
+    "path": "configs/market_genome/pattern_ontology_v2.yaml",
+    "file_sha256": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e",
+    "resolved_contract_sha256": "ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd",
+    "v1_review_ledger_path": "configs/market_genome/pattern_ontology_v1_review.yaml",
+    "v1_review_ledger_sha256": "a4941b85fd92ada4e58429e2ad0ce0b73d371ac35caa7fe99847a4688c16e90b",
+    "v1_review_records_sha256": "fdf2328d1fb8b63c6c342498ade11f29c47db467a28c17a190a0290cdad8132c"
+  },
+  "artifacts": {
+    "reviewer_a": {
+      "path": "configs/market_genome/reviews/mg1a_v2_ai_simulated/reviewer_a.raw.json",
+      "sha256": "29fb4565aa9ef34f6808207fd2667ffc921c78255626f4e62b8a24395f62eea9"
+    },
+    "reviewer_b": {
+      "path": "configs/market_genome/reviews/mg1a_v2_ai_simulated/reviewer_b.raw.json",
+      "sha256": "b8af2a7fe318d334289b2dbb03fc6465955a837e703f85ce76ab5df7a11e1457"
+    },
+    "reviewer_b_attestation": {
+      "path": "configs/market_genome/reviews/mg1a_v2_ai_simulated/reviewer_b.attestation.json",
+      "sha256": "ab7d80845b4c8a47d6ed1ac9e853451a7077c339ca9bbf424ef81b43dbd083a5"
+    },
+    "adjudication_rubric": {
+      "path": "configs/market_genome/reviews/mg1a_v2_ai_simulated/adjudication_rubric.json",
+      "sha256": "dfbd316f9aa08850c7ecdc6c2e007a99cc18078bfcf3c51c110f4f712ac85d69"
+    },
+    "adjudication": {
+      "path": "configs/market_genome/reviews/mg1a_v2_ai_simulated/adjudication.json",
+      "sha256": "b10638c96338556feaa6c8e1766e19c1baf456390220281ceb792a5b0db07df3"
+    }
+  },
+  "decisions_sha256": "01a9c889c94ac47a9707bee1cc49d9b09b0d412eb5632f140fa39bfeeabc15d1",
+  "summary": {
+    "assumptions_total": 70,
+    "inherited_v1": 61,
+    "new_v2": 9,
+    "reviewer_a_counts": {"ACCEPT": 21, "REVISE": 45, "DEFER": 3, "REJECT": 1},
+    "reviewer_b_counts": {"ACCEPT": 19, "REVISE": 39, "DEFER": 12, "REJECT": 0},
+    "adjudicated_counts": {"ACCEPT": 13, "REVISE": 53, "DEFER": 4, "REJECT": 0},
+    "a_b_agreement_count": 42,
+    "a_b_disagreement_count": 28,
+    "decision_matrix_rows_a_columns_b": {
+      "ACCEPT": {"ACCEPT": 11, "REVISE": 10, "DEFER": 0, "REJECT": 0},
+      "REVISE": {"ACCEPT": 8, "REVISE": 28, "DEFER": 9, "REJECT": 0},
+      "DEFER": {"ACCEPT": 0, "REVISE": 0, "DEFER": 3, "REJECT": 0},
+      "REJECT": {"ACCEPT": 0, "REVISE": 1, "DEFER": 0, "REJECT": 0}
+    },
+    "adjudicator_alignment_counts": {"BOTH": 41, "A_ONLY": 15, "B_ONLY": 13, "NEITHER": 1},
+    "freeze_eligible_count": 0
+  },
+  "governance": {
+    "actual_human_reviewer_count": 0,
+    "simulated_reviewer_count": 2,
+    "simulated_adjudicator_count": 1,
+    "model_assisted_independent_truth_allowed": false,
+    "reviewer_a_freeze_ready_is_technical_only": true,
+    "human_review_required": true,
+    "human_freeze_allowed": false,
+    "v2_human_review_fields_modified": false,
+    "mg1b_allowed": false
+  },
+  "execution": {
+    "gpu_executed": false,
+    "jax_computation_executed": false,
+    "model_training_executed": false,
+    "detector_implemented_or_executed": false,
+    "labeler_implemented_or_executed": false,
+    "real_data_labels_created": false,
+    "synthetic_samples_created": false,
+    "trading_rules_implemented": false
+  }
+}

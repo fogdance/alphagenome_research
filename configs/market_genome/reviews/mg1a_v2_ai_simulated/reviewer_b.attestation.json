@@ -1,0 +1,98 @@
+{
+  "schema_version": "mg1a.simulated_review_attestation.v1",
+  "attestation_id": "MG1A1-AI-SIMULATED-REVIEWER-B-ATTESTATION-001",
+  "attested_at": "2026-07-13T18:31:33+08:00",
+  "reviewer": {
+    "reviewer_id": "AI_SIMULATED_REVIEWER_B",
+    "reviewer_type": "AI_SIMULATED_DOMAIN_REVIEW",
+    "human_reviewer": false,
+    "human_freeze_authority": false
+  },
+  "supplement_of": {
+    "path": "/tmp/mg1_dual_review_b.json",
+    "sha256": "b8af2a7fe318d334289b2dbb03fc6465955a837e703f85ce76ab5df7a11e1457",
+    "original_bytes_unchanged": true,
+    "decisions_unchanged": true,
+    "decision_count": 70,
+    "decision_summary": {
+      "ACCEPT": 19,
+      "REVISE": 39,
+      "DEFER": 12,
+      "REJECT": 0
+    }
+  },
+  "review_target": {
+    "reviewed_commit": "0d378954d49b6467d05fdef152c522e94b660978",
+    "v2_path": "configs/market_genome/pattern_ontology_v2.yaml",
+    "v2_file_sha256": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e",
+    "resolved_contract_sha256": "ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd"
+  },
+  "source_file_attestations": [
+    {
+      "path": "configs/market_genome/pattern_ontology_v1_review.yaml",
+      "sha256_at_review": "a4941b85fd92ada4e58429e2ad0ce0b73d371ac35caa7fe99847a4688c16e90b",
+      "sha256_at_reviewed_commit": "a4941b85fd92ada4e58429e2ad0ce0b73d371ac35caa7fe99847a4688c16e90b",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "configs/market_genome/pattern_ontology_v2.yaml",
+      "sha256_at_review": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e",
+      "sha256_at_reviewed_commit": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "configs/market_genome/reviews/mg1_common_review_v1.yaml",
+      "sha256_at_review": "1f0f2bf82cc542a433aa26e98a2c7a6475b4e713ed3fd30a5ba4d6130bc949aa",
+      "sha256_at_reviewed_commit": "1f0f2bf82cc542a433aa26e98a2c7a6475b4e713ed3fd30a5ba4d6130bc949aa",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "configs/market_genome/reviews/mg1_trend_level_family_review_v1.yaml",
+      "sha256_at_review": "c67a04655c8042ec1ae5b32d1c2400cd39ab5829022af91123c1c648f02c089e",
+      "sha256_at_reviewed_commit": "c67a04655c8042ec1ae5b32d1c2400cd39ab5829022af91123c1c648f02c089e",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "configs/market_genome/reviews/mg1_reversal_conversion_family_review_v1.yaml",
+      "sha256_at_review": "625bdec5ffc86ed9816cf3b767bf94d9e8844890204c83d1b64d6b645ce8367e",
+      "sha256_at_reviewed_commit": "625bdec5ffc86ed9816cf3b767bf94d9e8844890204c83d1b64d6b645ce8367e",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "docs/alphaTrade/market_genome/MG1_PATTERN_ONTOLOGY_V2_REVIEW.md",
+      "sha256_at_review": "d747a33fa308e886a07d190748325e2871ef8e4ec82e6bdfbdc420f6be947818",
+      "sha256_at_reviewed_commit": "d747a33fa308e886a07d190748325e2871ef8e4ec82e6bdfbdc420f6be947818",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    },
+    {
+      "path": "docs/alphaTrade/market_genome/MG1A_V1_TO_V2_DIFF.md",
+      "sha256_at_review": "57ba4766d74d85acfe3f4f5838f9e2f945d432db11256b937e102526ad24d551",
+      "sha256_at_reviewed_commit": "57ba4766d74d85acfe3f4f5838f9e2f945d432db11256b937e102526ad24d551",
+      "read_during_review": true,
+      "working_tree_matches_reviewed_commit": true
+    }
+  ],
+  "repository_evidence": {
+    "head_at_attestation": "0d378954d49b6467d05fdef152c522e94b660978",
+    "head_matches_reviewed_commit": true,
+    "source_files_have_no_working_tree_diff": true,
+    "working_tree_clean_at_attestation": true
+  },
+  "declarations": {
+    "reviewer_a_material_consulted": false,
+    "independent_review_statement_unchanged": true,
+    "does_not_constitute_human_review": true,
+    "does_not_authorize_freeze": true,
+    "does_not_authorize_mg1b": true,
+    "no_decision_was_added_removed_or_modified": true,
+    "source_files_are_exactly_the_files_read_during_review": true,
+    "repository_files_modified_by_this_attestation": false,
+    "gpu_or_training_executed": false
+  }
+}
