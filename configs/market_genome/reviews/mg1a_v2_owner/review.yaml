@@ -1,0 +1,1094 @@
+schema_version: mg1a.owner_review.v1
+profile: mg1a-v2-owner-review
+milestone: MG1-A.1
+review_scope: ONTOLOGY_DRAFT_APPROVAL
+status: AWAITING_OWNER_SIGNOFF
+target:
+  git_commit: 0d378954d49b6467d05fdef152c522e94b660978
+  path: configs/market_genome/pattern_ontology_v2.yaml
+  file_sha256: cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e
+  resolved_contract_sha256: ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd
+ai_reference:
+  role: ADVISORY_ONLY
+  bundle_path: configs/market_genome/reviews/mg1a_v2_ai_simulated/bundle.json
+  bundle_sha256: 0e9a4f798a540e86901757ebf2633a51dcbab217ea5d9ea38900289937b7ec4c
+  adjudication_path: configs/market_genome/reviews/mg1a_v2_ai_simulated/adjudication.json
+  adjudication_sha256: b10638c96338556feaa6c8e1766e19c1baf456390220281ceb792a5b0db07df3
+  decisions_sha256: 01a9c889c94ac47a9707bee1cc49d9b09b0d412eb5632f140fa39bfeeabc15d1
+owner:
+  reviewer_id: PROJECT_OWNER
+  role: PROJECT_OWNER
+  appointment: EXPLICIT_USER_INSTRUCTION
+  decision_mode: SINGLE_ACCOUNTABLE_OWNER
+  appointed_owner_count: 1
+  second_review_required: false
+  adjudication_required: false
+  personal_data_recorded: false
+policy:
+  all_assumptions_required: true
+  approve_as_is_only_freeze_ready: true
+  non_approval_blocks_freeze: true
+  owner_may_override_ai_advisory: true
+  non_accept_advisory_override_requires_rationale: true
+  draft_remains_immutable: true
+  downstream_gold_annotation_policy_changed: true
+  frozen_change_requires_new_version: true
+  training_and_gpu_deferred: true
+records_sha256: d7334f9841263579c7750749a4946ac9730d838a20112de5347d5f43b4c328ef
+records:
+- assumption_id: MG1A.COMMON.LIFECYCLE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: The four coarse lifecycle statuses may remain, but named transition events are not yet operationally defined
+    for every pattern family.
+  required_changes:
+  - Define every family-specific phase and transition event with executable entry, continuation, resolution, invalidation,
+    and expiry predicates.
+  - For each event, specify its observation basis, earliest availability timestamp, thresholds or tolerances, time window,
+    precedence, and causal evidence.
+  - Validate every branch and invalidation transition against a versioned phase-event predicate registry.
+  - Add a concrete lifecycle example for every pattern family.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:19:14+08:00'
+- assumption_id: MG1A.COMMON.SCALE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Each timeframe must detect and record technical patterns independently; a lower-timeframe pattern is not
+    a higher-timeframe pattern merely because it falls inside one higher-timeframe bar.
+  required_changes:
+  - Run pattern recognition independently on the closed bars of every registered timeframe.
+  - Preserve the detecting timeframe as part of each pattern instance identity; do not promote, collapse, or relabel a lower-timeframe
+    pattern as a higher-timeframe pattern.
+  - Require a higher-timeframe pattern to satisfy the same family definition using that timeframe's own bars and anchors.
+  - Keep any cross-timeframe association as a separate optional relationship that cannot change either pattern's scale identity.
+  - Define the legal timeframe registry, session-aligned bar construction, and detection parameters for each timeframe.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:23:44+08:00'
+- assumption_id: MG1A.COMMON.NORMALIZATION.001
+  owner_decision: DEFER
+  owner_rationale: Review must wait until training data and a concrete normalization design are available.
+  required_changes: []
+  evidence_needed_to_resume:
+  - Provide the selected normalizer, field bindings, fitting window, stability floor, and missing-value behavior.
+  - Provide training-partition fit metadata together with the normalizer version and content hash.
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:25:15+08:00'
+- assumption_id: MG1A.COMMON.SWING_CAUSALITY.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Approve the occurrence-time, availability-time, closed-bar, and revision-lineage principles; specific pivot
+    algorithms and their confirmation delays may be defined later.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:26:34+08:00'
+- assumption_id: MG1A.COMMON.PARTIAL_BAR.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: null
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:27:27+08:00'
+- assumption_id: MG1A.COMMON.SESSION.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Approve the session-aligned closed-bar and versioned-calendar principles; concrete authoritative calendars
+    and instrument mappings may be supplied later.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:28:13+08:00'
+- assumption_id: MG1A.COMMON.ROLL.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: The data source must switch discretely at the roll boundary; all pre-roll bars use the outgoing contract
+    and all bars from the boundary onward use the incoming contract.
+  required_changes:
+  - Define a roll event with an exact effective closed-bar boundary, outgoing contract ID, and incoming contract ID.
+  - Require every bar before the boundary to come only from the outgoing contract and every bar at or after the boundary to
+    come only from the incoming contract.
+  - Prohibit blending two contracts within one bar and persist active_contract_id and roll_event_id with the data.
+  - Terminate every active pattern instance at the roll boundary, prohibit cross-roll anchors, and start pattern recognition
+    anew on the incoming contract.
+  - Use each active contract's raw OHLC prices for pattern recognition; do not use an adjusted continuous series.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:33:59+08:00'
+- assumption_id: MG1A.COMMON.PROVENANCE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: All official shape labels for training and evaluation must be generated by one unified, versioned recognition
+    algorithm; human confirmation is optional and evaluated models cannot generate their own targets.
+  required_changes:
+  - Define one canonical pattern-recognition algorithm as the sole generator of official training and evaluation shape labels.
+  - Bind every official label set to the detector identity, version, configuration hash, algorithm artifact hash, and evidence
+    snapshot.
+  - Keep AI, model, program, or human proposals in a separate advisory namespace unless the canonical algorithm produces the
+    official label.
+  - Record human confirmation as optional metadata without changing the canonical algorithm provenance.
+  - Prohibit any trained or evaluated model from generating its own official target labels.
+  - Publish an immutable new label-set version when the canonical algorithm changes; do not overwrite prior labels.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:38:32+08:00'
+- assumption_id: MG1A.COMMON.MIRROR.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Every mirrored pair must share both its structure and parameters exactly, with only the directional, high-low,
+    and breakout-orientation transformations applied.
+  required_changes:
+  - Define a normative mirror-pair table for trend direction, double top and bottom, head-and-shoulders top and bottom, and
+    directional level events.
+  - Define exact mirrored transforms for anchors, phase events, invalidations, orientations, semantic roles, formulas, and
+    relations.
+  - Require both members of a mirror pair to reference the same parameter set within the same timeframe and registry version.
+  - Apply parameter changes atomically to both members and reject any mirror-pair parameter drift.
+  - Keep recognition independent across timeframes while enforcing mirror equality inside each timeframe.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:39:46+08:00'
+- assumption_id: MG1A.COMMON.OVERLAP.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Record every independently valid overlapping, nested, cross-family, or cross-timeframe pattern as a distinct
+    object and connect the objects with explicit relationships rather than selecting only one.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:40:58+08:00'
+- assumption_id: MG1A.COMMON.ZONE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Key price levels use price zones except for an explicitly registered canonical-algorithm exception; the
+    time-varying HEAD_SHOULDERS_TOP and INVERSE_HEAD_SHOULDERS neckline follows its selected detector formula.
+  required_changes:
+  - Add a common versioned zone contract used by every pattern family and key price level unless an owner-reviewed algorithm-specific
+    exception is registered.
+  - Store zone identity, lower and upper bounds, reference center, source anchors, timeframe, construction method, and version.
+  - Base recognition decisions on zone bounds rather than treating the reference center as an exact tradable line, except
+    for a registered algorithm-specific dynamic-level rule.
+  - Construct each zone independently per timeframe from related confirmed closed-bar pivots, using the lowest relevant pivot
+    price as the lower bound and the highest as the upper bound.
+  - When only one relevant pivot is available, initialize the zone from the low to the high of that pivot's closed bar.
+  - Register the canonical dynamic scalar neckline from the shared head-and-shoulders algorithm as an explicit exception;
+    do not expand it with pivot-bar Low-High values or replace it with a static zone.
+  - Define exact touch, cross, penetration, hold, rejection, reclaim, and full-recross predicates.
+  - Define zone drift, material revision, merge, replacement, precedence, and expiry behavior.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:46:59+08:00'
+- assumption_id: MG1A.COMMON.FILTER_MISSINGNESS.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Futures volume and open-interest data are complete and correct, but neither field participates in determining
+    whether a technical pattern exists, is confirmed, or becomes invalid.
+  required_changes:
+  - Require valid volume and open-interest values for futures input data and treat their absence as a data-quality error rather
+    than a normal unknown state.
+  - Remove volume and open-interest filters from canonical pattern existence, phase-transition, confirmation, and invalidation
+    predicates.
+  - Permit volume and open interest to remain observational features without changing the official shape label.
+  - Do not define volume or open-interest baselines as requirements for canonical shape recognition.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:48:56+08:00'
+- assumption_id: MG1A.COMMON.LABEL_TIMING.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Strictly separate information available at recognition time, retrospective pattern completion, and future
+    market outcomes; exact completion and outcome windows may be defined later.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:50:31+08:00'
+- assumption_id: MG1A.TREND_UP.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Adopt the canonical market_structure semantics in which local structure may report confirmed HH and HL,
+    while the official uptrend activates earlier after a confirmed HL and a closed-bar break above the prior high.
+  required_changes:
+  - Bind the trend structure definition to the selected version of stock_peter tools/patterns/market_structure.py.
+  - Keep confirmed HH and HL as the local up-structure descriptor.
+  - Define official uptrend readiness as a confirmed L-H-HL setup followed by a closed-bar close strictly above the prior
+    high under the registered break-buffer policy.
+  - Require all compared anchors to belong to the same timeframe and active contract.
+  - Make each pivot usable only on its algorithmic confirmation bar and apply the versioned key-zone and equality-tolerance
+    rules.
+  - Apply the exact mirrored readiness rule to the downtrend family.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:16:42+08:00'
+- assumption_id: MG1A.TREND_UP.PHASE.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Retain the proposed uptrend phases; the exact causal predicate for every phase transition must be supplied
+    under the common lifecycle revision requirement.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T20:53:11+08:00'
+- assumption_id: MG1A.TREND_UP.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use the existing canonical algorithm rule in which a confirmed higher low followed by a closed-bar break
+    above the prior high confirms the uptrend without waiting for the new high to become a confirmed pivot.
+  required_changes:
+  - Reference the selected market_structure algorithm, source commit, file hash, callable, and versioned parameter profile.
+  - Confirm an uptrend only after the L-H-HL pivots are causally available and a later closed bar closes strictly above the
+    prior high under the configured break buffer.
+  - Build the prior-high zone from its confirmed pivot evidence and require Close to be strictly above prior_high_zone_high
+    multiplied by one plus the versioned break_buffer_pct.
+  - Equality with the threshold and wick-only penetration must not confirm TREND_UP.
+  - Do not use volume or open interest as confirmation conditions.
+  - Apply the exact mirrored rule to downtrend confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:16:42+08:00'
+- assumption_id: MG1A.TREND_UP.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve the canonical protected-HL invalidation event while applying the break buffer outside the owner-approved
+    protected-low zone.
+  required_changes:
+  - Build the protected-HL zone from the causally confirmed protected-low pivot and its closed bar.
+  - Invalidate TREND_UP only when Close is strictly below protected_hl_zone_low multiplied by one minus the shared versioned
+    break_buffer_pct.
+  - Equality with the threshold and wick-only penetration must not invalidate TREND_UP.
+  - At the invalidating bar close, terminalize the active trend object as INVALIDATED and return the detector runtime state
+    to neutral without rewriting prior trend history.
+  - Preserve the canonical continuation rule that replaces the protected HL only after a new external high, a later confirmed
+    HL, and a closed-bar break above that external high.
+  - Do not use volume or open interest as invalidation conditions.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:42:33+08:00'
+- assumption_id: MG1A.TREND_DOWN.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror the selected canonical market_structure uptrend rule in the DOWN direction.
+  required_changes:
+  - Bind both trend directions to tools/patterns/market_structure.py analyze_market_structure at stock_peter commit 57ee01baf8a6859d89e4c2e8ce83f41cc29c05b5
+    and file SHA256 cc87add75331f4a31359bb31f2120e6df6c302326f028260d504f27fc1bbd247.
+  - Keep confirmed LH and LL as the local down-structure descriptor.
+  - Define official downtrend readiness as a confirmed H-L-LH setup followed by a closed-bar close strictly below the prior
+    low under the shared registered break-buffer policy.
+  - Require all anchors to belong to the same timeframe and active contract and to be usable only on their algorithmic confirmation
+    bars.
+  - Apply the common key-zone contract and the exact same effective parameter profile used by TREND_UP.
+  - Add generated mirror tests proving that price-inverted inputs produce direction-inverted structures and events.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:41:13+08:00'
+- assumption_id: MG1A.TREND_DOWN.PHASE.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Retain the proposed downtrend phases as the strict mirror of TREND_UP; exact causal predicates for the
+    common lifecycle remain governed by the existing lifecycle revision requirement.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:41:13+08:00'
+- assumption_id: MG1A.TREND_DOWN.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use the canonical mirrored rule in which a confirmed lower high followed by a closed-bar break below the
+    prior low confirms the downtrend without waiting for the new low to become a confirmed pivot.
+  required_changes:
+  - Reference the same pinned market_structure callable and versioned effective parameter profile used by TREND_UP.
+  - Confirm a downtrend only after the H-L-LH pivots are causally available and a later closed bar closes strictly below the
+    prior low under the shared configured break buffer.
+  - Build the prior-low zone from its confirmed pivot evidence and require Close to be strictly below prior_low_zone_low multiplied
+    by one minus the shared versioned break_buffer_pct.
+  - Equality with the threshold and wick-only penetration must not confirm TREND_DOWN.
+  - Do not use volume or open interest as confirmation conditions.
+  - Preserve exact formula, equality, timing, and parameter mirror symmetry with TREND_UP.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:41:13+08:00'
+- assumption_id: MG1A.TREND_DOWN.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror protected-HL invalidation by applying the shared break buffer outside the protected-LH
+    zone.
+  required_changes:
+  - Build the protected-LH zone from the causally confirmed protected-high pivot and its closed bar.
+  - Invalidate TREND_DOWN only when Close is strictly above protected_lh_zone_high multiplied by one plus the shared versioned
+    break_buffer_pct.
+  - Equality with the threshold and wick-only penetration must not invalidate TREND_DOWN.
+  - At the invalidating bar close, terminalize the active trend object as INVALIDATED and return the detector runtime state
+    to neutral without rewriting prior trend history.
+  - Preserve the canonical continuation rule that replaces the protected LH only after a new external low, a later confirmed
+    LH, and a closed-bar break below that external low.
+  - Do not use volume or open interest as invalidation conditions.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:42:33+08:00'
+- assumption_id: MG1A.TREND_TRANSITION.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Remove TREND_TRANSITION as an independent pattern family because the selected canonical market-structure
+    algorithm defines only uptrend, downtrend, neutral, and their events.
+  required_changes:
+  - Remove TREND_TRANSITION from official pattern-family enums, object schemas, detector outputs, and training or evaluation
+    label spaces.
+  - Do not create a transition pattern object, stable transition identity, or transition anchors.
+  - Preserve market_structure local mixed-structure descriptors only as diagnostic evidence; they must not emit an official
+    pattern label.
+  - Represent the interval after trend invalidation using the detector's neutral runtime state.
+  - Preserve separately timed relations between the invalidated trend and any subsequently confirmed trend.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:44:51+08:00'
+- assumption_id: MG1A.TREND_TRANSITION.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: An eliminated pattern family has no independent four-state lifecycle or phase contract.
+  required_changes:
+  - Remove every TREND_TRANSITION lifecycle and phase definition.
+  - Keep neutral as a market_structure runtime state rather than mapping it to an independent pattern lifecycle.
+  - Do not infer transition phases from elapsed neutral bars.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:44:51+08:00'
+- assumption_id: MG1A.TREND_TRANSITION.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: TREND_TRANSITION has no confirmation predicate after removal as an independent family.
+  required_changes:
+  - Remove transition confirmation fields, parameters, events, and labels.
+  - Record trend invalidation and later trend confirmation as separate canonical events with their own closed-bar timestamps
+    and provenance.
+  - Do not treat neutral or mixed local structure as transition confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:44:51+08:00'
+- assumption_id: MG1A.TREND_TRANSITION.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: TREND_TRANSITION has no invalidation or expiry predicate after removal as an independent family.
+  required_changes:
+  - Remove transition invalidation, expiry, timeout, and terminal-reason fields and parameters.
+  - A later trend confirmation ends the neutral runtime interval but does not complete or invalidate a transition object.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:44:51+08:00'
+- assumption_id: MG1A.DOUBLE_TOP.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use only the strictly mirrored M/W detector as the formal DOUBLE_TOP and DOUBLE_BOTTOM definition source.
+  required_changes:
+  - Register tools/patterns/m_w_pattern_detector.py analyze_m_w_patterns as the only DOUBLE_TOP detector, pinned to stock_peter
+    commit 57ee01baf8a6859d89e4c2e8ce83f41cc29c05b5 and file SHA256 f5c2e40baf3d3aebb3545ed5a646daeac633d8e0c5710c8dc3f76e745972190a.
+  - Completely ignore m_top_detector.py and m_top_neckline_projection.py for Market Genome labels, evidence, derived features,
+    targets, and confirmation.
+  - Use the canonical detector's causal H-L-H structure, extreme similarity, minimum retracement, extreme separation, and
+    leg-duration predicates under a versioned timeframe-specific MWPatternConfig profile.
+  - Share the same detector, state machine, and parameter profile with DOUBLE_BOTTOM by using pattern_scope both.
+  - Preserve the current geometry-only default require_pretrend false; record a canonical prior uptrend as context rather
+    than a DOUBLE_TOP existence gate.
+  - Replace scalar neckline and outer-boundary fields with the owner-approved key-zone representation before formal use.
+  - Volume and open interest remain observational and must not gate DOUBLE_TOP structure.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:30:35+08:00'
+- assumption_id: MG1A.DOUBLE_TOP.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Map the canonical detector's causal candidate state into the common four-state lifecycle without inventing
+    intermediate phases that the algorithm does not emit.
+  required_changes:
+  - UNACTIVATED means no causally available H-L-H candidate exists; partial anchors may be retained only as evidence.
+  - ACTIVE begins when the right peak is confirmed and the complete H-L-H candidate passes the canonical geometry rules.
+  - COMPLETED begins on the closed-bar neckline-break confirmation event.
+  - INVALIDATED begins when an active candidate is invalidated, expires, or is superseded; a replacement candidate receives
+    a new stable identity.
+  - Keep post-confirmation failed-breakdown, target-hit, full-failure, and ambiguous results as separately timed outcomes;
+    they must not rewrite the completed pattern lifecycle or confirmation time.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:30:35+08:00'
+- assumption_id: MG1A.DOUBLE_TOP.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve the canonical M/W detector's strict closed-bar neckline break while applying its buffer from the
+    owner-approved neckline-zone outer edge.
+  required_changes:
+  - After the right peak is causally confirmed, confirm DOUBLE_TOP only when Close is strictly below neckline_zone_low multiplied
+    by one minus the versioned break_buffer_pct.
+  - Preserve the current canonical break_buffer_pct default of 0.003 and max_breakout_wait_bars default of 20 until their
+    timeframe-specific profile is versioned or reviewed.
+  - Equality with the threshold and wick-only penetration must not confirm DOUBLE_TOP.
+  - Preserve require_pretrend false in the current profile; canonical prior uptrend is contextual evidence rather than a confirmation
+    gate.
+  - Volume and open interest remain observational and must not gate confirmation.
+  - Record the closed-bar confirmation time separately from anchor event and availability times.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:32:01+08:00'
+- assumption_id: MG1A.DOUBLE_TOP.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Apply the canonical pre-confirmation invalidation buffer outside the complete top zone and preserve detector
+    expiry and supersession as terminal candidate events.
+  required_changes:
+  - Before confirmation, invalidate DOUBLE_TOP only when Close is strictly above top_zone_high multiplied by one plus the
+    versioned invalidation_buffer_pct.
+  - Preserve the current invalidation_buffer_pct default of 0.005; equality and wick-only penetration must not invalidate.
+  - Expire an unconfirmed candidate when its canonical maximum wait is exceeded, and invalidate it as superseded when a new
+    same-side structural extreme replaces it; every replacement receives a new stable identity.
+  - Keep post-confirmation failed breakdown, full failure, target hit, and same-bar ambiguity as separately timed outcomes
+    rather than rewriting the completed DOUBLE_TOP lifecycle.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:32:01+08:00'
+- assumption_id: MG1A.DOUBLE_BOTTOM.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use the DOUBLE_BOTTOM side of the same canonical M/W detector and shared parameter profile used by DOUBLE_TOP.
+  required_changes:
+  - Register tools/patterns/m_w_pattern_detector.py analyze_m_w_patterns as the only DOUBLE_BOTTOM detector under the same
+    pinned commit, file hash, callable, and MWPatternConfig profile as DOUBLE_TOP.
+  - Completely ignore m_top_detector.py and m_top_neckline_projection.py for Market Genome processing.
+  - Use the canonical detector's causal L-H-L structure, extreme similarity, minimum retracement, extreme separation, and
+    leg-duration predicates as the strict mirror of DOUBLE_TOP.
+  - Preserve the current geometry-only default require_pretrend false; record a canonical prior downtrend as context rather
+    than a DOUBLE_BOTTOM existence gate.
+  - Replace scalar neckline and outer-boundary fields with the owner-approved key-zone representation before formal use.
+  - Volume and open interest remain observational and must not gate DOUBLE_BOTTOM structure.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:30:35+08:00'
+- assumption_id: MG1A.DOUBLE_BOTTOM.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Apply the exact mirrored lifecycle mapping used by DOUBLE_TOP to canonical L-H-L candidates.
+  required_changes:
+  - UNACTIVATED means no causally available L-H-L candidate exists; partial anchors may be retained only as evidence.
+  - ACTIVE begins when the right trough is confirmed and the complete L-H-L candidate passes the canonical geometry rules.
+  - COMPLETED begins on the closed-bar neckline-break confirmation event.
+  - INVALIDATED begins when an active candidate is invalidated, expires, or is superseded; a replacement candidate receives
+    a new stable identity.
+  - Keep post-confirmation failed-breakout, target-hit, full-failure, and ambiguous results as separately timed outcomes;
+    they must not rewrite the completed pattern lifecycle or confirmation time.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:30:35+08:00'
+- assumption_id: MG1A.DOUBLE_BOTTOM.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror DOUBLE_TOP confirmation by applying the same canonical buffer outside the upper edge of
+    the neckline zone.
+  required_changes:
+  - After the right trough is causally confirmed, confirm DOUBLE_BOTTOM only when Close is strictly above neckline_zone_high
+    multiplied by one plus the shared versioned break_buffer_pct.
+  - Preserve the current canonical break_buffer_pct default of 0.003 and max_breakout_wait_bars default of 20 until their
+    shared timeframe-specific profile is versioned or reviewed.
+  - Equality with the threshold and wick-only penetration must not confirm DOUBLE_BOTTOM.
+  - Preserve require_pretrend false in the current profile; canonical prior downtrend is contextual evidence rather than a
+    confirmation gate.
+  - Volume and open interest remain observational and must not gate confirmation.
+  - Record the closed-bar confirmation time separately from anchor event and availability times.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:32:01+08:00'
+- assumption_id: MG1A.DOUBLE_BOTTOM.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror DOUBLE_TOP invalidation by applying the shared canonical buffer outside the complete bottom
+    zone.
+  required_changes:
+  - Before confirmation, invalidate DOUBLE_BOTTOM only when Close is strictly below bottom_zone_low multiplied by one minus
+    the shared versioned invalidation_buffer_pct.
+  - Preserve the current invalidation_buffer_pct default of 0.005; equality and wick-only penetration must not invalidate.
+  - Expire an unconfirmed candidate when its canonical maximum wait is exceeded, and invalidate it as superseded when a new
+    same-side structural extreme replaces it; every replacement receives a new stable identity.
+  - Keep post-confirmation failed breakout, full failure, target hit, and same-bar ambiguity as separately timed outcomes
+    rather than rewriting the completed DOUBLE_BOTTOM lifecycle.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:32:01+08:00'
+- assumption_id: MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: HEAD_SHOULDERS_TOP and INVERSE_HEAD_SHOULDERS must be direction modes of one shared canonical algorithm,
+    not independently evolving detector copies.
+  required_changes:
+  - Replace independent recognition logic in head_shoulders_top_detector.py and head_shoulders_bottom_detector.py with one
+    versioned shared core; retain the existing modules only as compatibility entry points.
+  - Pin both audited source snapshots as migration evidence, with top SHA256 ec3499752310112fa5826cbfb6bb5708ae6fcb8a7a5d8f3e38a9aab638933fbc
+    and bottom SHA256 ebc39225a63db436ec0bebba43f440ad35045fccffb7e7e41d34c9328e800556 at stock_peter commit 57ee01baf8a6859d89e4c2e8ce83f41cc29c05b5.
+  - Use the audited causal H-L-H-L-H topology and its shared shoulder symmetry, head excursion, arm excursion, leg duration,
+    total duration, time asymmetry, and neckline-slope predicates.
+  - Replace direction-specific parameter names with one HeadShouldersConfig schema and a TOP or BOTTOM direction parameter.
+  - Preserve the current geometry-only default require_pretrend false; record canonical prior uptrend as context rather than
+    a structure gate.
+  - Apply one direction-independent positive-price-domain validity rule to every derived level throughout its observation
+    window.
+  - Preserve the canonical time-varying scalar neckline formula as the owner-reviewed exception to the common zone contract.
+  - Volume and open interest remain observational and must not gate structure.
+  - Add cross-direction generated mirror tests and an effective-config equality test.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:37:01+08:00'
+- assumption_id: MG1A.HEAD_SHOULDERS_TOP.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Map only the shared canonical algorithm's emitted candidate events into the common four-state lifecycle.
+  required_changes:
+  - UNACTIVATED means no causally available H-L-H-L-H candidate exists; partial anchors may be retained only as evidence.
+  - ACTIVE begins when the right shoulder is confirmed and the complete five-pivot candidate passes all canonical geometry
+    and dynamic-neckline validity rules.
+  - COMPLETED begins on the closed-bar neckline-break confirmation event.
+  - INVALIDATED begins when an active candidate is invalidated, expires, or is superseded; a replacement receives a new stable
+    identity.
+  - Keep failed breakdown, target hit, full failure, and same-bar ambiguity as separately timed post-completion outcomes;
+    they must not rewrite lifecycle or confirmation time.
+  - Do not invent separate lifecycle phases for intermediate anchors, retest, or continuation when the canonical detector
+    does not emit them.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:37:01+08:00'
+- assumption_id: MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use the shared canonical algorithm's time-varying scalar neckline and strict closed-bar breakdown rule
+    without expanding the neckline into a price zone.
+  required_changes:
+  - Compute neckline N(t) by linearly extending the two confirmed neckline pivots under the shared core's slope and positive-price
+    validity constraints.
+  - After the right shoulder is causally confirmed, confirm HEAD_SHOULDERS_TOP only when Close is strictly below N(t) multiplied
+    by one minus the shared versioned break_buffer_pct.
+  - Preserve the current break_buffer_pct default of 0.003 and max_breakout_wait_bars default of 20 until their shared timeframe-specific
+    profile is versioned or reviewed.
+  - Equality with the threshold and wick-only penetration must not confirm the pattern.
+  - Preserve require_pretrend false in the current profile; prior uptrend is contextual evidence rather than a confirmation
+    gate.
+  - Volume and open interest remain observational and must not gate confirmation.
+  - Record N(t), the buffered threshold, and the closed-bar confirmation time as versioned evidence.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:39:42+08:00'
+- assumption_id: MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve the canonical head-based invalidation, dynamic-neckline expiry, maximum wait, and supersession
+    rules in the shared core.
+  required_changes:
+  - Before confirmation, invalidate only when Close is strictly above head_price multiplied by one plus the shared versioned
+    invalidation_buffer_pct; preserve the current default of 0.005.
+  - Expire the candidate if N(t) becomes non-positive, reaches or exceeds the right shoulder, or the canonical maximum wait
+    is exceeded.
+  - Invalidate a candidate as superseded when a new structural pivot replaces it; every replacement receives a new stable
+    identity.
+  - Equality and wick-only penetration must not trigger head-based invalidation.
+  - Preserve the canonical three-bar failed-breakdown window and later full-failure, target-hit, and same-bar ambiguity as
+    separately timed post-completion outcomes rather than lifecycle rewrites.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:39:42+08:00'
+- assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Define INVERSE_HEAD_SHOULDERS as the strict BOTTOM-direction mirror of the same shared canonical core.
+  required_changes:
+  - Use the same pinned migration evidence, shared implementation, HeadShouldersConfig, output schema, and lifecycle engine
+    as HEAD_SHOULDERS_TOP.
+  - Use the audited causal L-H-L-H-L topology with direction-mirrored shoulder, head, arm, duration, asymmetry, and neckline
+    predicates.
+  - Preserve the current geometry-only default require_pretrend false; record canonical prior downtrend as context rather
+    than a structure gate.
+  - Apply the same direction-independent positive-price-domain validity rule and preserve the canonical time-varying scalar
+    neckline formula as the owner-reviewed exception to the common zone contract.
+  - Volume and open interest remain observational and must not gate structure.
+  - Require cross-direction generated mirror tests and prohibit independent bottom-only recognition logic.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:37:01+08:00'
+- assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror the HEAD_SHOULDERS_TOP lifecycle using the shared core's L-H-L-H-L evidence.
+  required_changes:
+  - UNACTIVATED means no causally available L-H-L-H-L candidate exists; partial anchors may be retained only as evidence.
+  - ACTIVE begins when the right shoulder is confirmed and the complete five-pivot candidate passes all canonical geometry
+    and dynamic-neckline validity rules.
+  - COMPLETED begins on the closed-bar neckline-break confirmation event.
+  - INVALIDATED begins when an active candidate is invalidated, expires, or is superseded; a replacement receives a new stable
+    identity.
+  - Keep failed breakout, target hit, full failure, and same-bar ambiguity as separately timed post-completion outcomes; they
+    must not rewrite lifecycle or confirmation time.
+  - Do not invent separate lifecycle phases for intermediate anchors, retest, or continuation when the canonical detector
+    does not emit them.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:37:01+08:00'
+- assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror top confirmation by using the same shared dynamic-neckline formula and buffered closed-bar
+    rule in the BOTTOM direction.
+  required_changes:
+  - Compute neckline N(t) by linearly extending the two confirmed neckline pivots under the shared core's slope and positive-price
+    validity constraints.
+  - After the right shoulder is causally confirmed, confirm INVERSE_HEAD_SHOULDERS only when Close is strictly above N(t)
+    multiplied by one plus the shared versioned break_buffer_pct.
+  - Preserve the current break_buffer_pct default of 0.003 and max_breakout_wait_bars default of 20 under the same shared
+    timeframe-specific profile as HEAD_SHOULDERS_TOP.
+  - Equality with the threshold and wick-only penetration must not confirm the pattern.
+  - Preserve require_pretrend false in the current profile; prior downtrend is contextual evidence rather than a confirmation
+    gate.
+  - Volume and open interest remain observational and must not gate confirmation.
+  - Record N(t), the buffered threshold, and the closed-bar confirmation time as versioned evidence.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:39:42+08:00'
+- assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Strictly mirror top invalidation, dynamic-neckline expiry, maximum wait, and supersession in the shared
+    BOTTOM-direction core.
+  required_changes:
+  - Before confirmation, invalidate only when Close is strictly below head_price multiplied by one minus the shared versioned
+    invalidation_buffer_pct; preserve the current default of 0.005.
+  - Expire the candidate if N(t) reaches or falls below the right shoulder or the canonical maximum wait is exceeded, while
+    enforcing the common positive-price-domain rule on every derived level.
+  - Invalidate a candidate as superseded when a new structural pivot replaces it; every replacement receives a new stable
+    identity.
+  - Equality and wick-only penetration must not trigger head-based invalidation.
+  - Preserve the canonical three-bar failed-breakout window and later full-failure, target-hit, and same-bar ambiguity as
+    separately timed post-completion outcomes rather than lifecycle rewrites.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:39:42+08:00'
+- assumption_id: MG1A.BREAKOUT.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Represent every outward range-break attempt as an independent object while preserving the distinct BOX_RANGE
+    and SIDEWAYS_RANGE detector semantics.
+  required_changes:
+  - Give each breakout attempt a new stable identity and preserve source_range_type, source_range_id, direction, reference
+    boundary evidence, first-cross time, and detector provenance.
+  - Preserve pending and accepted evidence separately for SIDEWAYS_RANGE and immediate closed-bar confirmation evidence for
+    BOX_RANGE.
+  - Keep wick probes as diagnostic events; they must not create breakout objects without the canonical closed-bar cross.
+  - Require source range, attempt evidence, timeframe, and active contract to agree; never merge attempts from different ranges,
+    types, timeframes, or contracts.
+  - Add explicit typed relations from every attempt to its source range and, when applicable, its FAILED_BREAKOUT object.
+  - Preserve overlapping attempts independently and never overwrite or reuse a terminal attempt identity.
+  - Volume and open interest remain observational and must not determine breakout structure.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:47:10+08:00'
+- assumption_id: MG1A.BREAKOUT.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Keep a confirmed breakout lifecycle-active until its source detector's failure window closes so no terminal
+    state is later rewritten.
+  required_changes:
+  - UNACTIVATED means no qualifying closed-bar outward cross exists for the source range.
+  - ACTIVE begins on the first qualifying outward cross; BOX_RANGE immediate confirmation and SIDEWAYS_RANGE pending or accepted
+    states are evidence substates inside ACTIVE.
+  - Keep the breakout ACTIVE after algorithmic confirmation while its versioned failed-breakout window remains open.
+  - COMPLETED begins when the failure window closes without a qualifying return into the source range.
+  - INVALIDATED begins when the canonical return predicate is met inside the failure window; link the terminal attempt to
+    a separately completed FAILED_BREAKOUT object.
+  - A return after COMPLETED is a separately timed LATE_RECLAIM event and must not reactivate or rewrite the breakout.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:47:10+08:00'
+- assumption_id: MG1A.BREAKOUT.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Breakout confirmation remains source-pattern-specific because BOX_RANGE and SIDEWAYS_RANGE are two independent
+    shapes with different canonical detectors.
+  required_changes:
+  - For BOX_RANGE, confirm a breakout on the first closed bar whose Close is strictly outside the versioned buffered boundary
+    selected by box_breakout_detector.
+  - For SIDEWAYS_RANGE, the first closed-bar outside close starts a pending breakout attempt; confirm only when the versioned
+    sideways_detector acceptance count and window are satisfied. Preserve the current profile defaults of three outside closes
+    within five bars until a later profile revision is reviewed.
+  - A wick-only boundary crossing must not confirm either breakout type.
+  - Preserve source_range_type, source_range_id, first-cross time, confirmation time, detector version, parameter profile,
+    and acceptance evidence on every breakout object.
+  - Do not collapse the two confirmation policies into one common range-breakout predicate.
+  - Volume and open interest remain observational features and must not gate breakout confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:21:50+08:00'
+- assumption_id: MG1A.BREAKOUT.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: A failed breakout terminates the breakout attempt but does not terminate or reactivate its source range.
+  required_changes:
+  - Give every breakout attempt its own stable identity and make a failed attempt terminal.
+  - Never reactivate or reuse a terminal breakout-attempt identity.
+  - Preserve an explicit relation from the terminal breakout attempt to its separate FAILED_BREAKOUT object.
+  - Keep source-range lifecycle evaluation independent from breakout-attempt invalidation.
+  - For SIDEWAYS_RANGE, allow a breakout that already satisfied its acceptance rule to terminate as FAILED_BREAKOUT when the
+    selected detector's reentry predicate is met inside its versioned failure window.
+  - Once the failure window closes, terminalize the breakout as COMPLETED; any later return is LATE_RECLAIM and cannot invalidate
+    or reactivate that terminal object.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:23:36+08:00'
+- assumption_id: MG1A.FAILED_BREAKOUT.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Record each failed breakout as an independent pattern object rather than a reactivated state of its source
+    range.
+  required_changes:
+  - Create a new stable FAILED_BREAKOUT identity for every failed breakout attempt.
+  - Preserve source_range_type, source_range_id, breakout_attempt_id, attempt direction, outward-cross evidence, and reentry
+    evidence.
+  - Add explicit typed relations among the FAILED_BREAKOUT object, its source range, and its terminal breakout attempt.
+  - Do not overwrite, alias, or reactivate the source range or breakout-attempt object to represent FAILED_BREAKOUT.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:23:36+08:00'
+- assumption_id: MG1A.FAILED_BREAKOUT.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: FAILED_BREAKOUT is an event-derived result object created only when the canonical closed-bar reentry predicate
+    is observed inside the failure window.
+  required_changes:
+  - UNACTIVATED means no qualifying failed-breakout reentry has been observed for the related attempt.
+  - Instantiate the FAILED_BREAKOUT directly as COMPLETED at the qualifying closed-bar reentry timestamp; do not persist an
+    artificial ACTIVE candidate state.
+  - Preserve the related breakout attempt's separate transition to INVALIDATED at the same closed-bar timestamp.
+  - Do not use a FAILED_BREAKOUT object to reactivate or overwrite its source range.
+  - Keep later target, reclaim, and ambiguity observations as outcomes or events without rewriting the completed lifecycle.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:47:10+08:00'
+- assumption_id: MG1A.FAILED_BREAKOUT.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use each source range detector's versioned failed-breakout rule, including the current SIDEWAYS_RANGE rule
+    that may reclassify an already accepted breakout inside the failure window.
+  required_changes:
+  - For BOX_RANGE, confirm FAILED_BREAKOUT when Close returns to or through the original box boundary inside the selected
+    box_breakout_detector failure window after its immediately confirmed breakout. Preserve the current default window of
+    three bars until a later profile revision is reviewed.
+  - For SIDEWAYS_RANGE, confirm FAILED_BREAKOUT when Close returns to or through the original sideways core boundary inside
+    the selected sideways_detector failure window after the first buffered outward cross. Apply this rule to both pending
+    and already accepted breakouts, preserving the current default window of three bars.
+  - A retreat behind only the buffered break level is insufficient; confirmation requires a closed-bar return to the original
+    source-range boundary.
+  - Classify a return after the failure window as late reclaim rather than FAILED_BREAKOUT.
+  - A wick-only return must not confirm FAILED_BREAKOUT.
+  - Preserve ambiguous target-touch and boundary-reentry evidence from the same bar without inventing an intrabar order.
+  - Version failure-window and reentry parameters independently for BOX_RANGE and SIDEWAYS_RANGE profiles.
+  - Volume and open interest remain observational features and must not gate FAILED_BREAKOUT confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:25:54+08:00'
+- assumption_id: MG1A.FAILED_BREAKOUT.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: A confirmed FAILED_BREAKOUT is immutable and has no later invalidation or expiry transition.
+  required_changes:
+  - If an outward attempt survives its failure window, do not create and then invalidate a FAILED_BREAKOUT object; no such
+    object exists.
+  - Once created at canonical reentry, keep FAILED_BREAKOUT COMPLETED and preserve later evidence under separate timestamps.
+  - Corrections caused by data or algorithm-version changes must use provenance and replacement records rather than a market
+    lifecycle invalidation event.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:47:10+08:00'
+- assumption_id: MG1A.RETEST.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Remove RETEST as an independent pattern family because no retained canonical detector emits a generic retest
+    object and the only partial implementation was explicitly excluded.
+  required_changes:
+  - Remove RETEST from official pattern-family enums, object schemas, detector outputs, and training or evaluation label spaces.
+  - Do not create a retest identity, anchor topology, geometry record, or relation object.
+  - Keep source-detector boundary tests as diagnostic events only; they must not emit an official RETEST label.
+  - Preserve FAILED_BREAKOUT and LATE_RECLAIM as their already reviewed independent result or event semantics and never alias
+    either one to RETEST.
+  - Do not use the ignored m_top_neckline_projection.py as retest evidence or an auxiliary label source.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:52:45+08:00'
+- assumption_id: MG1A.RETEST.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: An eliminated RETEST family has no independent four-state lifecycle or phase contract.
+  required_changes:
+  - Remove every RETEST lifecycle, phase, timeout, and terminal-state definition.
+  - Do not infer a retest lifecycle from breakout boundary-test events.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:52:45+08:00'
+- assumption_id: MG1A.RETEST.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: RETEST has no confirmation predicate after removal as an independent family.
+  required_changes:
+  - Remove retest confirmation fields, parameters, events, and labels.
+  - Do not treat an approach, boundary touch, rejection, hold, or later continuation as RETEST confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:52:45+08:00'
+- assumption_id: MG1A.RETEST.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: RETEST has no invalidation or expiry predicate after removal as an independent family.
+  required_changes:
+  - Remove retest invalidation, expiry, and terminal-reason fields and parameters.
+  - Continue to classify returns into the source range only under the reviewed FAILED_BREAKOUT or LATE_RECLAIM rules.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:52:45+08:00'
+- assumption_id: MG1A.RANGE.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve both box ranges and long sideways ranges as distinct official range types, each generated by its
+    own selected versioned detector.
+  required_changes:
+  - Add BOX_RANGE and SIDEWAYS_RANGE as closed range_type values under the range family.
+  - Bind BOX_RANGE to the selected box_breakout_detector version, callable, file hash, and timeframe-specific parameter profile.
+  - Bind SIDEWAYS_RANGE to the selected sideways_detector version, callable, file hash, and timeframe-specific parameter profile.
+  - Give each detected range its own stable identity and never merge or overwrite overlapping BOX_RANGE and SIDEWAYS_RANGE
+    objects.
+  - Normalize both detector outputs into the common range object while preserving detector-specific structure evidence.
+  - Apply the common closed-bar, active-contract, key-zone, provenance, and lifecycle contracts to both types.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:18:58+08:00'
+- assumption_id: MG1A.RANGE.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve one stable source-range identity through failed attempts, but terminalize it after a successful
+    breakout survives its failure window.
+  required_changes:
+  - UNACTIVATED means the selected BOX_RANGE or SIDEWAYS_RANGE detector has not causally confirmed the range.
+  - ACTIVE begins on detector-specific range confirmation and remains active during boundary tests, outward attempts, and
+    the full failed-breakout window.
+  - If the attempt fails inside its window, keep the source range ACTIVE under the same identity.
+  - COMPLETED begins when a confirmed breakout's failure window closes without canonical reentry.
+  - INVALIDATED is reserved for contract roll or data and algorithm replacement; the selected detectors currently define no
+    market-driven structural expiry for an already confirmed range.
+  - Do not infer range expiry from SIDEWAYS_RANGE maximum formation-window or post-breakout tracking parameters.
+  - LATE_RECLAIM must not reactivate a completed range; detecting a later range requires a new identity.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:47:10+08:00'
+- assumption_id: MG1A.RANGE.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Confirm BOX_RANGE and SIDEWAYS_RANGE with their separate selected detectors and versioned timeframe profiles;
+    never mix their formation predicates.
+  required_changes:
+  - Confirm BOX_RANGE only when four causally available normalized pivots form H-L-H-L or L-H-L-H and pass the selected detector's
+    high-touch, low-touch, boundary-separation, minimum-width, minimum-duration, and pre-confirmation containment predicates.
+  - Preserve the current BOX_RANGE baseline defaults of left and right 2, touch tolerance 0.005, minimum width 0.02, and minimum
+    duration 10 bars until each timeframe profile is versioned or reviewed.
+  - Confirm SIDEWAYS_RANGE only when the current closed-bar prefix contains qualifying upper and lower confirmed-pivot clusters
+    and passes its selected detector's duration, width, close-containment, consecutive-outside-close, drift, and net-change
+    predicates.
+  - Preserve the current SIDEWAYS_RANGE daily baseline defaults of 120 to 600 bars, three touches per side, cluster tolerance
+    0.02, width 0.08 to 0.60, close containment 0.90, maximum three consecutive outside closes, drift-to-width 0.35, and net-change-to-width
+    0.50; do not silently reuse the daily profile on another timeframe.
+  - Use only pivots causally confirmed by the current EOB and record range_type, detector version and hash, effective timeframe
+    profile, anchor availability, and confirmation time.
+  - Volume and open interest remain observational and must not gate range confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:50:31+08:00'
+- assumption_id: MG1A.RANGE.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: A failed breakout attempt does not by itself invalidate the source BOX_RANGE or SIDEWAYS_RANGE.
+  required_changes:
+  - Keep a still-valid source range active under the same stable identity after a failed breakout attempt.
+  - Remove reactivated from the range lifecycle; the range was never terminated by the failed attempt.
+  - Do not invent a market-driven structural invalidation or expiry rule; neither selected detector currently defines one
+    for an already confirmed range.
+  - Do not treat SIDEWAYS_RANGE max_sideways_bars or max_post_breakout_tracking_bars as range expiry parameters.
+  - Preserve each failed attempt as a related object without merging it into the source range history.
+  - Complete the source range when a confirmed breakout survives its failure window.
+  - Record any later return as LATE_RECLAIM without reactivating the completed source range; a later range must receive a
+    new identity after canonical detection.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T21:23:36+08:00'
+- assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Remove SUPPORT_RESISTANCE_CONVERSION as an independent pattern family because no retained canonical detector
+    emits a role-conversion object.
+  required_changes:
+  - Remove SUPPORT_RESISTANCE_CONVERSION from official pattern-family enums, object schemas, detector outputs, and training
+    or evaluation label spaces.
+  - Do not create a conversion identity, anchor topology, geometry record, or lifecycle.
+  - Preserve support and resistance zones only as contextual level evidence for retained canonical families.
+  - Do not infer role conversion from breakout, boundary test, FAILED_BREAKOUT, or LATE_RECLAIM events.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:27:48+08:00'
+- assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: An eliminated SUPPORT_RESISTANCE_CONVERSION family has no independent four-state lifecycle or phase contract.
+  required_changes:
+  - Remove every role-conversion lifecycle, phase, timeout, and terminal-state definition.
+  - Do not derive a conversion phase from ordinary support, resistance, or breakout context.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:27:48+08:00'
+- assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: SUPPORT_RESISTANCE_CONVERSION has no confirmation predicate after removal as an independent family.
+  required_changes:
+  - Remove role-conversion confirmation fields, parameters, events, and labels.
+  - Do not treat a break, opposite-side return, hold, or rejection as role-conversion confirmation.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:27:48+08:00'
+- assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: SUPPORT_RESISTANCE_CONVERSION has no invalidation or expiry predicate after removal as an independent family.
+  required_changes:
+  - Remove role-conversion invalidation, expiry, and terminal-reason fields and parameters.
+  - Keep later level behavior only as separately timed context or events owned by retained canonical families.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:27:48+08:00'
+- assumption_id: MG1A1.COMMON.OBJECT_MODEL.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Keep pattern objects and append-only relationship edges as separate record kinds; relationship edges are
+    not STRUCTURAL_RELATION pattern objects.
+  required_changes:
+  - Remove STRUCTURAL_RELATION from the pattern object-class enum.
+  - Retain STRUCTURAL_STATE for TREND_UP, TREND_DOWN, and RANGE; retain MORPHOLOGY for DOUBLE_TOP, DOUBLE_BOTTOM, HEAD_SHOULDERS_TOP,
+    and INVERSE_HEAD_SHOULDERS; retain LEVEL_EVENT for BREAKOUT and FAILED_BREAKOUT.
+  - Represent BOX_RANGE and SIDEWAYS_RANGE as distinct closed range_type values under RANGE, not as merged identities.
+  - Remove TREND_TRANSITION, RETEST, and SUPPORT_RESISTANCE_CONVERSION and their transition, retest, and role-conversion semantic
+    roles from the object model.
+  - Define relationship edges under their own append-only schema and never include them in pattern-family lifecycle counts.
+  - Preserve independent identities for every overlapping retained pattern object.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:34:05+08:00'
+- assumption_id: MG1A1.COMMON.MORPHOLOGY_EFFECT.001
+  owner_decision: APPROVE_AS_IS
+  owner_rationale: Structural orientation and semantic role must use only causally available morphology and preceding context;
+    future performance remains isolated in future_outcome and cannot rewrite identity, role, or confirmation time.
+  required_changes: []
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:34:05+08:00'
+- assumption_id: MG1A1.COMMON.LIFECYCLE_MAPPING.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Use the owner-selected UNACTIVATED, ACTIVE, COMPLETED, and INVALIDATED names and map only transitions actually
+    emitted by each canonical family algorithm.
+  required_changes:
+  - Replace INACTIVE with UNACTIVATED and RESOLVED with COMPLETED throughout schemas, validators, serializers, documents,
+    and family contracts.
+  - Allow UNACTIVATED_TO_ACTIVE, ACTIVE_TO_ACTIVE, ACTIVE_TO_COMPLETED, ACTIVE_TO_INVALIDATED, and the event-object-specific
+    UNACTIVATED_TO_COMPLETED transition.
+  - Instantiate FAILED_BREAKOUT directly as COMPLETED at its canonical reentry event without persisting an artificial ACTIVE
+    phase.
+  - Keep confirmed BREAKOUT and its source RANGE ACTIVE until the versioned failure window closes, then complete both; inside
+    the window invalidate the attempt and keep the source range active.
+  - Bind every family transition to its reviewed closed-bar predicate, threshold, time window, evidence priority, and canonical
+    detector profile.
+  - Require each family to implement only its applicable edges; do not require every family to emit every common edge.
+  - Remove all lifecycle mappings for TREND_TRANSITION, RETEST, and SUPPORT_RESISTANCE_CONVERSION.
+  - Keep COMPLETED and INVALIDATED immutable; any later shape requires a new pattern identity, while data or algorithm corrections
+    use append-only replacement provenance.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:38:36+08:00'
+- assumption_id: MG1A1.COMMON.SCALE_SPEC.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Freeze the versioned ScaleSpec interface now while deferring concrete calendars, per-timeframe parameter
+    values, normalization, and train-fitted values.
+  required_changes:
+  - Require every formal object to reference a content-addressed scale registry entry containing timeframe identity, bar resolution,
+    aggregation policy, session and calendar version, canonical detector version and hash, and effective parameter-profile
+    version and hash.
+  - Detect every timeframe independently and assign independent pattern identities; never promote a lower-timeframe pattern
+    to a higher-timeframe label.
+  - Keep family topology shared where the canonical algorithm is shared, while allowing separately versioned effective parameter
+    profiles per timeframe.
+  - Keep formation-span observations on the object's own timeframe and do not use encoder scale metadata as family identity.
+  - Defer concrete trading calendars, timeframe parameter values, normalization, and train-fitted values without running training
+    or GPU work in MG1-A.
+  - Block formal label generation for any timeframe whose required registry entry or effective detector profile is absent,
+    unresolved, or hash-mismatched; do not block ontology schema freeze solely because those values are deferred.
+  - Prohibit test-set selection or tuning and require a new versioned profile for every later parameter change.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:40:11+08:00'
+- assumption_id: MG1A1.COMMON.ANCHOR_REVISION.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Preserve causal closed-bar and append-only anchor lineage, but bind every retained anchor role and state
+    requirement to its canonical detector.
+  required_changes:
+  - Keep PROVISIONAL, CONFIRMED, REVISED, SUPERSEDED, and REVOKED with append-only state transitions; provisional anchors
+    are runtime-only and excluded from committed formal labels.
+  - Add a closed state-requirement registry for CONFIRMED, DERIVED_FROM_CONFIRMED, PROVISIONAL_ALLOWED_RUNTIME_ONLY, and CONFIRMED_AT_REENTRY
+    and enforce every predicate in schema validation.
+  - Remove REVISED_UNTIL_RETURN because RETEST is no longer an official family.
+  - Bind every retained family anchor role to its canonical-detector price_basis and confirmation_basis and reject arbitrary
+    substitutions.
+  - Use raw prices for recognition anchors and preserve event_eob, available_as_of_eob, and as_of_eob separately.
+  - Treat source-data corrections as same-lineage revisions; later market pivots are new lineages and never overwrite prior
+    anchors.
+  - Preserve source method, algorithm version, effective parameter profile, scale, active contract, and assumption lineage
+    on every committed anchor.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:34:05+08:00'
+- assumption_id: MG1A1.COMMON.RELATION_GRAPH.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Store relationship edges as independent append-only records rather than pattern objects, with explicit
+    endpoint and provenance contracts.
+  required_changes:
+  - Retain NESTED_IN, CONTAINS, CONFIRMED_BY, INVALIDATED_BY, ORIGINATES_FROM, and SAME_STRUCTURE_DIFFERENT_SCALE.
+  - Remove RETESTS and CONVERTS_ROLE_OF because their source families were removed.
+  - Add SUCCEEDS for a later confirmed trend related to a previously invalidated trend without recreating TREND_TRANSITION.
+  - Require BREAKOUT to originate from its source RANGE and FAILED_BREAKOUT to originate from its terminal BREAKOUT attempt
+    and source RANGE through separate binary edges.
+  - Give every edge its own stable relation_id, event and availability times, source events, endpoint types, ordinal, provenance,
+    and assumption lineage.
+  - Keep cross-family and cross-scale objects distinct; never destructively merge endpoints.
+  - Correct a relationship with a new relation ID and explicit superseding lineage rather than overwriting committed history.
+  - Validate allowed endpoint types, direction, cardinality, acyclicity where applicable, and source-event existence for every
+    relation type.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:34:05+08:00'
+- assumption_id: MG1A1.COMMON.FORMULA_CONTRACT.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Allow deterministic numeric thresholds required by the selected canonical detectors, while keeping every
+    effective value versioned, content-addressed, scale-specific, and isolated from test-data tuning.
+  required_changes:
+  - Permit deterministic canonical-detector numeric thresholds and time windows only through the effective versioned parameter
+    profile bound to the object's timeframe, detector version, and content hash.
+  - Use raw prices for all pattern-recognition predicates and keep every comparison operator, boundary convention, equality
+    behavior, and closed-bar timing explicit.
+  - Require each derived geometry feature formula to declare typed numerator, denominator, sign, unit, missingness, clipping
+    policy, fit boundary, and assumption lineage separately from recognition predicates.
+  - Defer normalization, train-fitted clipping values, and other training-derived transforms until the training-data and normalization
+    scheme is reviewed; none may alter canonical formal labels.
+  - Prohibit fitting, selecting, or tuning detector thresholds, normalization, or clipping rules on test or evaluation data.
+  - Treat missing futures volume or open interest as a source-data error rather than a valid market observation.
+  - Permit explicit validity masks for genuinely inapplicable or insufficient-history derived features, without converting
+    those masks into missing raw-market-data semantics.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:42:17+08:00'
+- assumption_id: MG1A1.COMMON.REVIEW_PROTOCOL.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: Remove mandatory dual review and adjudication because ontology approval has one project owner and formal
+    training and evaluation labels are generated by the canonical versioned recognition algorithm.
+  required_changes:
+  - Replace TWO_REVIEWERS_THEN_ADJUDICATE_DISAGREEMENT and the minimum-two-reviewer requirement with single PROJECT_OWNER
+    approval for ontology definitions.
+  - Remove mandatory adjudicator identity and adjudication-status fields from the ontology owner-review contract.
+  - Define the canonical algorithm version, effective parameter-profile version, scale entry, source-data snapshot, and their
+    content hashes as the provenance of every formal training and evaluation label.
+  - Keep human inspection optional and append-only; record its reviewer, mode, evidence snapshot, finding, ambiguity, timestamp,
+    and provenance without treating the finding as an alternate standard answer.
+  - Prohibit a human finding from directly overwriting an algorithm-generated formal label.
+  - Route a confirmed discrepancy to an algorithm, ontology, or parameter-profile change proposal; after approval, issue a
+    new version and regenerate affected labels with explicit lineage.
+  - Retain ONLINE_BLINDED, RETROSPECTIVE, and OUTCOME visibility boundaries for optional audits so future information cannot
+    leak into online-shape findings.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:43:57+08:00'
+- assumption_id: MG1A1.COMMON.FAMILY_REVISIONS.001
+  owner_decision: REQUEST_REVISION
+  owner_rationale: The current immutable v2 still contains removed families and superseded contracts, so all approved owner
+    decisions must be implemented in a new ontology version before final freeze review.
+  required_changes:
+  - Generate a new immutable ontology version from all reviewed MG1-A owner decisions; preserve v2 and record explicit supersession
+    and assumption lineage.
+  - Remove TREND_TRANSITION, RETEST, and SUPPORT_RESISTANCE_CONVERSION as independent formal families.
+  - Retain exactly trend_up, trend_down, range, double_top, double_bottom, head_shoulders_top, inverse_head_shoulders, breakout,
+    and failed_breakout with their reviewed object-class mappings.
+  - Bind every retained family to its selected canonical algorithm version and source hash, effective scale-specific parameter-profile
+    version and hash, raw-price basis, closed-bar predicates, lifecycle events, anchors, zones, and relationships.
+  - Apply all reviewed mirror, range subtype, failed-breakout, roll-boundary, label provenance, formula, scale, review, and
+    append-only identity decisions consistently across contracts.
+  - Update schemas, registries, validators, serializers, generated review documents, and CPU-only tests; reject stale removed-family
+    references and hash mismatches.
+  - Present the validated exact revised contract and content hash to PROJECT_OWNER for a new final review and signoff before
+    MG1-B begins.
+  - Do not run training, GPU workloads, normalization fitting, or test-set parameter tuning during this revision.
+  evidence_needed_to_resume: []
+  replacement_proposition: []
+  reviewed_at: '2026-07-13T22:44:42+08:00'
+summary:
+  assumptions_total: 70
+  pending: 0
+  approved_as_is: 8
+  request_revision: 61
+  deferred: 1
+  rejected: 0
+  missing_contract_approval_conflicts: 0
+  review_complete: true
+  owner_signoff_complete: false
+  ready_for_mg1b_freeze: false
+owner_signoff:
+  decision: PENDING
+  signed_at: null
+  target_resolved_contract_sha256: null
+  review_records_sha256: null
+  attestation: null
+execution:
+  gpu_executed: false
+  jax_executed: false
+  training_executed: false
+  labels_created: false
+  synthetic_samples_created: false
+  trading_execution_performed: false

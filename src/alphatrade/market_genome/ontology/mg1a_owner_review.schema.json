@@ -1,0 +1,304 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mg1a.owner_review.v1",
+  "title": "MG1-A.1 single accountable owner review ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "milestone",
+    "review_scope",
+    "status",
+    "target",
+    "ai_reference",
+    "owner",
+    "policy",
+    "records_sha256",
+    "records",
+    "summary",
+    "owner_signoff",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": {"const": "mg1a.owner_review.v1"},
+    "profile": {"const": "mg1a-v2-owner-review"},
+    "milestone": {"const": "MG1-A.1"},
+    "review_scope": {"const": "ONTOLOGY_DRAFT_APPROVAL"},
+    "status": {
+      "enum": [
+        "IN_PROGRESS",
+        "AWAITING_OWNER_SIGNOFF",
+        "OWNER_REVIEW_COMPLETED_WITH_ACTIONS",
+        "APPROVED_FOR_MG1B_FREEZE"
+      ]
+    },
+    "target": {"$ref": "#/definitions/target"},
+    "ai_reference": {"$ref": "#/definitions/aiReference"},
+    "owner": {"$ref": "#/definitions/owner"},
+    "policy": {"$ref": "#/definitions/policy"},
+    "records_sha256": {"$ref": "#/definitions/sha256"},
+    "records": {
+      "type": "array",
+      "minItems": 70,
+      "maxItems": 70,
+      "items": {"$ref": "#/definitions/reviewRecord"}
+    },
+    "summary": {"$ref": "#/definitions/summary"},
+    "owner_signoff": {"$ref": "#/definitions/signoff"},
+    "execution": {"$ref": "#/definitions/execution"}
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nullableNonEmptyString": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "minLength": 1}
+      ]
+    },
+    "uniqueStrings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "nullableTimestamp": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+        }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit",
+        "path",
+        "file_sha256",
+        "resolved_contract_sha256"
+      ],
+      "properties": {
+        "git_commit": {
+          "const": "0d378954d49b6467d05fdef152c522e94b660978"
+        },
+        "path": {
+          "const": "configs/market_genome/pattern_ontology_v2.yaml"
+        },
+        "file_sha256": {
+          "const": "cd569c19a73768b19b8f9ded2b570dc3fc93796a87b97ecd27becdd32ba5978e"
+        },
+        "resolved_contract_sha256": {
+          "const": "ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd"
+        }
+      }
+    },
+    "aiReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "bundle_path",
+        "bundle_sha256",
+        "adjudication_path",
+        "adjudication_sha256",
+        "decisions_sha256"
+      ],
+      "properties": {
+        "role": {"const": "ADVISORY_ONLY"},
+        "bundle_path": {
+          "const": "configs/market_genome/reviews/mg1a_v2_ai_simulated/bundle.json"
+        },
+        "bundle_sha256": {
+          "const": "0e9a4f798a540e86901757ebf2633a51dcbab217ea5d9ea38900289937b7ec4c"
+        },
+        "adjudication_path": {
+          "const": "configs/market_genome/reviews/mg1a_v2_ai_simulated/adjudication.json"
+        },
+        "adjudication_sha256": {
+          "const": "b10638c96338556feaa6c8e1766e19c1baf456390220281ceb792a5b0db07df3"
+        },
+        "decisions_sha256": {
+          "const": "01a9c889c94ac47a9707bee1cc49d9b09b0d412eb5632f140fa39bfeeabc15d1"
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewer_id",
+        "role",
+        "appointment",
+        "decision_mode",
+        "appointed_owner_count",
+        "second_review_required",
+        "adjudication_required",
+        "personal_data_recorded"
+      ],
+      "properties": {
+        "reviewer_id": {"const": "PROJECT_OWNER"},
+        "role": {"const": "PROJECT_OWNER"},
+        "appointment": {"const": "EXPLICIT_USER_INSTRUCTION"},
+        "decision_mode": {"const": "SINGLE_ACCOUNTABLE_OWNER"},
+        "appointed_owner_count": {"const": 1},
+        "second_review_required": {"const": false},
+        "adjudication_required": {"const": false},
+        "personal_data_recorded": {"const": false}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_assumptions_required",
+        "approve_as_is_only_freeze_ready",
+        "non_approval_blocks_freeze",
+        "owner_may_override_ai_advisory",
+        "non_accept_advisory_override_requires_rationale",
+        "draft_remains_immutable",
+        "downstream_gold_annotation_policy_changed",
+        "frozen_change_requires_new_version",
+        "training_and_gpu_deferred"
+      ],
+      "properties": {
+        "all_assumptions_required": {"const": true},
+        "approve_as_is_only_freeze_ready": {"const": true},
+        "non_approval_blocks_freeze": {"const": true},
+        "owner_may_override_ai_advisory": {"const": true},
+        "non_accept_advisory_override_requires_rationale": {"const": true},
+        "draft_remains_immutable": {"const": true},
+        "downstream_gold_annotation_policy_changed": {"const": true},
+        "frozen_change_requires_new_version": {"const": true},
+        "training_and_gpu_deferred": {"const": true}
+      }
+    },
+    "reviewRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_id",
+        "owner_decision",
+        "owner_rationale",
+        "required_changes",
+        "evidence_needed_to_resume",
+        "replacement_proposition",
+        "reviewed_at"
+      ],
+      "properties": {
+        "assumption_id": {
+          "type": "string",
+          "pattern": "^MG1A1?\\.[A-Z_]+\\.[A-Z_]+\\.001$"
+        },
+        "owner_decision": {
+          "enum": [
+            "PENDING",
+            "APPROVE_AS_IS",
+            "REQUEST_REVISION",
+            "DEFER",
+            "REJECT"
+          ]
+        },
+        "owner_rationale": {"$ref": "#/definitions/nullableNonEmptyString"},
+        "required_changes": {"$ref": "#/definitions/uniqueStrings"},
+        "evidence_needed_to_resume": {"$ref": "#/definitions/uniqueStrings"},
+        "replacement_proposition": {"$ref": "#/definitions/uniqueStrings"},
+        "reviewed_at": {"$ref": "#/definitions/nullableTimestamp"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumptions_total",
+        "pending",
+        "approved_as_is",
+        "request_revision",
+        "deferred",
+        "rejected",
+        "missing_contract_approval_conflicts",
+        "review_complete",
+        "owner_signoff_complete",
+        "ready_for_mg1b_freeze"
+      ],
+      "properties": {
+        "assumptions_total": {"const": 70},
+        "pending": {"type": "integer", "minimum": 0, "maximum": 70},
+        "approved_as_is": {"type": "integer", "minimum": 0, "maximum": 70},
+        "request_revision": {"type": "integer", "minimum": 0, "maximum": 70},
+        "deferred": {"type": "integer", "minimum": 0, "maximum": 70},
+        "rejected": {"type": "integer", "minimum": 0, "maximum": 70},
+        "missing_contract_approval_conflicts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "review_complete": {"type": "boolean"},
+        "owner_signoff_complete": {"type": "boolean"},
+        "ready_for_mg1b_freeze": {"type": "boolean"}
+      }
+    },
+    "signoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "signed_at",
+        "target_resolved_contract_sha256",
+        "review_records_sha256",
+        "attestation"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "PENDING",
+            "RETURN_FOR_REVISION",
+            "APPROVE_FOR_MG1B_FREEZE"
+          ]
+        },
+        "signed_at": {"$ref": "#/definitions/nullableTimestamp"},
+        "target_resolved_contract_sha256": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/definitions/sha256"}]
+        },
+        "review_records_sha256": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/definitions/sha256"}]
+        },
+        "attestation": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "enum": [
+                "I approve the hash-bound MG1-A.1 draft for the MG1-B freeze step; this signoff does not freeze the ontology or unblock gold-set production.",
+                "I return the hash-bound MG1-A.1 draft for revision; this signoff does not approve or freeze the ontology or unblock gold-set production."
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gpu_executed",
+        "jax_executed",
+        "training_executed",
+        "labels_created",
+        "synthetic_samples_created",
+        "trading_execution_performed"
+      ],
+      "properties": {
+        "gpu_executed": {"const": false},
+        "jax_executed": {"const": false},
+        "training_executed": {"const": false},
+        "labels_created": {"const": false},
+        "synthetic_samples_created": {"const": false},
+        "trading_execution_performed": {"const": false}
+      }
+    }
+  }
+}
