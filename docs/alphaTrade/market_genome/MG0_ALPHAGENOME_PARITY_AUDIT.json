@@ -1,0 +1,577 @@
+{
+  "metadata": {
+    "schema_version": "mg0.alphagenome_parity_audit.v1",
+    "sprint": "MG0-A AlphaGenome Official Code Parity Audit",
+    "generated_at": "2026-07-13T13:43:29+08:00",
+    "audit_status": "FROZEN_WITH_NEEDS_VERIFICATION",
+    "parity_verdict": "PARTIAL_PUBLISHED_CODE_PARITY",
+    "gate_decision": "PASS_WITH_NEEDS_VERIFICATION",
+    "official_commit": "232fc695d1eab27bac9e94bcd4b50499139ba4e1",
+    "local_head": "ed738d92ab76df03b4d25ebb741e33048c9aae09",
+    "implementation_added": false
+  },
+  "source_evidence": {
+    "paper": "https://www.nature.com/articles/s41586-025-10014-0",
+    "supplementary_information": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-025-10014-0/MediaObjects/41586_2025_10014_MOESM1_ESM.pdf",
+    "supplementary_tables": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-025-10014-0/MediaObjects/41586_2025_10014_MOESM3_ESM.xlsx",
+    "official_repository": "https://github.com/google-deepmind/alphagenome_research/tree/232fc695d1eab27bac9e94bcd4b50499139ba4e1",
+    "local_parity_checks": [
+      "git merge-base --is-ancestor upstream/main HEAD exited 0",
+      "git diff upstream/main..HEAD -- src/alphagenome_research produced no diff"
+    ],
+    "inspected_files": [
+      "src/alphagenome_research/model/model.py",
+      "src/alphagenome_research/model/attention.py",
+      "src/alphagenome_research/model/convolutions.py",
+      "src/alphagenome_research/model/layers.py",
+      "src/alphagenome_research/model/embeddings.py",
+      "src/alphagenome_research/model/heads.py",
+      "src/alphagenome_research/model/losses.py",
+      "src/alphagenome_research/model/augmentation.py",
+      "src/alphagenome_research/model/schemas.py",
+      "src/alphagenome_research/model/splicing.py",
+      "src/alphagenome_research/model/dna_model.py",
+      "src/alphagenome_research/model/variant_scoring/variant_scoring.py",
+      "src/alphagenome_research/model/variant_scoring/center_mask.py",
+      "src/alphagenome_research/model/variant_scoring/gene_mask.py",
+      "src/alphagenome_research/model/variant_scoring/contact_map.py",
+      "src/alphagenome_research/model/variant_scoring/polyadenylation.py",
+      "src/alphagenome_research/model/variant_scoring/splice_junction.py",
+      "src/alphagenome_research/model/variant_scoring/calibration/calibration.py",
+      "src/alphagenome_research/model/interval_scoring/interval_scoring.py",
+      "src/alphagenome_research/model/interval_scoring/gene_mask.py",
+      "src/alphagenome_research/io/bundles.py",
+      "src/alphagenome_research/io/dataset.py",
+      "src/alphagenome_research/io/fasta.py",
+      "src/alphagenome_research/io/genome.py",
+      "src/alphagenome_research/io/splicing.py",
+      "src/alphagenome_research/evals/track_prediction.py",
+      "src/alphagenome_research/evals/regression_metrics.py",
+      "src/alphagenome_research/finetuning/dataset.py",
+      "src/alphagenome_research/finetuning/finetune.py",
+      "src/alphagenome_research/**/*_test.py"
+    ],
+    "evidence_boundaries": [
+      "CODE_OBSERVED: model, heads, losses, loaders, evaluation, fine-tuning, prediction and scoring code",
+      "PUBLISHED_ONLY: pretraining recipe, fold construction details, all-fold teachers, distillation, mutations and sequence-parallel trainer",
+      "EXTERNAL_DEPENDENCY: fold enums and ISM enumeration are partly supplied by the separate alphagenome package",
+      "DESIGN_INFERENCE: every MarketGenome analogue and causal modification"
+    ]
+  },
+  "component_map": [
+    {
+      "component": "DNA one-hot input",
+      "official_code_evidence": "schemas.py:25-29 DataBatch dna_sequence [B,S,4]; model.py:198-215 consumes it",
+      "scientific_role": "Encode nucleotide identity over a fixed genomic window.",
+      "market_genome_analogue": "Typed bar and feature channels with availability masks.",
+      "causal_modification": "Require every value and provenance timestamp to be <= as_of; represent missing values explicitly.",
+      "status": "REDESIGN",
+      "risk": "Feature or label leakage hidden in preprocessing.",
+      "validation_test": "Source-timestamp audit and future-suffix perturbation test."
+    },
+    {
+      "component": "Organism conditioning",
+      "official_code_evidence": "model.py:216-224; embeddings.py:58-78; heads.py:266-295 inject organism-specific embeddings and weights",
+      "scientific_role": "Condition shared regulatory representation on human or mouse identity.",
+      "market_genome_analogue": "Symbol, exchange, sector, session or past-derived regime identity.",
+      "causal_modification": "Regime identity must be past-only and unseen identities need a defined fallback.",
+      "status": "REUSE_PATTERN",
+      "risk": "Identity memorization and poor unseen-symbol generalization.",
+      "validation_test": "Identity shuffle plus symbol-held-out evaluation."
+    },
+    {
+      "component": "DNA stem",
+      "official_code_evidence": "convolutions.py:106-118 DnaEmbedder uses kernel-15 and residual kernel-5 convolutions",
+      "scientific_role": "Extract local sequence motifs.",
+      "market_genome_analogue": "Local microstructure feature stem.",
+      "causal_modification": "Use explicit left padding only.",
+      "status": "CAUSALIZE",
+      "risk": "SAME padding exposes future positions.",
+      "validation_test": "Per-position full-versus-prefix equality."
+    },
+    {
+      "component": "Encoder and downsampling",
+      "official_code_evidence": "model.py:38-55; convolutions.py:121-137; layers.py:31-52 implement seven x2 pools from /1 to /128 with skips",
+      "scientific_role": "Build multi-scale genomic context.",
+      "market_genome_analogue": "Causal temporal feature pyramid.",
+      "causal_modification": "Timestamp every pooled output at the terminal input and use causal pooling or stride.",
+      "status": "CAUSALIZE",
+      "risk": "Within-bin future leakage and odd-length alignment errors.",
+      "validation_test": "Per-stage shapes, terminal timestamps and prefix invariance."
+    },
+    {
+      "component": "Standardized convolution",
+      "official_code_evidence": "convolutions.py:54-103 standardizes weights and sets padding='SAME'",
+      "scientific_role": "Stabilize convolutional learning.",
+      "market_genome_analogue": "Weight-standardized causal convolution.",
+      "causal_modification": "Replace SAME with explicit left padding and preserve length intentionally.",
+      "status": "CAUSALIZE",
+      "risk": "Silent time shift after padding changes.",
+      "validation_test": "Impulse alignment and future perturbation tests."
+    },
+    {
+      "component": "RMSBatchNorm",
+      "official_code_evidence": "layers.py:55-99 uses batch and all spatial axes in training with EMA state",
+      "scientific_role": "Normalize genomic activations.",
+      "market_genome_analogue": "No direct default; per-token normalization is safer.",
+      "causal_modification": "Replace with per-token LayerNorm/RMSNorm or frozen train-only past statistics.",
+      "status": "REDESIGN",
+      "risk": "Future tokens affect historical outputs in training mode.",
+      "validation_test": "Train/inference state update tests and prefix invariance."
+    },
+    {
+      "component": "Transformer tower, MQA and RoPE",
+      "official_code_evidence": "model.py:76-90; attention.py:116-174 implement nine unmasked residual attention blocks with 8Q/1KV",
+      "scientific_role": "Model long-range regulatory context.",
+      "market_genome_analogue": "Long-range temporal context.",
+      "causal_modification": "Apply a hard causal mask after tanh soft-cap and before softmax, or use masked softmax; also enforce session, roll and gap boundaries with time-aware positions.",
+      "status": "CAUSALIZE",
+      "risk": "Future attention remains reachable through logits or learned bias.",
+      "validation_test": "Full-versus-prefix equality at every transformer layer."
+    },
+    {
+      "component": "Pair update and attention bias",
+      "official_code_evidence": "attention.py:177-299 constructs /2048 sequence-to-pair features, full row attention and pair-derived bias",
+      "scientific_role": "Feed pairwise genomic relations back into sequence attention.",
+      "market_genome_analogue": "Directional time-to-time or anchor relations.",
+      "causal_modification": "Require a lower-triangular directed relation and mask every future column immediately before row softmax.",
+      "status": "DEFER",
+      "risk": "Quadratic memory and a hidden bidirectional information path.",
+      "validation_test": "Pair causality test and measured O(L^2) memory profile."
+    },
+    {
+      "component": "Decoder and skip connections",
+      "official_code_evidence": "model.py:58-73; convolutions.py:140-170 upsample /128 to /1 with repeated coarse tokens and encoder skips",
+      "scientific_role": "Recover dense base-resolution predictions.",
+      "market_genome_analogue": "Dense multi-resolution temporal decoder.",
+      "causal_modification": "Use delayed terminal-aligned upsampling and causal convolutions.",
+      "status": "CAUSALIZE",
+      "risk": "A coarse token leaks later observations to its earlier fine child.",
+      "validation_test": "Perturb every skip and coarse state and compare all prior outputs."
+    },
+    {
+      "component": "Typed multi-resolution embeddings",
+      "official_code_evidence": "embeddings.py:25-78 exposes 1bp 1536D, 128bp 3072D and pair 128D embeddings",
+      "scientific_role": "Expose representations at task-appropriate resolutions.",
+      "market_genome_analogue": "Fine and coarse typed temporal embeddings.",
+      "causal_modification": "Define causal fusion and terminal timestamp contracts for every resolution.",
+      "status": "REUSE_PATTERN",
+      "risk": "Resolution or timestamp misalignment.",
+      "validation_test": "Shape, timestamp, provenance and prefix tests."
+    },
+    {
+      "component": "Symmetric pair embedding",
+      "official_code_evidence": "embeddings.py:81-106 explicitly symmetrizes pair tensors",
+      "scientific_role": "Represent unstranded genomic pair relations.",
+      "market_genome_analogue": "No direct counterpart because time is directed.",
+      "causal_modification": "Remove symmetry and define direction before use.",
+      "status": "DEFER",
+      "risk": "Symmetry erases the market arrow of time.",
+      "validation_test": "Assert an asymmetric directed pair contract."
+    },
+    {
+      "component": "Head registry and loss weights",
+      "official_code_evidence": "heads.py:44-237 declares 11 heads; model.py:286-300 sums declared loss weights",
+      "scientific_role": "Provide an auditable multi-task output contract.",
+      "market_genome_analogue": "Typed market-task registry with explicit weights.",
+      "causal_modification": "Redesign task semantics and log the fully resolved registry and weights.",
+      "status": "REUSE_PATTERN",
+      "risk": "Silent task omission or weighting changes.",
+      "validation_test": "Snapshot instantiated heads, outputs and loss weights."
+    },
+    {
+      "component": "Dense genome-track heads",
+      "official_code_evidence": "heads.py:474-858 predicts ATAC, DNase, PRO-cap, CAGE, RNA and ChIP tracks at 1/128bp",
+      "scientific_role": "Predict dense assay tracks across sequence positions.",
+      "market_genome_analogue": "Dense return, path, volatility, range, volume/OI and event tracks.",
+      "causal_modification": "Use signed, quantile or class-specific output parameterizations by task.",
+      "status": "REUSE_PATTERN",
+      "risk": "Biological positive activations cannot represent signed returns.",
+      "validation_test": "Output-domain, mask and dense-gradient tests for every task and resolution."
+    },
+    {
+      "component": "Target scaling",
+      "official_code_evidence": "heads.py:298-360,537-635 uses nonzero mean, resolution, RNA power 0.75 and soft clipping with inverse",
+      "scientific_role": "Place heterogeneous count tracks on comparable training scales.",
+      "market_genome_analogue": "Train-fold scaler per task and horizon.",
+      "causal_modification": "Fit on training data only and freeze an explicit inverse and provenance hash.",
+      "status": "REDESIGN",
+      "risk": "Validation or test contamination and output-unit mistakes.",
+      "validation_test": "Roundtrip, frozen hash and no-validation-influence tests."
+    },
+    {
+      "component": "Genome-track loss",
+      "official_code_evidence": "heads.py:671-690,817-858 and losses.py:62-121 combine normalized Poisson totals and 5x positional multinomial loss",
+      "scientific_role": "Match both total signal and its positional distribution.",
+      "market_genome_analogue": "Total movement plus path-shape decomposition.",
+      "causal_modification": "Use signed robust or pinball likelihoods and retain explicit task masks.",
+      "status": "REDESIGN",
+      "risk": "Poisson assumptions and abs targets are invalid for signed market values.",
+      "validation_test": "All-masked, scale, same-total/different-path and signed-channel tests."
+    },
+    {
+      "component": "Contact-map head",
+      "official_code_evidence": "heads.py:861-915 projects /2048 pair embeddings and applies metadata/NaN-masked MSE",
+      "scientific_role": "Predict physical genomic contact maps.",
+      "market_genome_analogue": "No validated supervised market counterpart.",
+      "causal_modification": "Define a learnable target contract before implementing any pair target.",
+      "status": "DEFER",
+      "risk": "Invented supervision presented as an analogue.",
+      "validation_test": "Independent schema and learnability gate."
+    },
+    {
+      "component": "Splice-site classification",
+      "official_code_evidence": "heads.py:918-963 produces five-class 1bp softmax and masked categorical cross entropy",
+      "scientific_role": "Classify donor, acceptor and other positions.",
+      "market_genome_analogue": "Dense phase, breakout or event-state classification.",
+      "causal_modification": "Redefine labels, imbalance handling and legal transitions.",
+      "status": "REUSE_PATTERN",
+      "risk": "Rare-event collapse and invalid state transitions.",
+      "validation_test": "PR, calibration, all-inactive baseline and transition-legality tests."
+    },
+    {
+      "component": "Splice-site usage",
+      "official_code_evidence": "heads.py:966-1017 uses a 1bp sigmoid output, BCE and metadata padding masks",
+      "scientific_role": "Estimate site-use probability by tissue.",
+      "market_genome_analogue": "Completion, invalidation or event-use probability.",
+      "causal_modification": "Use past-only labels with an explicit censoring policy.",
+      "status": "REUSE_PATTERN",
+      "risk": "Censoring and probability miscalibration.",
+      "validation_test": "Brier, ECE, sparse-mask and FP32-loss tests."
+    },
+    {
+      "component": "Splice-junction head",
+      "official_code_evidence": "heads.py:1020-1246 and splicing.py:25-77 select top sites and predict tissue-specific directed pairs",
+      "scientific_role": "Predict donor-to-acceptor junction counts.",
+      "market_genome_analogue": "Possible swing-anchor or event relation.",
+      "causal_modification": "Define a directed, past-only candidate ontology and support before implementation.",
+      "status": "DEFER",
+      "risk": "Non-differentiable top-k, quadratic pairs and unsupported labels.",
+      "validation_test": "Candidate, directed-mask, alignment and permutation tests."
+    },
+    {
+      "component": "DataBatch and masks",
+      "official_code_evidence": "schemas.py:25-86 and io/dataset.py:211-255 carry optional dense labels and broadcast track masks",
+      "scientific_role": "Train on heterogeneous assays with missing tracks.",
+      "market_genome_analogue": "Market batch with feature and target masks.",
+      "causal_modification": "Add pointwise input, warmup, session, roll, gap, fold and as-of masks.",
+      "status": "REDESIGN",
+      "risk": "Broadcast masks can hide invalid bars or create gradients on padding.",
+      "validation_test": "Missing-modality, all-masked, boundary and zero-gradient tests."
+    },
+    {
+      "component": "Multi-bundle TFRecord zip",
+      "official_code_evidence": "io/dataset.py:160-232 checks equal shard counts, zips bundles and merges dictionaries",
+      "scientific_role": "Align separately stored assay bundles for one interval.",
+      "market_genome_analogue": "Join aligned market modalities by sample identity.",
+      "causal_modification": "Use explicit identity keys and fail on any cross-modality mismatch.",
+      "status": "REDESIGN",
+      "risk": "Equal file counts do not prove record-level interval identity.",
+      "validation_test": "Deliberately mismatched sample identities must hard-fail."
+    },
+    {
+      "component": "Reverse-complement output alignment",
+      "official_code_evidence": "augmentation.py:31-122 and dna_model.py:165-185,278-284 reverse/reindex predictions; dna_model.py:628-638,806-807,904-918,935-936 passes negative-strand masks and scores restored-orientation outputs",
+      "scientific_role": "Restore strand-equivariant genomic outputs.",
+      "market_genome_analogue": "No direct market analogue.",
+      "causal_modification": "Prohibit reverse-time augmentation.",
+      "status": "DEFER",
+      "risk": "False long-short symmetry and destruction of temporal order.",
+      "validation_test": "Market config rejects reverse-time transforms."
+    },
+    {
+      "component": "Training shift and reverse-complement augmentation",
+      "official_code_evidence": "Supplementary Methods, Pre-training and Distillation, pp. 19-21, describes shift [-1024,1024] and 50% RC; corresponding trainer code is absent",
+      "scientific_role": "Encourage genomic translation and strand robustness.",
+      "market_genome_analogue": "Past-preserving crop or timestamp jitter candidates.",
+      "causal_modification": "Allow only session-valid transforms synchronized across inputs, labels and masks.",
+      "status": "REDESIGN",
+      "risk": "Illegal context edits or label misalignment.",
+      "validation_test": "Deterministic transform/inverse and label-mask alignment tests."
+    },
+    {
+      "component": "Four-fold pretraining design",
+      "official_code_evidence": "Supplementary Methods, Dataset splitting and cross-validation, p. 9, defines four 6/1/1 splits; io/dataset.py consumes fold/subset but does not construct or train folds",
+      "scientific_role": "Overlap-aware held-out genomic evaluation.",
+      "market_genome_analogue": "Purged chronological walk-forward folds.",
+      "causal_modification": "Purge and embargo maximum lookback, label horizon and execution delay.",
+      "status": "CAUSALIZE",
+      "risk": "Temporal overlap or model-selection leakage.",
+      "validation_test": "Zero-overlap interval audit and reproducible split hash."
+    },
+    {
+      "component": "All-fold teachers",
+      "official_code_evidence": "Supplementary Methods, Pre-training and Distillation, pp. 19-21, describes 64 all-fold teachers; trainer and ensemble code are absent",
+      "scientific_role": "Supply stronger pseudo-targets without making held-out track claims.",
+      "market_genome_analogue": "Teacher ensemble trained only inside a declared training cutoff.",
+      "causal_modification": "No teacher may access the evaluation future or create test-period labels from it.",
+      "status": "REUSE_PATTERN",
+      "risk": "Teacher leakage disguised as distillation gain.",
+      "validation_test": "Teacher data-cutoff, checkpoint-hash and OOF provenance audit."
+    },
+    {
+      "component": "Distillation and mutated inputs",
+      "official_code_evidence": "Supplementary Methods, Distillation, pp. 20-21, describes 64 frozen teachers, 4% substitutions and Poisson(1) 1-20bp SVs; trainer code is absent",
+      "scientific_role": "Compress an ensemble and improve variant sensitivity.",
+      "market_genome_analogue": "Teacher-student multi-task distillation with legal edited histories.",
+      "causal_modification": "Enforce teacher cutoff and domain-valid, past-only perturbations.",
+      "status": "REDESIGN",
+      "risk": "Pseudo-label contamination and off-manifold histories.",
+      "validation_test": "Teacher/student split audit and perturbation-legality suite."
+    },
+    {
+      "component": "Paired REF/ALT prediction",
+      "official_code_evidence": "dna_model.py:189-289,836-975 uses one frozen model, aligns indels and shares splice support before scoring",
+      "scientific_role": "Estimate controlled sequence intervention effects.",
+      "market_genome_analogue": "Reference versus legally edited historical prefix effect scoring.",
+      "causal_modification": "Keep context and readout support fixed and edit only <= as_of history.",
+      "status": "REDESIGN",
+      "risk": "Prediction delta misrepresented as trading or profit causality.",
+      "validation_test": "Identity delta zero, domain invariants, locality and deterministic alignment."
+    },
+    {
+      "component": "Variant scorer families",
+      "official_code_evidence": "model/variant_scoring/*.py separates masks, score computation and AnnData finalization by modality",
+      "scientific_role": "Aggregate REF/ALT differences according to biological target structure.",
+      "market_genome_analogue": "Per-task delta, active, path and event scorer registry with provenance.",
+      "causal_modification": "Define market-specific masks and preregister aggregation choices.",
+      "status": "REDESIGN",
+      "risk": "Post-hoc scorer cherry-picking.",
+      "validation_test": "Scorer isolation, schema/provenance and held-out comparison tests."
+    },
+    {
+      "component": "Empirical quantile calibration",
+      "official_code_evidence": "dna_model.py:965-971 and variant_scoring/calibration/calibration.py map scores to metadata-matched empirical quantiles",
+      "scientific_role": "Make scorer-track magnitudes comparable against common variants.",
+      "market_genome_analogue": "Train-fold null or background score calibration.",
+      "causal_modification": "Fit calibration on a disjoint historical training slice and monitor regime drift.",
+      "status": "REUSE_PATTERN",
+      "risk": "Calibration leakage, drift and nondeterministic tie handling.",
+      "validation_test": "Train-only provenance, metadata mismatch, seed determinism and coverage tests."
+    },
+    {
+      "component": "In-silico mutagenesis wrapper",
+      "official_code_evidence": "dna_model.py:977-1020 enumerates ISM variants through alphagenome.interpretation.ism and reuses score_variants",
+      "scientific_role": "Measure local sequence contribution and motif disruption.",
+      "market_genome_analogue": "Local sensitivity to legal historical perturbations.",
+      "causal_modification": "Preserve OHLC, volume/OI, session and roll invariants and never mutate the future.",
+      "status": "REDESIGN",
+      "risk": "Off-manifold counterfactuals and combinatorial explosion.",
+      "validation_test": "Identity score zero, planted-pattern sensitivity, legality and future-unchanged tests."
+    },
+    {
+      "component": "Published ablation protocol",
+      "official_code_evidence": "Nature Fig. 7 and Supplementary Methods, Model and data ablations, pp. 41-42, report target-resolution, sequence-length, modality, mutation and teacher-count studies",
+      "scientific_role": "Identify which design dimensions drive performance.",
+      "market_genome_analogue": "Resolution, lookback, modality, perturbation and teacher ablations.",
+      "causal_modification": "Use purged walk-forward OOS evaluation and equalized data/compute budgets.",
+      "status": "REUSE_PATTERN",
+      "risk": "Importing AlphaGenome's biological optimum as a market hyperparameter.",
+      "validation_test": "Fixed-protocol multi-seed ablation with OOS metrics and costs."
+    },
+    {
+      "component": "Sequence parallelism",
+      "official_code_evidence": "Supplementary Methods, Sequence parallelism and Model training parameters, pp. 19-21, describes eight-way overlap/trim and K/V gather; trainer implementation is absent",
+      "scientific_role": "Fit 1Mb context and pair activations across devices.",
+      "market_genome_analogue": "Possible future long-context sharding.",
+      "causal_modification": "Prove need after a causal tiny baseline and preserve causal chunk boundaries.",
+      "status": "DEFER",
+      "risk": "Distributed boundary errors and unnecessary complexity.",
+      "validation_test": "Single-device parity, overlap/trim and chunk-boundary tests."
+    },
+    {
+      "component": "450M compute regime",
+      "official_code_evidence": "Supplementary Methods, Model training parameters, pp. 19-21, reports approximately 450M parameters, 512 TPU v3 pretraining cores and 64 H100 distillation",
+      "scientific_role": "Provide capacity and throughput for genomic tracks.",
+      "market_genome_analogue": "No initial analogue; capacity is a measured design variable.",
+      "causal_modification": "Enforce tiny-model learnability, memory and FLOP gates first.",
+      "status": "DEFER",
+      "risk": "Unjustified GPU cost and obscured data defects.",
+      "validation_test": "Parameter, FLOP, wall-time, memory and marginal-benefit budget gate."
+    },
+    {
+      "component": "Masked track evaluation",
+      "official_code_evidence": "evals/track_prediction.py:67-199 and regression_metrics.py accumulate masked Pearson, log-Pearson, MSE and MAE",
+      "scientific_role": "Evaluate held-out dense prediction tracks.",
+      "market_genome_analogue": "Typed masked offline evaluation by fold, symbol, horizon and regime.",
+      "causal_modification": "Use walk-forward groups, pointwise masks, baselines, costs and latency.",
+      "status": "REUSE_PATTERN",
+      "risk": "Global aggregation hides local fold or regime failure.",
+      "validation_test": "Masked-value invariance and per-group reference parity."
+    },
+    {
+      "component": "Frozen-trunk fine-tuning path",
+      "official_code_evidence": "finetuning/finetune.py:36-153 constructs a fold-based iterator, a fixed freeze_trunk_embeddings=True AlphaGenome loss wrapper and an Optax step; model.py:243-244 stop-gradients embeddings",
+      "scientific_role": "Adapt pretrained representations to downstream tracks.",
+      "market_genome_analogue": "Later head-only adaptation of a verified causal trunk.",
+      "causal_modification": "Require causal checkpoint provenance before exposing embeddings.",
+      "status": "DEFER",
+      "risk": "A frozen noncausal representation is still noncausal.",
+      "validation_test": "Causal checkpoint audit plus trunk-gradient-zero/head-gradient-nonzero test."
+    },
+    {
+      "component": "Mixed precision runtime",
+      "official_code_evidence": "dna_model.py:1217-1245 and attention.py:147-168 use FP32 params with BF16 compute and FP32 accumulation",
+      "scientific_role": "Reduce memory and increase throughput.",
+      "market_genome_analogue": "BF16 compute after an FP32 reference is established.",
+      "causal_modification": "Retain an FP32 parity path and finite-gradient checks.",
+      "status": "REUSE_PATTERN",
+      "risk": "Numerical drift or non-finite long-context gradients.",
+      "validation_test": "FP32-versus-BF16 tolerance, finite-gradient and deterministic-seed tests."
+    }
+  ],
+  "non_negotiable_alpha_genome_principles": [
+    "Long context is an explicit ablation dimension whose value must be demonstrated.",
+    "Dense aligned multi-resolution predictions are first-class outputs.",
+    "Multi-task modalities use typed heads, explicit masks, declared scaling and inspectable loss weights.",
+    "Evaluation is held out, overlap-aware and performed after design choices are frozen.",
+    "Teacher training and student evaluation have distinct data-provenance contracts.",
+    "Effect scoring compares paired inputs under the same frozen model and reports per-task deltas.",
+    "Perturbation validity is domain-specific and tested before effects are interpreted.",
+    "Target resolution, context length, modalities and teacher count require controlled ablations.",
+    "Missing labels and padded tracks contribute no gradient.",
+    "Compute-heavy components require measured benefit and parity tests before adoption."
+  ],
+  "non_isomorphic_components": [
+    "Bidirectional DNA context and unmasked attention are invalid for market-time prediction.",
+    "Reverse complement and strand equivariance have no valid reverse-time market analogue.",
+    "Symmetric genomic contact-map targets have no validated market target contract.",
+    "DNA one-hot identity and nucleotide substitutions or indels do not preserve market invariants.",
+    "Genomic spatial folds must become purged chronological walk-forward folds.",
+    "Organism identity and species-specific heads differ from symbol and regime generalization.",
+    "Splice donor-acceptor junction ontology has no defined market counterpart.",
+    "Gene, exon, TSS, PAS and strand masks cannot be renamed into market concepts.",
+    "Poisson counts and positive softplus outputs are not valid defaults for signed returns."
+  ],
+  "uncertainties": [
+    {
+      "item": "Pretraining input augmentation",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The paper specifies shifts and reverse complement, but the public research repository has no input augmentation trainer.",
+      "next_verification": "Inspect an officially released trainer if one becomes available."
+    },
+    {
+      "item": "Four-fold split construction and pretraining",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The repository consumes fold/subset identifiers but does not construct the published 1Mb overlap-purged splits or train fold models.",
+      "next_verification": "Compare official split-generation and trainer code if published."
+    },
+    {
+      "item": "All-fold teachers",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "No teacher construction, sampling or ensemble-training implementation is public in this repository.",
+      "next_verification": "Require official code and checkpoint provenance before claiming parity."
+    },
+    {
+      "item": "Distillation and mutation generator",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The published 64-teacher loop, loss, schedules and mutation generator are absent.",
+      "next_verification": "Require official trainer source or reproduce only as a separately validated design."
+    },
+    {
+      "item": "Sequence-parallel training",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The eight-way overlap, trim and collective strategy is described only in Supplementary Methods.",
+      "next_verification": "Do not implement before official code or a standalone parity specification exists."
+    },
+    {
+      "item": "ISM enumerator",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The research wrapper imports the enumerator from the separately packaged alphagenome dependency.",
+      "next_verification": "Pin and audit the exact external package if implementation parity is later required."
+    },
+    {
+      "item": "RMSBatchNorm from-scratch training path",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "AlphaGenome.loss does not pass is_training=True and the public pretraining trainer is absent.",
+      "next_verification": "Trace an official training call before describing intended state updates."
+    },
+    {
+      "item": "Full 1Mb checkpoint and data parity",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "Full model, checkpoint, dataset and GPU execution was deliberately deferred by the user.",
+      "next_verification": "Run only after explicit user reactivation in an isolated compute window."
+    },
+    {
+      "item": "dna_model_test protobuf binding",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The current environment lacks build-generated calibration_scores_pb2 during direct pytest collection.",
+      "next_verification": "Use the official hatch build hook in a later isolated test environment."
+    }
+  ],
+  "gate": {
+    "overall": "PASS_WITH_NEEDS_VERIFICATION",
+    "acceptance_checks": [
+      {
+        "check": "All required source areas inspected",
+        "status": "PASS",
+        "evidence": "Source inventory covers model, data, evaluation, scoring, fine-tuning and tests."
+      },
+      {
+        "check": "Every component has the required mapping fields",
+        "status": "PASS",
+        "evidence": "Each component_map row has evidence, role, analogue, causal modification, enum status, risk and test."
+      },
+      {
+        "check": "Published behavior separated from market analogy",
+        "status": "PASS",
+        "evidence": "Evidence boundaries explicitly distinguish CODE_OBSERVED, PUBLISHED_ONLY and DESIGN_INFERENCE."
+      },
+      {
+        "check": "Non-isomorphism is explicit",
+        "status": "PASS",
+        "evidence": "Bidirectional context, reverse complement and contact-map targets are in non_isomorphic_components."
+      },
+      {
+        "check": "No MarketGenome implementation added",
+        "status": "PASS",
+        "evidence": "Only docs, schema and report tooling are permitted in MG0-A."
+      },
+      {
+        "check": "Training stack code parity",
+        "status": "NEEDS_VERIFICATION",
+        "evidence": "Official pretraining, teacher, distillation and sequence-parallel trainer implementations are not public in this repository."
+      }
+    ]
+  },
+  "freeze": {
+    "status": "FROZEN",
+    "review_decision": "APPROVED_WITH_DOCUMENTED_GAPS",
+    "frozen_at": "2026-07-13T14:10:05+08:00",
+    "baseline_id": "MG0-A-v1",
+    "git_tag": "mg0-a-alphagenome-parity-v1",
+    "baseline_payload_sha256": "bddd431775f26129a81580c5b09fd44c3dadd81a50b62d75f90ad75ed5774a83",
+    "markdown_sha256": "88291777fbecb555727e356bcc8a037b864688ecba12480c8ac2788b928268b0",
+    "schema_sha256": "6c8aa39cea89abe0afe643035796b150d46716d74159b838da6d9c42c3a14768",
+    "validator_sha256": "6a5a9973f97cca14a0a9643df98fa6ff1f99bee493a12063eab6d7a771417530",
+    "component_count": 36,
+    "uncertainty_count": 9,
+    "non_negotiable_principle_count": 10,
+    "non_isomorphic_component_count": 9,
+    "official_commit": "232fc695d1eab27bac9e94bcd4b50499139ba4e1",
+    "local_source_head": "ed738d92ab76df03b4d25ebb741e33048c9aae09",
+    "official_source_tree": "27f86306d52edcbbc4152049f5856f6c1999a334",
+    "change_control": "EXPLICIT_USER_APPROVAL_AND_NEW_SCHEMA_VERSION",
+    "training_status": "DEFERRED_BY_USER",
+    "gpu_status": "DEFERRED_UNTIL_EXPLICIT_USER_REACTIVATION",
+    "gpu_revisit_not_before": "2026-07-14",
+    "resume_requires_explicit_user_confirmation": true
+  },
+  "execution": {
+    "gpu_execution_policy": "DEFERRED_BY_USER",
+    "gpu_workload_after_defer": false,
+    "training_execution_policy": "DEFERRED_BY_USER",
+    "training_workload_after_defer": false,
+    "resume_requires_explicit_user_confirmation": true,
+    "pre_defer_jax_test_attempt": "INTERRUPTED_WITHOUT_VERIFICATION",
+    "full_model_execution": "DEFERRED_BY_USER",
+    "checkpoint_download": "NOT_RUN",
+    "dataset_download": "NOT_RUN",
+    "market_genome_implementation": "NOT_STARTED",
+    "partial_verification": [
+      "Static source inspection establishes the frozen architecture and causality findings without relying on untracked runtime probes.",
+      "Report JSON Schema, MG0 semantic freeze checks and validator tests are the only runtime acceptance for the frozen audit.",
+      "Full 1Mb checkpoint, official-data, training and GPU/JAX execution were not performed."
+    ]
+  }
+}

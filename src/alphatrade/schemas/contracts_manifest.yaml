@@ -1,5 +1,11 @@
 version: 1
 profiles:
+  mg0:
+    description: "MG0-A AlphaGenome official code parity audit."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    items:
+      - {name: mg0_alphagenome_parity_audit, path: "mg0_alphagenome_parity_audit.json", schema: "src/alphatrade/schemas/mg0_alphagenome_parity_audit.schema.json", required: true}
+      - {name: mg0_alphagenome_parity_audit_md, path: "mg0_alphagenome_parity_audit.md", schema: "", required: true}
   m4:
     description: "Mainline gate. 3-seed train+eval."
     reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"

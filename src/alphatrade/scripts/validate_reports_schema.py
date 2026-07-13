@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import warnings
 from datetime import datetime
@@ -1077,6 +1078,316 @@ def semantic_check_m12(reports_dir: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Semantic checks (MG0-A frozen audit)
+# ---------------------------------------------------------------------------
+
+def semantic_check_mg0(
+    reports_dir: str,
+    schemas_dir: str = "src/alphatrade/schemas",
+) -> dict:
+    """Verify the frozen MG0-A payload, artifacts, and deferred-work policy."""
+    audit_path = Path(reports_dir) / "mg0_alphagenome_parity_audit.json"
+    markdown_path = Path(reports_dir) / "mg0_alphagenome_parity_audit.md"
+    schema_path = Path(schemas_dir) / "mg0_alphagenome_parity_audit.schema.json"
+    checks = []
+
+    def add(name, passed, detail="", observed=None):
+        checks.append({
+            "check": name,
+            "status": "pass" if passed else "fail",
+            "detail": detail,
+            "observed": observed,
+        })
+
+    artifact_paths = {
+        "audit": audit_path,
+        "markdown": markdown_path,
+        "schema": schema_path,
+    }
+    invalid_artifacts = [
+        name for name, path in artifact_paths.items() if not path.is_file()
+    ]
+    observed_paths = {name: str(path) for name, path in artifact_paths.items()}
+    add(
+        "freeze_artifacts_exist",
+        not invalid_artifacts,
+        f"missing or non-file: {invalid_artifacts}" if invalid_artifacts else "",
+        observed_paths,
+    )
+    if invalid_artifacts:
+        return {"checks": checks, "all_pass": False}
+
+    try:
+        audit = load_json(str(audit_path))
+    except Exception as e:
+        add("freeze_payload_load", False, str(e))
+        return {"checks": checks, "all_pass": False}
+    if not isinstance(audit, dict):
+        add("freeze_payload_load", False, "audit payload must be a JSON object")
+        return {"checks": checks, "all_pass": False}
+    freeze = audit.get("freeze")
+    if not isinstance(freeze, dict):
+        add("freeze_payload_load", False, "freeze must be a JSON object")
+        return {"checks": checks, "all_pass": False}
+    add("freeze_payload_load", True)
+
+    baseline_payload = dict(audit)
+    baseline_payload.pop("freeze", None)
+    canonical_payload = json.dumps(
+        baseline_payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    observed_payload_hash = hashlib.sha256(canonical_payload).hexdigest()
+    add(
+        "baseline_payload_hash_matches",
+        observed_payload_hash == freeze.get("baseline_payload_sha256"),
+        observed={
+            "expected": freeze.get("baseline_payload_sha256"),
+            "observed": observed_payload_hash,
+        },
+    )
+
+    def add_file_hash_check(check_name, path, expected):
+        try:
+            observed = sha256_file(path)
+        except OSError as e:
+            add(
+                check_name,
+                False,
+                f"{type(e).__name__}: {e}",
+                {"expected": expected, "observed": None},
+            )
+            return None
+        add(
+            check_name,
+            observed == expected,
+            observed={"expected": expected, "observed": observed},
+        )
+        return observed
+
+    add_file_hash_check(
+        "markdown_hash_matches", markdown_path, freeze.get("markdown_sha256")
+    )
+    add_file_hash_check(
+        "schema_hash_matches", schema_path, freeze.get("schema_sha256")
+    )
+
+    validator_path = Path(__file__).resolve()
+    add_file_hash_check(
+        "validator_hash_matches",
+        validator_path,
+        freeze.get("validator_sha256"),
+    )
+
+    repo_root = validator_path.parents[3]
+    git_tag = freeze.get("git_tag")
+    tag_files = {
+        "audit": (
+            "docs/alphaTrade/market_genome/MG0_ALPHAGENOME_PARITY_AUDIT.json",
+            audit_path,
+        ),
+        "markdown": (
+            "docs/alphaTrade/market_genome/MG0_ALPHAGENOME_PARITY_AUDIT.md",
+            markdown_path,
+        ),
+        "schema": (
+            "src/alphatrade/schemas/mg0_alphagenome_parity_audit.schema.json",
+            schema_path,
+        ),
+        "validator": (
+            "src/alphatrade/scripts/validate_reports_schema.py",
+            validator_path,
+        ),
+        "manifest": (
+            "src/alphatrade/schemas/contracts_manifest.yaml",
+            repo_root / "src/alphatrade/schemas/contracts_manifest.yaml",
+        ),
+        "validator_tests": (
+            "src/alphatrade/tests/test_reports_validator.py",
+            repo_root / "src/alphatrade/tests/test_reports_validator.py",
+        ),
+    }
+    tag_commit = None
+    tag_mismatches = []
+    tag_error = ""
+    try:
+        if not isinstance(git_tag, str) or not git_tag:
+            raise ValueError("freeze.git_tag must be a non-empty string")
+        resolved = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "rev-parse",
+                "--verify",
+                f"refs/tags/{git_tag}^{{commit}}",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        if resolved.returncode != 0:
+            raise RuntimeError(
+                resolved.stderr.decode("utf-8", errors="replace").strip()
+                or f"unable to resolve tag {git_tag}"
+            )
+        tag_commit = resolved.stdout.decode("ascii").strip()
+        for label, (repo_path, current_path) in tag_files.items():
+            tagged = subprocess.run(
+                ["git", "-C", str(repo_root), "show", f"{tag_commit}:{repo_path}"],
+                capture_output=True,
+                check=False,
+            )
+            if tagged.returncode != 0:
+                tag_mismatches.append(f"{label}:missing_in_tag")
+            elif not current_path.exists():
+                tag_mismatches.append(f"{label}:missing_current")
+            elif tagged.stdout != current_path.read_bytes():
+                tag_mismatches.append(f"{label}:content_mismatch")
+    except Exception as e:
+        tag_error = str(e)
+    add(
+        "git_tag_anchor_matches",
+        not tag_error and not tag_mismatches,
+        tag_error or (f"mismatches: {tag_mismatches}" if tag_mismatches else ""),
+        {"tag": git_tag, "commit": tag_commit, "mismatches": tag_mismatches},
+    )
+
+    metadata_value = audit.get("metadata")
+    metadata = metadata_value if isinstance(metadata_value, dict) else {}
+    gate_value = audit.get("gate")
+    gate = gate_value if isinstance(gate_value, dict) else {}
+    conclusion_ok = (
+        metadata.get("audit_status") == "FROZEN_WITH_NEEDS_VERIFICATION"
+        and metadata.get("parity_verdict") == "PARTIAL_PUBLISHED_CODE_PARITY"
+        and metadata.get("gate_decision") == "PASS_WITH_NEEDS_VERIFICATION"
+        and gate.get("overall") == metadata.get("gate_decision")
+        and freeze.get("status") == "FROZEN"
+        and freeze.get("review_decision") == "APPROVED_WITH_DOCUMENTED_GAPS"
+    )
+    add(
+        "frozen_conclusion_consistent",
+        conclusion_ok,
+        observed={
+            "audit_status": metadata.get("audit_status"),
+            "parity_verdict": metadata.get("parity_verdict"),
+            "metadata_gate": metadata.get("gate_decision"),
+            "gate_overall": gate.get("overall"),
+            "freeze_status": freeze.get("status"),
+            "review_decision": freeze.get("review_decision"),
+        },
+    )
+
+    source_baseline_ok = (
+        freeze.get("official_commit") == metadata.get("official_commit")
+        and freeze.get("local_source_head") == metadata.get("local_head")
+    )
+    add(
+        "source_baseline_fields_consistent",
+        source_baseline_ok,
+        observed={
+            "metadata_official_commit": metadata.get("official_commit"),
+            "freeze_official_commit": freeze.get("official_commit"),
+            "metadata_local_head": metadata.get("local_head"),
+            "freeze_local_source_head": freeze.get("local_source_head"),
+            "official_source_tree": freeze.get("official_source_tree"),
+        },
+    )
+
+    def list_count(field_name):
+        value = audit.get(field_name)
+        return len(value) if isinstance(value, list) else None
+
+    observed_counts = {
+        "component_count": list_count("component_map"),
+        "uncertainty_count": list_count("uncertainties"),
+        "non_negotiable_principle_count": list_count(
+            "non_negotiable_alpha_genome_principles"
+        ),
+        "non_isomorphic_component_count": list_count(
+            "non_isomorphic_components"
+        ),
+    }
+    expected_counts = {name: freeze.get(name) for name in observed_counts}
+    add(
+        "frozen_counts_match",
+        observed_counts == expected_counts,
+        observed={"expected": expected_counts, "observed": observed_counts},
+    )
+
+    try:
+        generated_at = datetime.fromisoformat(
+            metadata["generated_at"].replace("Z", "+00:00")
+        )
+        frozen_at = datetime.fromisoformat(
+            freeze["frozen_at"].replace("Z", "+00:00")
+        )
+        timestamp_ok = (
+            generated_at.tzinfo is not None
+            and frozen_at.tzinfo is not None
+            and frozen_at >= generated_at
+        )
+        timestamp_detail = ""
+    except Exception as e:
+        timestamp_ok = False
+        timestamp_detail = str(e)
+    add(
+        "freeze_timestamp_valid",
+        timestamp_ok,
+        timestamp_detail,
+        {
+            "generated_at": metadata.get("generated_at"),
+            "frozen_at": freeze.get("frozen_at"),
+        },
+    )
+
+    execution_value = audit.get("execution")
+    execution = execution_value if isinstance(execution_value, dict) else {}
+    deferred_ok = (
+        freeze.get("training_status") == "DEFERRED_BY_USER"
+        and freeze.get("gpu_status")
+        == "DEFERRED_UNTIL_EXPLICIT_USER_REACTIVATION"
+        and freeze.get("resume_requires_explicit_user_confirmation") is True
+        and execution.get("training_execution_policy") == "DEFERRED_BY_USER"
+        and execution.get("training_workload_after_defer") is False
+        and execution.get("gpu_execution_policy") == "DEFERRED_BY_USER"
+        and execution.get("gpu_workload_after_defer") is False
+        and execution.get("resume_requires_explicit_user_confirmation") is True
+    )
+    add(
+        "training_and_gpu_remain_deferred",
+        deferred_ok,
+        observed={
+            "freeze_training": freeze.get("training_status"),
+            "freeze_gpu": freeze.get("gpu_status"),
+            "gpu_revisit_not_before": freeze.get("gpu_revisit_not_before"),
+            "execution_training": execution.get("training_execution_policy"),
+            "execution_gpu": execution.get("gpu_execution_policy"),
+            "explicit_confirmation": execution.get(
+                "resume_requires_explicit_user_confirmation"
+            ),
+        },
+    )
+
+    uncertainties_value = audit.get("uncertainties")
+    uncertainties = uncertainties_value if isinstance(uncertainties_value, list) else []
+    uncertainty_statuses = [
+        item.get("status") if isinstance(item, dict) else None
+        for item in uncertainties
+    ]
+    add(
+        "uncertainties_remain_open",
+        bool(uncertainties)
+        and all(status == "NEEDS_VERIFICATION" for status in uncertainty_statuses),
+        observed=uncertainty_statuses,
+    )
+
+    all_pass = all(c["status"] == "pass" for c in checks)
+    return {"checks": checks, "all_pass": all_pass}
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -1122,7 +1433,9 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
     w("")
 
     # --- Phase 2 ---
-    if profile_name == "m9":
+    if profile_name == "mg0":
+        _generate_md_phase2_mg0(w, semantic_results)
+    elif profile_name == "m9":
         _generate_md_phase2_m9(w, semantic_results)
     elif profile_name == "m10":
         _generate_md_phase2_schema_only(w, profile_name)
@@ -1155,7 +1468,11 @@ def generate_md(schema_results, semantic_results, profile_name: str, strict: boo
 
 def _semantic_all_pass(semantic_results, profile_name: str) -> bool:
     """Check if all semantic checks passed."""
-    if profile_name == "m9":
+    if profile_name == "mg0":
+        if not semantic_results:
+            return True
+        return semantic_results.get("all_pass", True)
+    elif profile_name == "m9":
         if not semantic_results:
             return True
         return semantic_results.get("all_pass", True)
@@ -1336,6 +1653,34 @@ def _generate_md_phase2_schema_only(w, profile_name: str):
     w("_No additional semantic checks are defined for this profile._\n")
 
 
+def _generate_md_phase2_mg0(w, semantic_results):
+    """Generate Phase 2 markdown for the MG0-A freeze contract."""
+    w("## Phase 2: MG0 Freeze Semantic Checks\n")
+    if not semantic_results or not semantic_results.get("checks"):
+        w("_No MG0 freeze checks run._\n")
+        return
+
+    w("| Check | Status | Detail | Observed |")
+    w("|-------|--------|--------|----------|")
+    for check in semantic_results["checks"]:
+        icon = "\u2705" if check["status"] == "pass" else "\u274c"
+        observed = check.get("observed")
+        observed_text = (
+            "-" if observed is None else json.dumps(observed, sort_keys=True)[:180]
+        )
+        w(
+            f"| {check['check']} | {icon} {check['status']} | "
+            f"{check.get('detail') or '-'} | `{observed_text}` |"
+        )
+    w("")
+
+    passed = sum(
+        1 for check in semantic_results["checks"] if check["status"] == "pass"
+    )
+    total = len(semantic_results["checks"])
+    w(f"**MG0 freeze checks**: {passed}/{total} passed\n")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -1412,7 +1757,21 @@ def main():
     print(f"\n  Schema: {schema_pass}/{schema_total} passed ({schema_required_fail} required failures)\n")
 
     # ── Phase 2: Semantic checks ──
-    if profile_name == "m9":
+    if profile_name == "mg0":
+        print("Phase 2: MG0 freeze semantic checks\n")
+        semantic_results = semantic_check_mg0(reports_dir_str, args.schemas_dir)
+        for check in semantic_results["checks"]:
+            icon = "\u2705" if check["status"] == "pass" else "\u274c"
+            detail = f" ({check['detail']})" if check.get("detail") else ""
+            print(f"  {icon} {check['check']}{detail}")
+        sem_all_pass = semantic_results["all_pass"]
+        sem_total = len(semantic_results["checks"])
+        sem_pass = sum(
+            1 for check in semantic_results["checks"]
+            if check["status"] == "pass"
+        )
+        print(f"\n  Semantic: {sem_pass}/{sem_total} passed\n")
+    elif profile_name == "m9":
         print("Phase 2: M9 bundle + predictions checks\n")
         semantic_results = semantic_check_m9(reports_dir_str, args.schemas_dir)
         for c in semantic_results["checks"]:

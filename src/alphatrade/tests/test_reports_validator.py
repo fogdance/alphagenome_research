@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -35,6 +36,113 @@ _EVAL_METRICS_VALID = {
     "quantile_crossing": {"rate": 0.0, "count": 0},
 }
 
+_MG0_AUDIT_VALID = {
+    "metadata": {
+        "schema_version": "mg0.alphagenome_parity_audit.v1",
+        "sprint": "MG0-A AlphaGenome Official Code Parity Audit",
+        "generated_at": "2026-07-13T00:00:00Z",
+        "audit_status": "FROZEN_WITH_NEEDS_VERIFICATION",
+        "parity_verdict": "PARTIAL_PUBLISHED_CODE_PARITY",
+        "gate_decision": "PASS_WITH_NEEDS_VERIFICATION",
+        "official_commit": "d" * 40,
+        "local_head": "e" * 40,
+        "implementation_added": False,
+    },
+    "source_evidence": {
+        "paper": "https://example.test/paper",
+        "supplementary_information": "https://example.test/supplement",
+        "supplementary_tables": "https://example.test/tables",
+        "official_repository": "https://example.test/repository",
+        "local_parity_checks": ["No source diff."],
+        "inspected_files": [f"src/example_{index}.py" for index in range(10)],
+        "evidence_boundaries": [
+            "CODE_OBSERVED",
+            "PUBLISHED_ONLY",
+            "DESIGN_INFERENCE",
+        ],
+    },
+    "component_map": [
+        {
+            "component": "sequence_encoder",
+            "official_code_evidence": (
+                "model.py:38 SequenceEncoder downsamples DNA and retains skips."
+            ),
+            "scientific_role": "Learn local sequence representations.",
+            "market_genome_analogue": "Multi-scale causal market encoder.",
+            "causal_modification": "Replace symmetric context with past-only operations.",
+            "status": "CAUSALIZE",
+            "risk": "Future leakage if padding or attention is non-causal.",
+            "validation_test": "Prefix outputs remain invariant to future mutations.",
+        }
+    ],
+    "non_negotiable_alpha_genome_principles": [
+        "Long context with dense multi-task supervision"
+    ],
+    "non_isomorphic_components": ["Reverse-complement augmentation"],
+    "uncertainties": [
+        {
+            "item": "Pretraining trainer",
+            "status": "NEEDS_VERIFICATION",
+            "evidence_gap": "The trainer is not published in the repository.",
+            "next_verification": "Inspect official trainer source if released.",
+        }
+    ],
+    "gate": {
+        "overall": "PASS_WITH_NEEDS_VERIFICATION",
+        "acceptance_checks": [
+            {
+                "check": "official_sources_inspected",
+                "status": "PASS",
+                "evidence": "The component row cites official source code.",
+            }
+        ],
+    },
+    "freeze": {
+        "status": "FROZEN",
+        "review_decision": "APPROVED_WITH_DOCUMENTED_GAPS",
+        "frozen_at": "2026-07-13T14:10:05+08:00",
+        "baseline_id": "MG0-A-v1",
+        "git_tag": "mg0-a-alphagenome-parity-v1",
+        "baseline_payload_sha256": (
+            "bddd431775f26129a81580c5b09fd44c3dadd81a50b62d75f90ad75ed5774a83"
+        ),
+        "markdown_sha256": (
+            "88291777fbecb555727e356bcc8a037b864688ecba12480c8ac2788b928268b0"
+        ),
+        "schema_sha256": (
+            "6c8aa39cea89abe0afe643035796b150d46716d74159b838da6d9c42c3a14768"
+        ),
+        "validator_sha256": (
+            "6a5a9973f97cca14a0a9643df98fa6ff1f99bee493a12063eab6d7a771417530"
+        ),
+        "component_count": 36,
+        "uncertainty_count": 9,
+        "non_negotiable_principle_count": 10,
+        "non_isomorphic_component_count": 9,
+        "official_commit": "232fc695d1eab27bac9e94bcd4b50499139ba4e1",
+        "local_source_head": "ed738d92ab76df03b4d25ebb741e33048c9aae09",
+        "official_source_tree": "27f86306d52edcbbc4152049f5856f6c1999a334",
+        "change_control": "EXPLICIT_USER_APPROVAL_AND_NEW_SCHEMA_VERSION",
+        "training_status": "DEFERRED_BY_USER",
+        "gpu_status": "DEFERRED_UNTIL_EXPLICIT_USER_REACTIVATION",
+        "gpu_revisit_not_before": "2026-07-14",
+        "resume_requires_explicit_user_confirmation": True,
+    },
+    "execution": {
+        "gpu_execution_policy": "DEFERRED_BY_USER",
+        "gpu_workload_after_defer": False,
+        "training_execution_policy": "DEFERRED_BY_USER",
+        "training_workload_after_defer": False,
+        "resume_requires_explicit_user_confirmation": True,
+        "pre_defer_jax_test_attempt": "INTERRUPTED_WITHOUT_VERIFICATION",
+        "full_model_execution": "DEFERRED_BY_USER",
+        "checkpoint_download": "NOT_RUN",
+        "dataset_download": "NOT_RUN",
+        "market_genome_implementation": "NOT_STARTED",
+        "partial_verification": ["Static source audit completed."],
+    },
+}
+
 
 def _write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -61,6 +169,18 @@ def _run_validator(args: list[str], cwd=None) -> subprocess.CompletedProcess:
 
 def _repo_root():
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+
+
+def _copy_mg0_canonical_reports(reports_dir):
+    docs_dir = os.path.join(_repo_root(), "docs/alphaTrade/market_genome")
+    shutil.copyfile(
+        os.path.join(docs_dir, "MG0_ALPHAGENOME_PARITY_AUDIT.json"),
+        os.path.join(reports_dir, "mg0_alphagenome_parity_audit.json"),
+    )
+    shutil.copyfile(
+        os.path.join(docs_dir, "MG0_ALPHAGENOME_PARITY_AUDIT.md"),
+        os.path.join(reports_dir, "mg0_alphagenome_parity_audit.md"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +241,377 @@ class TestValidateReport:
 
         result = validate_report(report_path, "")
         assert result["status"] == "pass"
+
+
+class TestMG0Schema:
+    """MG0-A schema and manifest profile contract tests."""
+
+    def test_schema_is_valid_draft7(self, schemas_dir):
+        from jsonschema import Draft7Validator
+
+        schema_path = os.path.join(
+            schemas_dir, "mg0_alphagenome_parity_audit.schema.json"
+        )
+        with open(schema_path) as f:
+            schema = json.load(f)
+
+        Draft7Validator.check_schema(schema)
+
+    def test_minimal_audit_report_validates(self, tmp_path, schemas_dir):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        report_path = str(tmp_path / "mg0_alphagenome_parity_audit.json")
+        _write_json(report_path, _MG0_AUDIT_VALID)
+        schema_path = os.path.join(
+            schemas_dir, "mg0_alphagenome_parity_audit.schema.json"
+        )
+
+        result = validate_report(report_path, schema_path)
+
+        assert result["status"] == "pass", result.get("error")
+
+    @pytest.mark.parametrize(
+        "missing_field",
+        [
+            "component",
+            "official_code_evidence",
+            "scientific_role",
+            "market_genome_analogue",
+            "causal_modification",
+            "status",
+            "risk",
+            "validation_test",
+        ],
+    )
+    def test_component_map_requires_all_contract_fields(
+        self, tmp_path, schemas_dir, missing_field
+    ):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        report = copy.deepcopy(_MG0_AUDIT_VALID)
+        del report["component_map"][0][missing_field]
+        report_path = str(tmp_path / f"missing_{missing_field}.json")
+        _write_json(report_path, report)
+        schema_path = os.path.join(
+            schemas_dir, "mg0_alphagenome_parity_audit.schema.json"
+        )
+
+        result = validate_report(report_path, schema_path)
+
+        assert result["status"] == "fail"
+
+    def test_component_status_rejects_unknown_value(self, tmp_path, schemas_dir):
+        from alphatrade.scripts.validate_reports_schema import validate_report
+
+        report = copy.deepcopy(_MG0_AUDIT_VALID)
+        report["component_map"][0]["status"] = "REUSE"
+        report_path = str(tmp_path / "bad_status.json")
+        _write_json(report_path, report)
+        schema_path = os.path.join(
+            schemas_dir, "mg0_alphagenome_parity_audit.schema.json"
+        )
+
+        result = validate_report(report_path, schema_path)
+
+        assert result["status"] == "fail"
+
+    def test_repository_frozen_audit_semantics_pass(self, tmp_path, schemas_dir):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_mg0
+
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+
+        result = semantic_check_mg0(str(reports_dir), schemas_dir)
+
+        assert result["all_pass"], result["checks"]
+        assert all(check["status"] == "pass" for check in result["checks"])
+
+    def test_frozen_audit_payload_tamper_fails(self, tmp_path, schemas_dir):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_mg0
+
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        audit_path = reports_dir / "mg0_alphagenome_parity_audit.json"
+        audit = json.loads(audit_path.read_text())
+        audit["component_map"][0]["risk"] += " tampered"
+        audit_path.write_text(json.dumps(audit))
+
+        result = semantic_check_mg0(str(reports_dir), schemas_dir)
+
+        checks = {check["check"]: check["status"] for check in result["checks"]}
+        assert not result["all_pass"]
+        assert checks["baseline_payload_hash_matches"] == "fail"
+
+    def test_frozen_audit_markdown_tamper_fails(self, tmp_path, schemas_dir):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_mg0
+
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        markdown_path = reports_dir / "mg0_alphagenome_parity_audit.md"
+        markdown_path.write_text(markdown_path.read_text() + "\ntampered\n")
+
+        result = semantic_check_mg0(str(reports_dir), schemas_dir)
+
+        checks = {check["check"]: check["status"] for check in result["checks"]}
+        assert not result["all_pass"]
+        assert checks["markdown_hash_matches"] == "fail"
+
+    def test_coordinated_artifact_tamper_fails_tag_anchor(
+        self, tmp_path, schemas_dir
+    ):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_mg0
+
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        temp_schemas = tmp_path / "schemas"
+        temp_schemas.mkdir()
+        schema_path = temp_schemas / "mg0_alphagenome_parity_audit.schema.json"
+        shutil.copyfile(
+            os.path.join(schemas_dir, schema_path.name),
+            schema_path,
+        )
+
+        audit_path = reports_dir / "mg0_alphagenome_parity_audit.json"
+        markdown_path = reports_dir / "mg0_alphagenome_parity_audit.md"
+        audit = json.loads(audit_path.read_text())
+        audit["component_map"][0]["risk"] += " coordinated tamper"
+        markdown_path.write_text(markdown_path.read_text() + "\ncoordinated tamper\n")
+
+        payload = dict(audit)
+        payload.pop("freeze")
+        canonical = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+        audit["freeze"]["baseline_payload_sha256"] = hashlib.sha256(
+            canonical
+        ).hexdigest()
+        audit["freeze"]["markdown_sha256"] = hashlib.sha256(
+            markdown_path.read_bytes()
+        ).hexdigest()
+
+        schema = json.loads(schema_path.read_text())
+        freeze_properties = schema["properties"]["freeze"]["properties"]
+        freeze_properties["baseline_payload_sha256"]["const"] = audit["freeze"][
+            "baseline_payload_sha256"
+        ]
+        freeze_properties["markdown_sha256"]["const"] = audit["freeze"][
+            "markdown_sha256"
+        ]
+        schema_path.write_text(json.dumps(schema))
+        audit["freeze"]["schema_sha256"] = hashlib.sha256(
+            schema_path.read_bytes()
+        ).hexdigest()
+        audit_path.write_text(json.dumps(audit))
+
+        result = semantic_check_mg0(str(reports_dir), str(temp_schemas))
+
+        checks = {check["check"]: check["status"] for check in result["checks"]}
+        assert checks["baseline_payload_hash_matches"] == "pass"
+        assert checks["markdown_hash_matches"] == "pass"
+        assert checks["schema_hash_matches"] == "pass"
+        assert checks["validator_hash_matches"] == "pass"
+        assert checks["git_tag_anchor_matches"] == "fail"
+        assert not result["all_pass"]
+
+    @pytest.mark.parametrize(
+        ("path", "value", "failed_check"),
+        [
+            (("metadata", "gate_decision"), "FAIL", "frozen_conclusion_consistent"),
+            (("freeze", "frozen_at"), "not-a-date", "freeze_timestamp_valid"),
+            (
+                ("execution", "training_execution_policy"),
+                "RUN_NOW",
+                "training_and_gpu_remain_deferred",
+            ),
+        ],
+    )
+    def test_frozen_audit_semantic_invariant_fails(
+        self, tmp_path, schemas_dir, path, value, failed_check
+    ):
+        from alphatrade.scripts.validate_reports_schema import semantic_check_mg0
+
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        audit_path = reports_dir / "mg0_alphagenome_parity_audit.json"
+        audit = json.loads(audit_path.read_text())
+        audit[path[0]][path[1]] = value
+        audit_path.write_text(json.dumps(audit))
+
+        result = semantic_check_mg0(str(reports_dir), schemas_dir)
+
+        checks = {check["check"]: check["status"] for check in result["checks"]}
+        assert not result["all_pass"]
+        assert checks[failed_check] == "fail"
+
+    def test_repository_manifest_mg0_profile(self):
+        from alphatrade.scripts.validate_reports_schema import (
+            get_profile_items,
+            load_manifest,
+        )
+
+        manifest_path = os.path.join(
+            _repo_root(), "src/alphatrade/schemas/contracts_manifest.yaml"
+        )
+        manifest = load_manifest(manifest_path)
+
+        assert manifest is not None
+        items = get_profile_items(manifest, "mg0")
+        assert items == [
+            {
+                "name": "mg0_alphagenome_parity_audit",
+                "path": "mg0_alphagenome_parity_audit.json",
+                "schema": "src/alphatrade/schemas/mg0_alphagenome_parity_audit.schema.json",
+                "required": True,
+            },
+            {
+                "name": "mg0_alphagenome_parity_audit_md",
+                "path": "mg0_alphagenome_parity_audit.md",
+                "schema": "",
+                "required": True,
+            },
+        ]
+
+    def test_mg0_profile_strict_cli_passes(self, tmp_path):
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+
+        result = _run_validator(
+            [
+                "--profile",
+                "mg0",
+                "--strict",
+                "--reports-dir",
+                str(reports_dir),
+                "--output-json",
+                str(tmp_path / "validation.json"),
+                "--output-md",
+                str(tmp_path / "validation.md"),
+            ]
+        )
+
+        assert result.returncode == 0, (
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+        assert "Phase 2: MG0 freeze semantic checks" in result.stdout
+        with open(tmp_path / "validation.json") as f:
+            validation = json.load(f)
+        assert validation["profile"] == "mg0"
+        assert validation["summary"]["schema_total"] == 2
+        assert validation["summary"]["semantic_total"] == 13
+        assert validation["summary"]["semantic_passed"] == 13
+        assert validation["summary"]["overall"] == "pass"
+
+    def test_mg0_profile_strict_cli_tamper_fails(self, tmp_path):
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        markdown_path = reports_dir / "mg0_alphagenome_parity_audit.md"
+        markdown_path.write_text(markdown_path.read_text() + "\ntampered\n")
+        validation_json = tmp_path / "validation.json"
+        validation_md = tmp_path / "validation.md"
+
+        result = _run_validator(
+            [
+                "--profile",
+                "mg0",
+                "--strict",
+                "--reports-dir",
+                str(reports_dir),
+                "--output-json",
+                str(validation_json),
+                "--output-md",
+                str(validation_md),
+            ]
+        )
+
+        assert result.returncode == 1
+        validation = json.loads(validation_json.read_text())
+        assert validation["summary"]["overall"] == "fail"
+        assert "**Overall: \u274c FAIL**" in validation_md.read_text()
+
+    def test_mg0_profile_strict_malformed_payload_writes_failure_report(
+        self, tmp_path
+    ):
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        audit_path = reports_dir / "mg0_alphagenome_parity_audit.json"
+        audit = json.loads(audit_path.read_text())
+        del audit["uncertainties"][0]["status"]
+        audit_path.write_text(json.dumps(audit))
+        validation_json = tmp_path / "validation.json"
+        validation_md = tmp_path / "validation.md"
+
+        result = _run_validator(
+            [
+                "--profile",
+                "mg0",
+                "--strict",
+                "--reports-dir",
+                str(reports_dir),
+                "--output-json",
+                str(validation_json),
+                "--output-md",
+                str(validation_md),
+            ]
+        )
+
+        assert result.returncode == 1
+        assert "Traceback" not in result.stderr
+        assert validation_json.exists()
+        validation = json.loads(validation_json.read_text())
+        assert validation["summary"]["overall"] == "fail"
+        checks = {
+            check["check"]: check["status"]
+            for check in validation["semantic_results"]["checks"]
+        }
+        assert checks["uncertainties_remain_open"] == "fail"
+
+    def test_mg0_profile_strict_non_file_artifact_writes_failure_report(
+        self, tmp_path
+    ):
+        reports_dir = tmp_path / "reports"
+        reports_dir.mkdir()
+        _copy_mg0_canonical_reports(str(reports_dir))
+        markdown_path = reports_dir / "mg0_alphagenome_parity_audit.md"
+        markdown_path.unlink()
+        markdown_path.mkdir()
+        validation_json = tmp_path / "validation.json"
+        validation_md = tmp_path / "validation.md"
+
+        result = _run_validator(
+            [
+                "--profile",
+                "mg0",
+                "--strict",
+                "--reports-dir",
+                str(reports_dir),
+                "--output-json",
+                str(validation_json),
+                "--output-md",
+                str(validation_md),
+            ]
+        )
+
+        assert result.returncode == 1
+        assert "Traceback" not in result.stderr
+        assert validation_json.exists()
+        validation = json.loads(validation_json.read_text())
+        assert validation["summary"]["overall"] == "fail"
+        checks = {
+            check["check"]: check["status"]
+            for check in validation["semantic_results"]["checks"]
+        }
+        assert checks["freeze_artifacts_exist"] == "fail"
 
 
 class TestManifestLoading:

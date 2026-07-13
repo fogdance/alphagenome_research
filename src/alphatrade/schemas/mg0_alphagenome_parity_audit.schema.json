@@ -1,0 +1,380 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mg0.alphagenome_parity_audit.v1",
+  "title": "MG0-A AlphaGenome Official Code Parity Audit Schema",
+  "description": "Source-grounded AlphaGenome audit and MarketGenome component map.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "source_evidence",
+    "component_map",
+    "non_negotiable_alpha_genome_principles",
+    "non_isomorphic_components",
+    "uncertainties",
+    "gate",
+    "freeze",
+    "execution"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "sprint",
+        "generated_at",
+        "audit_status",
+        "parity_verdict",
+        "gate_decision",
+        "official_commit",
+        "local_head",
+        "implementation_added"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "mg0.alphagenome_parity_audit.v1"
+        },
+        "sprint": {
+          "const": "MG0-A AlphaGenome Official Code Parity Audit"
+        },
+        "generated_at": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "audit_status": {
+          "enum": [
+            "COMPLETE",
+            "COMPLETE_WITH_NEEDS_VERIFICATION",
+            "FROZEN_WITH_NEEDS_VERIFICATION"
+          ]
+        },
+        "parity_verdict": {
+          "enum": ["FULL_CODE_PARITY", "PARTIAL_PUBLISHED_CODE_PARITY"]
+        },
+        "gate_decision": {
+          "enum": ["PASS", "PASS_WITH_NEEDS_VERIFICATION", "FAIL"]
+        },
+        "official_commit": {
+          "$ref": "#/definitions/git_sha"
+        },
+        "local_head": {
+          "$ref": "#/definitions/git_sha"
+        },
+        "implementation_added": {
+          "const": false
+        }
+      }
+    },
+    "source_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paper",
+        "supplementary_information",
+        "supplementary_tables",
+        "official_repository",
+        "local_parity_checks",
+        "inspected_files",
+        "evidence_boundaries"
+      ],
+      "properties": {
+        "paper": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "supplementary_information": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "supplementary_tables": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "official_repository": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "local_parity_checks": {
+          "$ref": "#/definitions/non_empty_string_array"
+        },
+        "inspected_files": {
+          "allOf": [
+            {"$ref": "#/definitions/non_empty_string_array"},
+            {"minItems": 10}
+          ]
+        },
+        "evidence_boundaries": {
+          "allOf": [
+            {"$ref": "#/definitions/non_empty_string_array"},
+            {"minItems": 3}
+          ]
+        }
+      }
+    },
+    "component_map": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "component",
+          "official_code_evidence",
+          "scientific_role",
+          "market_genome_analogue",
+          "causal_modification",
+          "status",
+          "risk",
+          "validation_test"
+        ],
+        "properties": {
+          "component": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "official_code_evidence": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "scientific_role": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "market_genome_analogue": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "causal_modification": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "status": {
+            "enum": ["REUSE_PATTERN", "CAUSALIZE", "REDESIGN", "DEFER"]
+          },
+          "risk": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "validation_test": {
+            "$ref": "#/definitions/non_empty_string"
+          }
+        }
+      }
+    },
+    "non_negotiable_alpha_genome_principles": {
+      "$ref": "#/definitions/non_empty_string_array"
+    },
+    "non_isomorphic_components": {
+      "$ref": "#/definitions/non_empty_string_array"
+    },
+    "uncertainties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "status", "evidence_gap", "next_verification"],
+        "properties": {
+          "item": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "status": {
+            "const": "NEEDS_VERIFICATION"
+          },
+          "evidence_gap": {
+            "$ref": "#/definitions/non_empty_string"
+          },
+          "next_verification": {
+            "$ref": "#/definitions/non_empty_string"
+          }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall", "acceptance_checks"],
+      "properties": {
+        "overall": {
+          "enum": ["PASS", "PASS_WITH_NEEDS_VERIFICATION", "FAIL"]
+        },
+        "acceptance_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["check", "status", "evidence"],
+            "properties": {
+              "check": {
+                "$ref": "#/definitions/non_empty_string"
+              },
+              "status": {
+                "enum": ["PASS", "FAIL", "NEEDS_VERIFICATION"]
+              },
+              "evidence": {
+                "$ref": "#/definitions/non_empty_string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "freeze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "review_decision",
+        "frozen_at",
+        "baseline_id",
+        "git_tag",
+        "baseline_payload_sha256",
+        "markdown_sha256",
+        "schema_sha256",
+        "validator_sha256",
+        "component_count",
+        "uncertainty_count",
+        "non_negotiable_principle_count",
+        "non_isomorphic_component_count",
+        "official_commit",
+        "local_source_head",
+        "official_source_tree",
+        "change_control",
+        "training_status",
+        "gpu_status",
+        "gpu_revisit_not_before",
+        "resume_requires_explicit_user_confirmation"
+      ],
+      "properties": {
+        "status": {
+          "const": "FROZEN"
+        },
+        "review_decision": {
+          "const": "APPROVED_WITH_DOCUMENTED_GAPS"
+        },
+        "frozen_at": {
+          "$ref": "#/definitions/non_empty_string"
+        },
+        "baseline_id": {
+          "const": "MG0-A-v1"
+        },
+        "git_tag": {
+          "const": "mg0-a-alphagenome-parity-v1"
+        },
+        "baseline_payload_sha256": {
+          "const": "bddd431775f26129a81580c5b09fd44c3dadd81a50b62d75f90ad75ed5774a83"
+        },
+        "markdown_sha256": {
+          "const": "88291777fbecb555727e356bcc8a037b864688ecba12480c8ac2788b928268b0"
+        },
+        "schema_sha256": {
+          "$ref": "#/definitions/sha256"
+        },
+        "validator_sha256": {
+          "$ref": "#/definitions/sha256"
+        },
+        "component_count": {
+          "const": 36
+        },
+        "uncertainty_count": {
+          "const": 9
+        },
+        "non_negotiable_principle_count": {
+          "const": 10
+        },
+        "non_isomorphic_component_count": {
+          "const": 9
+        },
+        "official_commit": {
+          "const": "232fc695d1eab27bac9e94bcd4b50499139ba4e1"
+        },
+        "local_source_head": {
+          "const": "ed738d92ab76df03b4d25ebb741e33048c9aae09"
+        },
+        "official_source_tree": {
+          "const": "27f86306d52edcbbc4152049f5856f6c1999a334"
+        },
+        "change_control": {
+          "const": "EXPLICIT_USER_APPROVAL_AND_NEW_SCHEMA_VERSION"
+        },
+        "training_status": {
+          "const": "DEFERRED_BY_USER"
+        },
+        "gpu_status": {
+          "const": "DEFERRED_UNTIL_EXPLICIT_USER_REACTIVATION"
+        },
+        "gpu_revisit_not_before": {
+          "const": "2026-07-14"
+        },
+        "resume_requires_explicit_user_confirmation": {
+          "const": true
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gpu_execution_policy",
+        "gpu_workload_after_defer",
+        "training_execution_policy",
+        "training_workload_after_defer",
+        "resume_requires_explicit_user_confirmation",
+        "pre_defer_jax_test_attempt",
+        "full_model_execution",
+        "checkpoint_download",
+        "dataset_download",
+        "market_genome_implementation",
+        "partial_verification"
+      ],
+      "properties": {
+        "gpu_execution_policy": {
+          "const": "DEFERRED_BY_USER"
+        },
+        "gpu_workload_after_defer": {
+          "const": false
+        },
+        "training_execution_policy": {
+          "const": "DEFERRED_BY_USER"
+        },
+        "training_workload_after_defer": {
+          "const": false
+        },
+        "resume_requires_explicit_user_confirmation": {
+          "const": true
+        },
+        "pre_defer_jax_test_attempt": {
+          "const": "INTERRUPTED_WITHOUT_VERIFICATION"
+        },
+        "full_model_execution": {
+          "const": "DEFERRED_BY_USER"
+        },
+        "checkpoint_download": {
+          "const": "NOT_RUN"
+        },
+        "dataset_download": {
+          "const": "NOT_RUN"
+        },
+        "market_genome_implementation": {
+          "const": "NOT_STARTED"
+        },
+        "partial_verification": {
+          "$ref": "#/definitions/non_empty_string_array"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "non_empty_string_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/non_empty_string"
+      }
+    },
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
