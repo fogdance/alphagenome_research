@@ -1,0 +1,804 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mg1a.pattern_ontology.v1",
+  "title": "MG1-A parameterized pattern ontology review draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "milestone",
+    "decision",
+    "human_review",
+    "resolved_contract",
+    "resolved_contract_sha256",
+    "source_evidence",
+    "rejected_shortcuts",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": {"const": "mg1a.pattern_ontology.v1"},
+    "profile": {"const": "mg1a"},
+    "milestone": {"const": "MG1-A"},
+    "decision": {"const": "DRAFT_NEEDS_HUMAN_FREEZE"},
+    "human_review": {"$ref": "#/definitions/humanReview"},
+    "resolved_contract": {"$ref": "#/definitions/resolvedContract"},
+    "resolved_contract_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/sourceEvidence"}
+    },
+    "rejected_shortcuts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/rejectedShortcut"}
+    },
+    "execution": {"$ref": "#/definitions/execution"}
+  },
+  "definitions": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "nonEmptyUniqueStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/nonEmptyString"}
+    },
+    "safeRuntimeIdentifier": {
+      "allOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.]*$"
+        },
+        {
+          "not": {
+            "pattern": "(^|[._])(absolute_price|raw_price|future|outcome|retrospective|completion|target|next|forward|post_event|tomorrow|buy|sell|entry|trade|action|profit|rating|stop_price|teacher|mfe|mae|long_signal|short_signal|long_position|short_position|order_intent|trade_intent|signal_intent|lookahead|pnl|close_price|open_price|high_price|low_price|settlement_price|last_price|usd|eur|cny|jpy|gbp|hkd|seconds|minutes|hours|days|milliseconds)([._]|$)"
+          }
+        }
+      ]
+    },
+    "safeRuntimeIdentifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/safeRuntimeIdentifier"}
+    },
+    "safePhaseIdentifier": {
+      "allOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        {
+          "not": {
+            "pattern": "(^|_)(FUTURE|OUTCOME|RETROSPECTIVE|COMPLETION|TARGET|NEXT|FORWARD|LOOKAHEAD|POST_EVENT|TOMORROW)(_|$)"
+          }
+        }
+      ]
+    },
+    "parameterRegistration": {
+      "type": "string",
+      "pattern": "^(?:[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)*|[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+\\.\\*)$"
+    },
+    "parameterRegistrations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/parameterRegistration"}
+    },
+    "assumptionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^MG1A\\.[A-Z_]+\\.[A-Z_]+\\.001$"
+      }
+    },
+    "humanReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "frozen", "approver", "approved_at", "frozen_sha256"],
+      "properties": {
+        "status": {"const": "PENDING"},
+        "frozen": {"const": false},
+        "approver": {"type": "null"},
+        "approved_at": {"type": "null"},
+        "frozen_sha256": {"type": "null"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detector_implemented",
+        "labeler_implemented",
+        "real_data_labels_created",
+        "synthetic_samples_created",
+        "trading_rules_implemented",
+        "model_training_executed",
+        "jax_computation_executed",
+        "gpu_executed"
+      ],
+      "properties": {
+        "detector_implemented": {"const": false},
+        "labeler_implemented": {"const": false},
+        "real_data_labels_created": {"const": false},
+        "synthetic_samples_created": {"const": false},
+        "trading_rules_implemented": {"const": false},
+        "model_training_executed": {"const": false},
+        "jax_computation_executed": {"const": false},
+        "gpu_executed": {"const": false}
+      }
+    },
+    "sourceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "source_root",
+        "path",
+        "sha256",
+        "availability",
+        "line_range",
+        "authority",
+        "usage"
+      ],
+      "properties": {
+        "evidence_id": {"$ref": "#/definitions/nonEmptyString"},
+        "source_root": {
+          "enum": ["REPOSITORY", "CHENDAGE_SIGNAL", "CHEN_PACK"]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "availability": {
+          "enum": ["REQUIRED", "VERIFY_WHEN_AVAILABLE"]
+        },
+        "line_range": {"$ref": "#/definitions/nonEmptyString"},
+        "authority": {
+          "enum": [
+            "TASK_SPECIFICATION",
+            "APPROVED_DESIGN_REFERENCE",
+            "IMPLEMENTATION_REFERENCE",
+            "NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE",
+            "AVAILABLE_NOT_INGESTED"
+          ]
+        },
+        "usage": {"$ref": "#/definitions/nonEmptyString"}
+      }
+    },
+    "rejectedShortcut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shortcut", "reason", "evidence_ids"],
+      "properties": {
+        "shortcut": {"$ref": "#/definitions/nonEmptyString"},
+        "reason": {"$ref": "#/definitions/nonEmptyString"},
+        "evidence_ids": {"$ref": "#/definitions/nonEmptyUniqueStrings"}
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_phase", "to_phase", "assumption_ids"],
+      "properties": {
+        "from_phase": {"$ref": "#/definitions/phase"},
+        "to_phase": {"$ref": "#/definitions/phase"},
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.LIFECYCLE.001"]
+        }
+      }
+    },
+    "phase": {
+      "enum": [
+        "INACTIVE",
+        "CANDIDATE",
+        "DEVELOPING",
+        "MATURE",
+        "CONFIRMED",
+        "RETEST_OR_CONTINUATION",
+        "COMPLETED",
+        "INVALIDATED"
+      ]
+    },
+    "commonLifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phases", "transitions"],
+      "properties": {
+        "phases": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/phase"}
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/transition"}
+        }
+      }
+    },
+    "scaleContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scale_id",
+        "base_timeframe",
+        "family_definition_scale_invariant",
+        "shared_across_scales",
+        "scale_specific_parameters",
+        "assumption_ids"
+      ],
+      "properties": {
+        "scale_id": {"const": "INSTANCE_PARAMETER"},
+        "base_timeframe": {"const": "INSTANCE_PARAMETER"},
+        "family_definition_scale_invariant": {"const": true},
+        "shared_across_scales": {"$ref": "#/definitions/nonEmptyUniqueStrings"},
+        "scale_specific_parameters": {"$ref": "#/definitions/nonEmptyUniqueStrings"},
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.SCALE.001"]
+        }
+      }
+    },
+    "normalizationContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_units",
+        "duration_unit",
+        "parameter_freeze_policy",
+        "absolute_thresholds_allowed",
+        "assumption_ids"
+      ],
+      "properties": {
+        "price_units": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ATR_MULTIPLE",
+              "REALIZED_VOL_MULTIPLE",
+              "TRAIN_FROZEN_SCALE_MULTIPLE",
+              "DIMENSIONLESS_RATIO"
+            ]
+          }
+        },
+        "duration_unit": {"const": "SCALE_WINDOW_STATISTIC_RATIO"},
+        "parameter_freeze_policy": {"const": "TRAIN_FROZEN"},
+        "absolute_thresholds_allowed": {"const": false},
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.NORMALIZATION.001"]
+        }
+      }
+    },
+    "anchorInstanceContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_fields",
+        "event_availability_order",
+        "online_use_rule",
+        "partial_bar_policy",
+        "assumption_ids"
+      ],
+      "properties": {
+        "required_fields": {
+          "const": [
+            "role",
+            "event_eob",
+            "available_as_of_eob",
+            "normalized_price",
+            "scale_id",
+            "source_method",
+            "source_bar_closed",
+            "anchor_state",
+            "label_provenance",
+            "assumption_ids"
+          ]
+        },
+        "event_availability_order": {"const": "AVAILABLE_AS_OF_NOT_BEFORE_EVENT"},
+        "online_use_rule": {"const": "AVAILABLE_AS_OF_NOT_AFTER_OBSERVATION"},
+        "partial_bar_policy": {"const": "INSTANCE_PARAMETER"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "patternInstanceContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_fields",
+        "target_namespaces_separate",
+        "target_fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "required_fields": {
+          "const": [
+            "pattern_id",
+            "family",
+            "side",
+            "scale_id",
+            "base_timeframe",
+            "start_eob",
+            "as_of_eob",
+            "phase_observed_at",
+            "phase",
+            "anchors",
+            "topology",
+            "normalized_geometry",
+            "duration_ratios",
+            "price_ratios",
+            "prior_context",
+            "online_confirmation",
+            "invalidation",
+            "maturity_score",
+            "label_provenance",
+            "detector_version",
+            "assumption_ids",
+            "session_calendar_version",
+            "active_contract",
+            "roll_state"
+          ]
+        },
+        "target_namespaces_separate": {"const": true},
+        "target_fields": {
+          "type": "array",
+          "const": ["retrospective_completion_target", "future_outcome_target"]
+        },
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "onlineLabelNamespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "information_cutoff",
+        "runtime_input_allowed",
+        "target_only",
+        "fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "information_cutoff": {"const": "PREFIX_THROUGH_AS_OF"},
+        "runtime_input_allowed": {"const": false},
+        "target_only": {"const": false},
+        "fields": {
+          "const": ["family", "phase", "phase_observed_at", "maturity_score"]
+        },
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.LABEL_TIMING.001"]
+        }
+      }
+    },
+    "retrospectiveLabelNamespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "information_cutoff",
+        "runtime_input_allowed",
+        "target_only",
+        "fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "information_cutoff": {"const": "FUTURE_ALLOWED_TARGET_ONLY"},
+        "runtime_input_allowed": {"const": false},
+        "target_only": {"const": true},
+        "fields": {
+          "const": ["completion_status", "completed_at", "final_phase"]
+        },
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.LABEL_TIMING.001"]
+        }
+      }
+    },
+    "futureOutcomeLabelNamespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "information_cutoff",
+        "runtime_input_allowed",
+        "target_only",
+        "fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "information_cutoff": {
+          "const": "POST_CONFIRMATION_FUTURE_TARGET_ONLY"
+        },
+        "runtime_input_allowed": {"const": false},
+        "target_only": {"const": true},
+        "fields": {"const": ["target_class", "target_horizon"]},
+        "assumption_ids": {
+          "const": ["MG1A.COMMON.LABEL_TIMING.001"]
+        }
+      }
+    },
+    "labelNamespaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "online_causal_phase",
+        "retrospective_completion",
+        "future_outcome"
+      ],
+      "properties": {
+        "online_causal_phase": {
+          "$ref": "#/definitions/onlineLabelNamespace"
+        },
+        "retrospective_completion": {
+          "$ref": "#/definitions/retrospectiveLabelNamespace"
+        },
+        "future_outcome": {
+          "$ref": "#/definitions/futureOutcomeLabelNamespace"
+        }
+      }
+    },
+    "labelProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_values", "assumption_ids"],
+      "properties": {
+        "allowed_values": {
+          "type": "array",
+          "const": [
+            "RULE_DERIVED",
+            "HUMAN_REVIEWED",
+            "SYNTHETIC",
+            "AUTO_MODEL_ASSISTED"
+          ]
+        },
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "labelProvenanceContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_values",
+        "auto_model_assisted_independent_truth_allowed",
+        "human_corrections_overwrite_engine_fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "allowed_values": {
+          "type": "array",
+          "const": [
+            "RULE_DERIVED",
+            "HUMAN_REVIEWED",
+            "SYNTHETIC",
+            "AUTO_MODEL_ASSISTED"
+          ]
+        },
+        "auto_model_assisted_independent_truth_allowed": {"const": false},
+        "human_corrections_overwrite_engine_fields": {"const": false},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "anchorRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "cardinality", "assumption_ids"],
+      "properties": {
+        "role": {"$ref": "#/definitions/safeRuntimeIdentifier"},
+        "cardinality": {"enum": ["ONE", "ONE_OR_MORE", "ZERO_OR_ONE", "DERIVED_ONE"]},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "phaseContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_phase_sequence", "common_mapping", "assumption_ids"],
+      "properties": {
+        "allowed_phase_sequence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/safePhaseIdentifier"}
+        },
+        "common_mapping": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/phaseMapping"}
+        },
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "phaseMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family_phase", "common_phase"],
+      "properties": {
+        "family_phase": {"$ref": "#/definitions/safePhaseIdentifier"},
+        "common_phase": {"$ref": "#/definitions/phase"}
+      }
+    },
+    "topologyConstraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation", "anchor_roles", "parameter_refs", "assumption_ids"],
+      "properties": {
+        "relation": {"$ref": "#/definitions/nonEmptyString"},
+        "anchor_roles": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "parameter_refs": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "normalizedGeometrySection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "allowed_units",
+        "parameter_refs",
+        "assumption_ids"
+      ],
+      "properties": {
+        "fields": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "allowed_units": {
+          "const": [
+            "ATR_MULTIPLE",
+            "REALIZED_VOL_MULTIPLE",
+            "TRAIN_FROZEN_SCALE_MULTIPLE",
+            "DIMENSIONLESS_RATIO"
+          ]
+        },
+        "parameter_refs": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "durationRatioSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields", "unit", "parameter_refs", "assumption_ids"],
+      "properties": {
+        "fields": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "unit": {"const": "SCALE_WINDOW_STATISTIC_RATIO"},
+        "parameter_refs": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "priceRatioSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields", "unit", "parameter_refs", "assumption_ids"],
+      "properties": {
+        "fields": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "unit": {"const": "DIMENSIONLESS_RATIO"},
+        "parameter_refs": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "prefixFieldSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields", "prefix_only", "assumption_ids"],
+      "properties": {
+        "fields": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "prefix_only": {"const": true},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "optionalConfirmations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "separate_from_topology",
+        "required_for_topology",
+        "fields",
+        "assumption_ids"
+      ],
+      "properties": {
+        "separate_from_topology": {"const": true},
+        "required_for_topology": {"const": false},
+        "fields": {"$ref": "#/definitions/safeRuntimeIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "side",
+        "allowed_instance_sides",
+        "instance_side_basis",
+        "scale_id",
+        "base_timeframe",
+        "review_status",
+        "anchor_roles",
+        "phase_contract",
+        "topology_constraints",
+        "normalized_geometry_fields",
+        "duration_ratios",
+        "price_ratios",
+        "prior_context_fields",
+        "online_confirmation_fields",
+        "invalidation_fields",
+        "optional_volume_oi_confirmations",
+        "label_provenance",
+        "assumption_ids"
+      ],
+      "properties": {
+        "family": {
+          "enum": [
+            "trend_up",
+            "trend_down",
+            "trend_transition",
+            "double_top",
+            "double_bottom",
+            "head_shoulders_top",
+            "inverse_head_shoulders",
+            "breakout",
+            "failed_breakout",
+            "retest",
+            "range",
+            "support_resistance_conversion"
+          ]
+        },
+        "side": {
+          "enum": ["BULLISH", "BEARISH", "NEUTRAL", "INSTANCE_PARAMETER"]
+        },
+        "allowed_instance_sides": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"enum": ["BULLISH", "BEARISH", "NEUTRAL"]}
+        },
+        "instance_side_basis": {
+          "enum": [
+            "FIXED_FAMILY_SIDE",
+            "COUNTER_SEQUENCE_DIRECTION",
+            "BOUNDARY_CROSS_DIRECTION",
+            "ATTEMPT_CROSS_DIRECTION",
+            "ORIGIN_BREAK_DIRECTION",
+            "ROLE_BREAK_DIRECTION"
+          ]
+        },
+        "scale_id": {"const": "INSTANCE_PARAMETER"},
+        "base_timeframe": {"const": "INSTANCE_PARAMETER"},
+        "review_status": {"const": "NEEDS_HUMAN_REVIEW"},
+        "anchor_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/anchorRole"}
+        },
+        "phase_contract": {"$ref": "#/definitions/phaseContract"},
+        "topology_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/topologyConstraint"}
+        },
+        "normalized_geometry_fields": {
+          "$ref": "#/definitions/normalizedGeometrySection"
+        },
+        "duration_ratios": {"$ref": "#/definitions/durationRatioSection"},
+        "price_ratios": {"$ref": "#/definitions/priceRatioSection"},
+        "prior_context_fields": {"$ref": "#/definitions/prefixFieldSection"},
+        "online_confirmation_fields": {
+          "$ref": "#/definitions/prefixFieldSection"
+        },
+        "invalidation_fields": {
+          "$ref": "#/definitions/prefixFieldSection"
+        },
+        "optional_volume_oi_confirmations": {"$ref": "#/definitions/optionalConfirmations"},
+        "label_provenance": {"$ref": "#/definitions/labelProvenance"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_id",
+        "category",
+        "status",
+        "question",
+        "affected_families",
+        "parameter_refs",
+        "source_evidence",
+        "proposed_default",
+        "reviewer_decision"
+      ],
+      "properties": {
+        "assumption_id": {
+          "type": "string",
+          "pattern": "^MG1A\\.[A-Z_]+\\.[A-Z_]+\\.001$"
+        },
+        "category": {"$ref": "#/definitions/nonEmptyString"},
+        "status": {"const": "NEEDS_HUMAN_REVIEW"},
+        "question": {"$ref": "#/definitions/nonEmptyString"},
+        "affected_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ALL",
+              "trend_up",
+              "trend_down",
+              "trend_transition",
+              "double_top",
+              "double_bottom",
+              "head_shoulders_top",
+              "inverse_head_shoulders",
+              "breakout",
+              "failed_breakout",
+              "retest",
+              "range",
+              "support_resistance_conversion"
+            ]
+          }
+        },
+        "parameter_refs": {"$ref": "#/definitions/parameterRegistrations"},
+        "source_evidence": {"$ref": "#/definitions/nonEmptyUniqueStrings"},
+        "proposed_default": {"type": "null"},
+        "reviewer_decision": {"type": "null"}
+      }
+    },
+    "resolvedContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ontology_id",
+        "ontology_version",
+        "contract_status",
+        "common_lifecycle",
+        "scale_contract",
+        "normalization_contract",
+        "anchor_instance_contract",
+        "pattern_instance_contract",
+        "label_namespaces",
+        "label_provenance_contract",
+        "families",
+        "assumptions"
+      ],
+      "properties": {
+        "ontology_id": {"const": "market_genome_pattern_ontology"},
+        "ontology_version": {"const": "v1-draft"},
+        "contract_status": {"const": "PARAMETERIZED_REVIEW_DRAFT"},
+        "common_lifecycle": {"$ref": "#/definitions/commonLifecycle"},
+        "scale_contract": {"$ref": "#/definitions/scaleContract"},
+        "normalization_contract": {"$ref": "#/definitions/normalizationContract"},
+        "anchor_instance_contract": {"$ref": "#/definitions/anchorInstanceContract"},
+        "pattern_instance_contract": {"$ref": "#/definitions/patternInstanceContract"},
+        "label_namespaces": {"$ref": "#/definitions/labelNamespaces"},
+        "label_provenance_contract": {"$ref": "#/definitions/labelProvenanceContract"},
+        "families": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/family"}
+        },
+        "assumptions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/assumption"}
+        }
+      }
+    }
+  }
+}

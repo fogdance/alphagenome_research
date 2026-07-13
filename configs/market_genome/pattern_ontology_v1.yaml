@@ -1,0 +1,547 @@
+schema_version: mg1a.pattern_ontology.v1
+profile: mg1a
+milestone: MG1-A
+decision: DRAFT_NEEDS_HUMAN_FREEZE
+human_review:
+  status: PENDING
+  frozen: false
+  approver: null
+  approved_at: null
+  frozen_sha256: null
+resolved_contract:
+  ontology_id: market_genome_pattern_ontology
+  ontology_version: v1-draft
+  contract_status: PARAMETERIZED_REVIEW_DRAFT
+  common_lifecycle:
+    phases:
+      - INACTIVE
+      - CANDIDATE
+      - DEVELOPING
+      - MATURE
+      - CONFIRMED
+      - RETEST_OR_CONTINUATION
+      - COMPLETED
+      - INVALIDATED
+    transitions:
+      - {from_phase: INACTIVE, to_phase: CANDIDATE, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: CANDIDATE, to_phase: DEVELOPING, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: DEVELOPING, to_phase: MATURE, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: MATURE, to_phase: CONFIRMED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: CONFIRMED, to_phase: RETEST_OR_CONTINUATION, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: RETEST_OR_CONTINUATION, to_phase: COMPLETED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: CANDIDATE, to_phase: INVALIDATED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: DEVELOPING, to_phase: INVALIDATED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: MATURE, to_phase: INVALIDATED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: CONFIRMED, to_phase: INVALIDATED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: RETEST_OR_CONTINUATION, to_phase: INVALIDATED, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: COMPLETED, to_phase: INACTIVE, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+      - {from_phase: INVALIDATED, to_phase: INACTIVE, assumption_ids: [MG1A.COMMON.LIFECYCLE.001]}
+  scale_contract:
+    scale_id: INSTANCE_PARAMETER
+    base_timeframe: INSTANCE_PARAMETER
+    family_definition_scale_invariant: true
+    shared_across_scales: [anchor_roles, topology_constraints, phase_contract, normalization_contract]
+    scale_specific_parameters: [noise_tolerance_ref, minimum_duration_ref, optional_filter_strength_ref]
+    assumption_ids: [MG1A.COMMON.SCALE.001]
+  normalization_contract:
+    price_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO]
+    duration_unit: SCALE_WINDOW_STATISTIC_RATIO
+    parameter_freeze_policy: TRAIN_FROZEN
+    absolute_thresholds_allowed: false
+    assumption_ids: [MG1A.COMMON.NORMALIZATION.001]
+  anchor_instance_contract:
+    required_fields: [role, event_eob, available_as_of_eob, normalized_price, scale_id, source_method, source_bar_closed, anchor_state, label_provenance, assumption_ids]
+    event_availability_order: AVAILABLE_AS_OF_NOT_BEFORE_EVENT
+    online_use_rule: AVAILABLE_AS_OF_NOT_AFTER_OBSERVATION
+    partial_bar_policy: INSTANCE_PARAMETER
+    assumption_ids: [MG1A.COMMON.SWING_CAUSALITY.001, MG1A.COMMON.PARTIAL_BAR.001]
+  pattern_instance_contract:
+    required_fields: [pattern_id, family, side, scale_id, base_timeframe, start_eob, as_of_eob, phase_observed_at, phase, anchors, topology, normalized_geometry, duration_ratios, price_ratios, prior_context, online_confirmation, invalidation, maturity_score, label_provenance, detector_version, assumption_ids, session_calendar_version, active_contract, roll_state]
+    target_namespaces_separate: true
+    target_fields: [retrospective_completion_target, future_outcome_target]
+    assumption_ids: [MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001, MG1A.COMMON.LABEL_TIMING.001]
+  label_namespaces:
+    online_causal_phase:
+      information_cutoff: PREFIX_THROUGH_AS_OF
+      runtime_input_allowed: false
+      target_only: false
+      fields: [family, phase, phase_observed_at, maturity_score]
+      assumption_ids: [MG1A.COMMON.LABEL_TIMING.001]
+    retrospective_completion:
+      information_cutoff: FUTURE_ALLOWED_TARGET_ONLY
+      runtime_input_allowed: false
+      target_only: true
+      fields: [completion_status, completed_at, final_phase]
+      assumption_ids: [MG1A.COMMON.LABEL_TIMING.001]
+    future_outcome:
+      information_cutoff: POST_CONFIRMATION_FUTURE_TARGET_ONLY
+      runtime_input_allowed: false
+      target_only: true
+      fields: [target_class, target_horizon]
+      assumption_ids: [MG1A.COMMON.LABEL_TIMING.001]
+  label_provenance_contract:
+    allowed_values: [RULE_DERIVED, HUMAN_REVIEWED, SYNTHETIC, AUTO_MODEL_ASSISTED]
+    auto_model_assisted_independent_truth_allowed: false
+    human_corrections_overwrite_engine_fields: false
+    assumption_ids: [MG1A.COMMON.PROVENANCE.001]
+  families:
+    - family: trend_up
+      side: BULLISH
+      allowed_instance_sides: [BULLISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: trend_origin_low, cardinality: ONE, assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+        - {role: swing_high, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+        - {role: pullback_low, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+        - {role: current_frontier, cardinality: ONE, assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+      phase_contract: &common_family_phase_contract
+        allowed_phase_sequence: [INACTIVE, CANDIDATE, DEVELOPING, MATURE, CONFIRMED, RETEST_OR_CONTINUATION, COMPLETED, INVALIDATED]
+        common_mapping:
+          - {family_phase: INACTIVE, common_phase: INACTIVE}
+          - {family_phase: CANDIDATE, common_phase: CANDIDATE}
+          - {family_phase: DEVELOPING, common_phase: DEVELOPING}
+          - {family_phase: MATURE, common_phase: MATURE}
+          - {family_phase: CONFIRMED, common_phase: CONFIRMED}
+          - {family_phase: RETEST_OR_CONTINUATION, common_phase: RETEST_OR_CONTINUATION}
+          - {family_phase: COMPLETED, common_phase: COMPLETED}
+          - {family_phase: INVALIDATED, common_phase: INVALIDATED}
+        assumption_ids: [MG1A.TREND_UP.PHASE.001]
+      topology_constraints:
+        - {relation: TEMPORALLY_ALTERNATES, anchor_roles: [swing_high, pullback_low], parameter_refs: [trend_up.sequence_order_policy], assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+        - {relation: SUCCESSIVE_HIGH_AND_LOW_ASCENDING, anchor_roles: [swing_high, pullback_low], parameter_refs: [trend_up.normalized_order_tolerance], assumption_ids: [MG1A.TREND_UP.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [high_envelope_slope_norm, low_envelope_slope_norm, channel_width_norm, path_efficiency], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [trend_up.geometry_policy], assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [formation_duration_to_scale_ratio, impulse_to_pullback_duration_ratio_profile], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [trend_up.duration_policy], assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [higher_high_increment_to_scale_ratio_profile, pullback_depth_to_prior_impulse_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [trend_up.price_ratio_policy], assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_family, prior_phase, volatility_regime, session_context, contract_roll_context, parent_scale_trend_state], prefix_only: true, assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [ascending_high_sequence_state, ascending_low_sequence_state, latest_pullback_hold_state, anchor_sequence_completeness], prefix_only: true, assumption_ids: [MG1A.TREND_UP.CONFIRMATION.001]}
+      invalidation_fields: {fields: [last_confirmed_pullback_low_breach_state, ascending_order_break_state, formation_expiry_state], prefix_only: true, assumption_ids: [MG1A.TREND_UP.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [impulse_volume_relative_profile, pullback_volume_relative_profile, impulse_open_interest_change_profile], assumption_ids: [MG1A.TREND_UP.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: &family_label_provenance
+        allowed_values: [RULE_DERIVED, HUMAN_REVIEWED, SYNTHETIC, AUTO_MODEL_ASSISTED]
+        assumption_ids: [MG1A.COMMON.PROVENANCE.001]
+      assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.TREND_UP.PHASE.001, MG1A.TREND_UP.CONFIRMATION.001, MG1A.TREND_UP.INVALIDATION.001, MG1A.COMMON.SCALE.001, MG1A.COMMON.NORMALIZATION.001]
+    - family: trend_down
+      side: BEARISH
+      allowed_instance_sides: [BEARISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: trend_origin_high, cardinality: ONE, assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+        - {role: swing_low, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+        - {role: reaction_high, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+        - {role: current_frontier, cardinality: ONE, assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.TREND_DOWN.PHASE.001]
+      topology_constraints:
+        - {relation: TEMPORALLY_ALTERNATES, anchor_roles: [swing_low, reaction_high], parameter_refs: [trend_down.sequence_order_policy], assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+        - {relation: SUCCESSIVE_LOW_AND_HIGH_DESCENDING, anchor_roles: [swing_low, reaction_high], parameter_refs: [trend_down.normalized_order_tolerance], assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [low_envelope_slope_norm, high_envelope_slope_norm, channel_width_norm, path_efficiency], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [trend_down.geometry_policy], assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [formation_duration_to_scale_ratio, impulse_to_reaction_duration_ratio_profile], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [trend_down.duration_policy], assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [lower_low_increment_to_scale_ratio_profile, reaction_depth_to_prior_impulse_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [trend_down.price_ratio_policy], assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_family, prior_phase, volatility_regime, session_context, contract_roll_context, parent_scale_trend_state], prefix_only: true, assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [descending_low_sequence_state, descending_high_sequence_state, latest_reaction_hold_state, anchor_sequence_completeness], prefix_only: true, assumption_ids: [MG1A.TREND_DOWN.CONFIRMATION.001]}
+      invalidation_fields: {fields: [last_confirmed_reaction_high_breach_state, descending_order_break_state, formation_expiry_state], prefix_only: true, assumption_ids: [MG1A.TREND_DOWN.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [impulse_volume_relative_profile, reaction_volume_relative_profile, impulse_open_interest_change_profile], assumption_ids: [MG1A.TREND_DOWN.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.TREND_DOWN.PHASE.001, MG1A.TREND_DOWN.CONFIRMATION.001, MG1A.TREND_DOWN.INVALIDATION.001, MG1A.COMMON.MIRROR.001, MG1A.COMMON.SCALE.001]
+    - family: trend_transition
+      side: INSTANCE_PARAMETER
+      allowed_instance_sides: [BULLISH, BEARISH]
+      instance_side_basis: COUNTER_SEQUENCE_DIRECTION
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: prior_sequence_terminal_extreme, cardinality: ONE, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {role: last_defending_pivot, cardinality: ONE, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {role: structure_break, cardinality: ONE, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {role: first_counter_pivot, cardinality: ONE, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {role: transition_retest, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.TREND_TRANSITION.PHASE.001]
+      topology_constraints:
+        - {relation: PRIOR_SEQUENCE_LOSES_ORDER, anchor_roles: [prior_sequence_terminal_extreme, last_defending_pivot], parameter_refs: [trend_transition.order_loss_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {relation: STRUCTURE_BREAK_CROSSES_LAST_DEFENDING_PIVOT, anchor_roles: [last_defending_pivot, structure_break], parameter_refs: [trend_transition.break_and_counter_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+        - {relation: COUNTER_SEQUENCE_EMERGES_AFTER_BREAK, anchor_roles: [structure_break, first_counter_pivot, transition_retest], parameter_refs: [trend_transition.break_and_counter_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [prior_envelope_slope_norm, transition_displacement_norm, counter_swing_strength_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [trend_transition.geometry_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [transition_duration_to_prior_trend_ratio, break_to_counter_pivot_duration_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [trend_transition.duration_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [break_displacement_to_prior_swing_ratio, counter_swing_to_prior_impulse_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [trend_transition.price_ratio_policy], assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_trend_family, prior_trend_phase, volatility_regime, session_context, contract_roll_context, parent_scale_trend_state], prefix_only: true, assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [prior_order_loss_state, defending_pivot_break_state, counter_sequence_state, transition_retest_state], prefix_only: true, assumption_ids: [MG1A.TREND_TRANSITION.CONFIRMATION.001]}
+      invalidation_fields: {fields: [prior_trend_resumption_state, defending_pivot_recovery_state, counter_sequence_failure_state], prefix_only: true, assumption_ids: [MG1A.TREND_TRANSITION.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [break_volume_relative, break_open_interest_change, counter_leg_volume_profile], assumption_ids: [MG1A.TREND_TRANSITION.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.TREND_TRANSITION.PHASE.001, MG1A.TREND_TRANSITION.CONFIRMATION.001, MG1A.TREND_TRANSITION.INVALIDATION.001, MG1A.COMMON.OVERLAP.001, MG1A.COMMON.SCALE.001]
+    - family: double_top
+      side: BEARISH
+      allowed_instance_sides: [BEARISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: left_peak, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {role: intervening_trough, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {role: right_peak, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {role: neckline_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {role: neckline_break, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {role: neckline_retest, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.DOUBLE_TOP.PHASE.001]
+      topology_constraints:
+        - {relation: TWO_PEAKS_WITH_INTERVENING_TROUGH, anchor_roles: [left_peak, intervening_trough, right_peak], parameter_refs: [double_top.peak_compatibility_policy], assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+        - {relation: OPTIONAL_DOWNWARD_NECKLINE_CROSS_AND_RETEST, anchor_roles: [neckline_zone, neckline_break, neckline_retest], parameter_refs: [double_top.neckline_policy], assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [peak_level_dispersion_norm, trough_depth_norm, formation_symmetry, neckline_slope_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [double_top.geometry_policy], assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [left_peak_to_trough_duration_ratio, trough_to_right_peak_duration_ratio, formation_duration_to_scale_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [double_top.duration_policy], assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [peak_difference_to_scale_ratio, trough_depth_to_peak_height_ratio, break_displacement_to_formation_amplitude_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [double_top.price_ratio_policy], assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_trend_state, prior_trend_strength, volatility_regime, session_context, contract_roll_context, near_resistance_context], prefix_only: true, assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [second_peak_candidate_state, right_peak_rejection_state, neckline_test_state, neckline_break_state, retest_state], prefix_only: true, assumption_ids: [MG1A.DOUBLE_TOP.CONFIRMATION.001]}
+      invalidation_fields: {fields: [peak_zone_upside_breach_state, neckline_break_absence_expiry_state, anchor_order_invalid_state], prefix_only: true, assumption_ids: [MG1A.DOUBLE_TOP.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [left_vs_right_peak_volume_ratio, neckline_break_volume_relative, break_open_interest_change], assumption_ids: [MG1A.DOUBLE_TOP.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.DOUBLE_TOP.PHASE.001, MG1A.DOUBLE_TOP.CONFIRMATION.001, MG1A.DOUBLE_TOP.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.SCALE.001]
+    - family: double_bottom
+      side: BULLISH
+      allowed_instance_sides: [BULLISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: left_trough, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {role: intervening_peak, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {role: right_trough, cardinality: ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {role: neckline_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {role: neckline_break, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {role: neckline_retest, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.DOUBLE_BOTTOM.PHASE.001]
+      topology_constraints:
+        - {relation: TWO_TROUGHS_WITH_INTERVENING_PEAK, anchor_roles: [left_trough, intervening_peak, right_trough], parameter_refs: [double_bottom.trough_compatibility_policy], assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+        - {relation: OPTIONAL_UPWARD_NECKLINE_CROSS_AND_RETEST, anchor_roles: [neckline_zone, neckline_break, neckline_retest], parameter_refs: [double_bottom.neckline_policy], assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [trough_level_dispersion_norm, intervening_peak_height_norm, formation_symmetry, neckline_slope_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [double_bottom.geometry_policy], assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [left_trough_to_peak_duration_ratio, peak_to_right_trough_duration_ratio, formation_duration_to_scale_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [double_bottom.duration_policy], assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [trough_difference_to_scale_ratio, peak_height_to_trough_depth_ratio, break_displacement_to_formation_amplitude_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [double_bottom.price_ratio_policy], assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_trend_state, prior_trend_strength, volatility_regime, session_context, contract_roll_context, near_support_context], prefix_only: true, assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [second_trough_candidate_state, right_trough_rejection_state, neckline_test_state, neckline_break_state, retest_state], prefix_only: true, assumption_ids: [MG1A.DOUBLE_BOTTOM.CONFIRMATION.001]}
+      invalidation_fields: {fields: [trough_zone_downside_breach_state, neckline_break_absence_expiry_state, anchor_order_invalid_state], prefix_only: true, assumption_ids: [MG1A.DOUBLE_BOTTOM.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [left_vs_right_trough_volume_ratio, neckline_break_volume_relative, break_open_interest_change], assumption_ids: [MG1A.DOUBLE_BOTTOM.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.DOUBLE_BOTTOM.PHASE.001, MG1A.DOUBLE_BOTTOM.CONFIRMATION.001, MG1A.DOUBLE_BOTTOM.INVALIDATION.001, MG1A.COMMON.MIRROR.001, MG1A.COMMON.ZONE.001]
+    - family: head_shoulders_top
+      side: BEARISH
+      allowed_instance_sides: [BEARISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: left_shoulder_peak, cardinality: ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: left_neck_trough, cardinality: ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: head_peak, cardinality: ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: right_neck_trough, cardinality: ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: right_shoulder_peak, cardinality: ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: neckline_segment, cardinality: DERIVED_ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {role: neckline_break, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.PHASE.001]
+      topology_constraints:
+        - {relation: TEMPORAL_SHOULDER_HEAD_ORDER, anchor_roles: [left_shoulder_peak, left_neck_trough, head_peak, right_neck_trough, right_shoulder_peak], parameter_refs: [head_shoulders_top.shoulder_head_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {relation: HEAD_PEAK_ABOVE_BOTH_SHOULDERS, anchor_roles: [head_peak, left_shoulder_peak, right_shoulder_peak], parameter_refs: [head_shoulders_top.shoulder_head_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {relation: SHOULDER_PEAK_LEVELS_COMPATIBLE, anchor_roles: [left_shoulder_peak, right_shoulder_peak], parameter_refs: [head_shoulders_top.shoulder_head_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+        - {relation: NECK_TROUGHS_DEFINE_OPTIONAL_BREAK_LINE, anchor_roles: [left_neck_trough, right_neck_trough, neckline_segment, neckline_break], parameter_refs: [head_shoulders_top.neckline_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [head_prominence_norm, shoulder_level_dispersion_norm, neckline_slope_norm, left_right_shape_symmetry], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [head_shoulders_top.geometry_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [left_shoulder_to_head_duration_ratio, head_to_right_shoulder_duration_ratio, formation_duration_to_scale_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [head_shoulders_top.duration_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [head_prominence_to_shoulder_height_ratio, shoulder_difference_to_scale_ratio, neckline_depth_to_head_height_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [head_shoulders_top.price_ratio_policy], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_trend_state, volatility_regime, session_context, contract_roll_context, parent_scale_context, near_resistance_context], prefix_only: true, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [left_shoulder_available_state, head_candidate_state, right_shoulder_candidate_state, neckline_break_state], prefix_only: true, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001]}
+      invalidation_fields: {fields: [head_zone_upside_breach_state, right_shoulder_topology_failure_state, anchor_order_invalid_state], prefix_only: true, assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [shoulder_head_volume_profile, shoulder_head_open_interest_profile, neckline_break_volume_relative], assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.HEAD_SHOULDERS_TOP.PHASE.001, MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001, MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.SCALE.001]
+    - family: inverse_head_shoulders
+      side: BULLISH
+      allowed_instance_sides: [BULLISH]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: left_shoulder_trough, cardinality: ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: left_neck_peak, cardinality: ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: head_trough, cardinality: ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: right_neck_peak, cardinality: ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: right_shoulder_trough, cardinality: ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: neckline_segment, cardinality: DERIVED_ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {role: neckline_break, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001]
+      topology_constraints:
+        - {relation: TEMPORAL_SHOULDER_HEAD_ORDER, anchor_roles: [left_shoulder_trough, left_neck_peak, head_trough, right_neck_peak, right_shoulder_trough], parameter_refs: [inverse_head_shoulders.shoulder_head_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {relation: HEAD_TROUGH_BELOW_BOTH_SHOULDERS, anchor_roles: [head_trough, left_shoulder_trough, right_shoulder_trough], parameter_refs: [inverse_head_shoulders.shoulder_head_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {relation: SHOULDER_TROUGH_LEVELS_COMPATIBLE, anchor_roles: [left_shoulder_trough, right_shoulder_trough], parameter_refs: [inverse_head_shoulders.shoulder_head_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+        - {relation: NECK_PEAKS_DEFINE_OPTIONAL_BREAK_LINE, anchor_roles: [left_neck_peak, right_neck_peak, neckline_segment, neckline_break], parameter_refs: [inverse_head_shoulders.neckline_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [head_prominence_norm, shoulder_level_dispersion_norm, neckline_slope_norm, left_right_shape_symmetry], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [inverse_head_shoulders.geometry_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [left_shoulder_to_head_duration_ratio, head_to_right_shoulder_duration_ratio, formation_duration_to_scale_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [inverse_head_shoulders.duration_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [head_prominence_to_shoulder_height_ratio, shoulder_difference_to_scale_ratio, neckline_height_to_head_depth_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [inverse_head_shoulders.price_ratio_policy], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_trend_state, volatility_regime, session_context, contract_roll_context, parent_scale_context, near_support_context], prefix_only: true, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [left_shoulder_available_state, head_candidate_state, right_shoulder_candidate_state, neckline_break_state], prefix_only: true, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001]}
+      invalidation_fields: {fields: [head_zone_downside_breach_state, right_shoulder_topology_failure_state, anchor_order_invalid_state], prefix_only: true, assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [shoulder_head_volume_profile, shoulder_head_open_interest_profile, neckline_break_volume_relative], assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001, MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001, MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001, MG1A.COMMON.MIRROR.001, MG1A.COMMON.ZONE.001]
+    - family: breakout
+      side: INSTANCE_PARAMETER
+      allowed_instance_sides: [BULLISH, BEARISH]
+      instance_side_basis: BOUNDARY_CROSS_DIRECTION
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: reference_level_anchor, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {role: reference_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {role: approach_leg_start, cardinality: ONE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {role: boundary_cross, cardinality: ONE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {role: post_cross_hold, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {role: retest_touch, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.BREAKOUT.PHASE.001]
+      topology_constraints:
+        - {relation: ANCHORS_DERIVE_REFERENCE_ZONE, anchor_roles: [reference_level_anchor, reference_zone], parameter_refs: [breakout.zone_construction_policy], assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+        - {relation: CROSSES_BOUNDARY_OUTWARD_WITH_OPTIONAL_HOLD, anchor_roles: [approach_leg_start, boundary_cross, post_cross_hold, retest_touch], parameter_refs: [breakout.cross_and_hold_policy], assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [reference_zone_width_norm, approach_slope_norm, pre_break_compression_norm, cross_displacement_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [breakout.geometry_policy], assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [zone_age_to_scale_ratio, approach_duration_to_zone_age_ratio, cross_to_hold_duration_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [breakout.duration_policy], assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [cross_displacement_to_zone_width_ratio, outside_excursion_to_zone_width_ratio, retest_penetration_to_zone_width_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [breakout.price_ratio_policy], assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [source_level_role, prior_family, prior_phase, range_context, session_context, contract_roll_context, parent_scale_level_context], prefix_only: true, assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [reference_zone_available_state, outward_cross_state, outside_hold_state, retest_state, prefix_evidence_end_eob], prefix_only: true, assumption_ids: [MG1A.BREAKOUT.CONFIRMATION.001]}
+      invalidation_fields: {fields: [boundary_reentry_state, opposite_boundary_cross_state, outside_hold_failure_state], prefix_only: true, assumption_ids: [MG1A.BREAKOUT.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [cross_volume_relative, cross_open_interest_change, post_cross_volume_profile], assumption_ids: [MG1A.BREAKOUT.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.BREAKOUT.PHASE.001, MG1A.BREAKOUT.CONFIRMATION.001, MG1A.BREAKOUT.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.OVERLAP.001]
+    - family: failed_breakout
+      side: INSTANCE_PARAMETER
+      allowed_instance_sides: [BULLISH, BEARISH]
+      instance_side_basis: ATTEMPT_CROSS_DIRECTION
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: reference_level_anchor, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {role: reference_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {role: attempt_cross, cardinality: ONE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {role: max_outside_excursion, cardinality: ONE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {role: boundary_reentry, cardinality: ONE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {role: inside_rejection, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.FAILED_BREAKOUT.PHASE.001]
+      topology_constraints:
+        - {relation: ATTEMPTS_OUTWARD_CROSS, anchor_roles: [reference_level_anchor, reference_zone, attempt_cross, max_outside_excursion], parameter_refs: [failed_breakout.attempt_policy], assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+        - {relation: REENTERS_REFERENCE_ZONE, anchor_roles: [attempt_cross, max_outside_excursion, boundary_reentry, inside_rejection], parameter_refs: [failed_breakout.reentry_policy], assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [zone_width_norm, outside_excursion_norm, reentry_depth_norm, reversal_displacement_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [failed_breakout.geometry_policy], assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [attempt_to_reentry_duration_ratio, outside_dwell_to_zone_age_ratio, formation_duration_to_scale_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [failed_breakout.duration_policy], assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [outside_excursion_to_zone_width_ratio, reentry_depth_to_zone_width_ratio, reversal_move_to_attempt_move_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [failed_breakout.price_ratio_policy], assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [source_level_role, attempted_breakout_ref, prior_trend_state, range_context, session_context, contract_roll_context], prefix_only: true, assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [breakout_attempt_seen_state, outside_hold_failure_state, boundary_reentry_observed_state, inside_rejection_state], prefix_only: true, assumption_ids: [MG1A.FAILED_BREAKOUT.CONFIRMATION.001]}
+      invalidation_fields: {fields: [renewed_outside_hold_state, reentry_reversal_state, reference_zone_redefinition_state], prefix_only: true, assumption_ids: [MG1A.FAILED_BREAKOUT.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [attempt_volume_relative, attempt_open_interest_change, reentry_volume_relative], assumption_ids: [MG1A.FAILED_BREAKOUT.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.FAILED_BREAKOUT.PHASE.001, MG1A.FAILED_BREAKOUT.CONFIRMATION.001, MG1A.FAILED_BREAKOUT.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.OVERLAP.001]
+    - family: retest
+      side: INSTANCE_PARAMETER
+      allowed_instance_sides: [BULLISH, BEARISH]
+      instance_side_basis: ORIGIN_BREAK_DIRECTION
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: source_event_ref, cardinality: ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: converted_boundary_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: origin_break, cardinality: ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: post_break_extreme, cardinality: ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: return_touch, cardinality: ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: hold_or_rejection, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {role: continuation_anchor, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.RETEST.PHASE.001]
+      topology_constraints:
+        - {relation: FOLLOWS_SOURCE_BREAK_AND_RETURNS_FROM_OUTSIDE, anchor_roles: [source_event_ref, converted_boundary_zone, origin_break, post_break_extreme, return_touch], parameter_refs: [retest.source_and_return_policy], assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+        - {relation: OPTIONAL_HOLD_AND_CONTINUATION, anchor_roles: [return_touch, hold_or_rejection, continuation_anchor], parameter_refs: [retest.hold_policy], assumption_ids: [MG1A.RETEST.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [boundary_zone_width_norm, return_path_slope_norm, penetration_depth_norm, continuation_displacement_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [retest.geometry_policy], assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [break_to_retest_duration_ratio, retest_dwell_to_break_leg_ratio, retest_to_continuation_duration_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [retest.duration_policy], assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [retest_depth_to_break_leg_ratio, penetration_to_zone_width_ratio, continuation_to_break_displacement_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [retest.price_ratio_policy], assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [source_family, source_event_id, source_level_role, prior_trend_state, session_context, contract_roll_context], prefix_only: true, assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [source_break_available_state, return_to_zone_state, new_side_hold_state, rejection_state, continuation_state], prefix_only: true, assumption_ids: [MG1A.RETEST.CONFIRMATION.001]}
+      invalidation_fields: {fields: [full_recross_to_original_side_state, converted_boundary_failure_state, source_break_invalidated_state], prefix_only: true, assumption_ids: [MG1A.RETEST.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [break_volume_relative, return_volume_relative, leg_open_interest_change_profile], assumption_ids: [MG1A.RETEST.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.RETEST.PHASE.001, MG1A.RETEST.CONFIRMATION.001, MG1A.RETEST.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.OVERLAP.001]
+    - family: range
+      side: NEUTRAL
+      allowed_instance_sides: [NEUTRAL]
+      instance_side_basis: FIXED_FAMILY_SIDE
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: upper_boundary_touch, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {role: lower_boundary_touch, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {role: upper_boundary_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {role: lower_boundary_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {role: range_midline, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {role: current_frontier, cardinality: ONE, assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.RANGE.PHASE.001]
+      topology_constraints:
+        - {relation: ALTERNATING_TOUCHES_WITH_STABLE_BOUNDARIES, anchor_roles: [upper_boundary_touch, lower_boundary_touch, upper_boundary_zone, lower_boundary_zone], parameter_refs: [range.boundary_and_touch_policy], assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+        - {relation: PREFIX_REMAINS_CONTAINED, anchor_roles: [upper_boundary_zone, lower_boundary_zone, current_frontier], parameter_refs: [range.containment_policy], assumption_ids: [MG1A.RANGE.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [range_width_norm, upper_anchor_dispersion_norm, lower_anchor_dispersion_norm, range_occupancy], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [range.geometry_policy], assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [range_age_to_scale_ratio, traversal_duration_ratio_profile, boundary_dwell_duration_ratio_profile], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [range.duration_policy], assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [range_width_to_scale_ratio, current_position_within_range, boundary_penetration_to_range_width_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [range.price_ratio_policy], assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [prior_family, prior_phase, prior_trend_state, volatility_regime, session_context, contract_roll_context, parent_scale_state], prefix_only: true, assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [upper_zone_available_state, lower_zone_available_state, contained_prefix_state, boundary_interaction_state], prefix_only: true, assumption_ids: [MG1A.RANGE.CONFIRMATION.001]}
+      invalidation_fields: {fields: [upward_boundary_break_state, downward_boundary_break_state, boundary_drift_state, containment_failure_state], prefix_only: true, assumption_ids: [MG1A.RANGE.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [inside_vs_boundary_volume_profile, inside_vs_boundary_open_interest_profile, traversal_volume_profile], assumption_ids: [MG1A.RANGE.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.RANGE.PHASE.001, MG1A.RANGE.CONFIRMATION.001, MG1A.RANGE.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.OVERLAP.001]
+    - family: support_resistance_conversion
+      side: INSTANCE_PARAMETER
+      allowed_instance_sides: [BULLISH, BEARISH]
+      instance_side_basis: ROLE_BREAK_DIRECTION
+      scale_id: INSTANCE_PARAMETER
+      base_timeframe: INSTANCE_PARAMETER
+      review_status: NEEDS_HUMAN_REVIEW
+      anchor_roles:
+        - {role: original_level_anchor, cardinality: ONE_OR_MORE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {role: original_level_zone, cardinality: DERIVED_ONE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {role: role_break, cardinality: ONE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {role: post_break_extreme, cardinality: ONE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {role: opposite_side_return, cardinality: ONE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {role: converted_role_hold_or_rejection, cardinality: ZERO_OR_ONE, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+      phase_contract:
+        <<: *common_family_phase_contract
+        assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001]
+      topology_constraints:
+        - {relation: ORIGINAL_ROLE_ZONE_IS_CROSSED, anchor_roles: [original_level_anchor, original_level_zone, role_break, post_break_extreme], parameter_refs: [support_resistance_conversion.break_policy], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+        - {relation: REVISIT_FROM_OPPOSITE_SIDE_WITH_OPTIONAL_HOLD, anchor_roles: [original_level_zone, opposite_side_return, converted_role_hold_or_rejection], parameter_refs: [support_resistance_conversion.role_conversion_policy], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001]}
+      normalized_geometry_fields: {fields: [level_zone_width_norm, original_anchor_dispersion_norm, break_displacement_norm, penetration_depth_norm], allowed_units: [ATR_MULTIPLE, REALIZED_VOL_MULTIPLE, TRAIN_FROZEN_SCALE_MULTIPLE, DIMENSIONLESS_RATIO], parameter_refs: [support_resistance_conversion.geometry_policy], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      duration_ratios: {fields: [level_age_to_scale_ratio, break_to_return_duration_ratio, role_hold_duration_ratio], unit: SCALE_WINDOW_STATISTIC_RATIO, parameter_refs: [support_resistance_conversion.duration_policy], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.COMMON.SCALE.001]}
+      price_ratios: {fields: [break_displacement_to_zone_width_ratio, return_depth_to_break_leg_ratio, penetration_to_zone_width_ratio], unit: DIMENSIONLESS_RATIO, parameter_refs: [support_resistance_conversion.price_ratio_policy], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.COMMON.NORMALIZATION.001]}
+      prior_context_fields: {fields: [original_level_role, original_level_source_family, prior_trend_state, range_context, session_context, contract_roll_context], prefix_only: true, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.COMMON.SESSION.001, MG1A.COMMON.ROLL.001]}
+      online_confirmation_fields: {fields: [original_role_available_state, role_break_state, opposite_side_return_state, converted_role_hold_state], prefix_only: true, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001]}
+      invalidation_fields: {fields: [role_recross_state, original_role_restoration_state, converted_role_failure_state], prefix_only: true, assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001]}
+      optional_volume_oi_confirmations: {separate_from_topology: true, required_for_topology: false, fields: [break_volume_relative, break_open_interest_change, return_volume_relative], assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001]}
+      label_provenance: *family_label_provenance
+      assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001, MG1A.COMMON.ZONE.001, MG1A.COMMON.OVERLAP.001]
+  assumptions:
+    - {assumption_id: MG1A.COMMON.LIFECYCLE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze common transitions, terminal reset behavior, and family-specific phase semantics.", affected_families: [ALL], parameter_refs: [common_lifecycle], source_evidence: [PLAN_MG1A, TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.SCALE.001, category: SCALE, status: NEEDS_HUMAN_REVIEW, question: "Freeze scale identifiers, scale-window statistics, and scale-specific parameter policy.", affected_families: [ALL], parameter_refs: [scale_contract], source_evidence: [PLAN_MG1A, TECH_MULTI_SCALE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.NORMALIZATION.001, category: NORMALIZATION, status: NEEDS_HUMAN_REVIEW, question: "Select the train-frozen price normalizer and its fitting boundary.", affected_families: [ALL], parameter_refs: [normalization_contract], source_evidence: [PLAN_MG1A, CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.SWING_CAUSALITY.001, category: CAUSALITY, status: NEEDS_HUMAN_REVIEW, question: "Freeze anchor source methods and delay between event_eob and available_as_of_eob.", affected_families: [ALL], parameter_refs: [anchor_instance_contract], source_evidence: [TECH_CAUSALITY, CHENDAGE_SWING], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.PARTIAL_BAR.001, category: CAUSALITY, status: NEEDS_HUMAN_REVIEW, question: "Decide whether phases may use revisable partial bars or only closed bars.", affected_families: [ALL], parameter_refs: [anchor_instance_contract.partial_bar_policy], source_evidence: [TECH_CAUSALITY, CHENDAGE_AGGREGATION], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.SESSION.001, category: CONTEXT, status: NEEDS_HUMAN_REVIEW, question: "Freeze session calendar, holiday, missing-bar, and bucket-boundary semantics.", affected_families: [ALL], parameter_refs: [pattern_instance_contract.session_calendar_version], source_evidence: [CHENDAGE_SESSION], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.ROLL.001, category: CONTEXT, status: NEEDS_HUMAN_REVIEW, question: "Freeze active-contract, roll-boundary, adjustment, and contract-age semantics.", affected_families: [ALL], parameter_refs: [pattern_instance_contract.roll_state], source_evidence: [ALPHATRADE_ROLL, CHENDAGE_ROLL_BOUNDARY], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.PROVENANCE.001, category: PROVENANCE, status: NEEDS_HUMAN_REVIEW, question: "Freeze admissible truth sources and review provenance for each benchmark use.", affected_families: [ALL], parameter_refs: [label_provenance_contract], source_evidence: [TECH_PROVENANCE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.MIRROR.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Decide which mirrored families share schema only and which may share parameters.", affected_families: [trend_down, double_bottom, inverse_head_shoulders], parameter_refs: [mirror_transform], source_evidence: [TECH_MULTI_SCALE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.OVERLAP.001, category: IDENTITY, status: NEEDS_HUMAN_REVIEW, question: "Freeze overlap, precedence, nesting, expiry, and object identity across related families.", affected_families: [trend_transition, breakout, failed_breakout, retest, range, support_resistance_conversion], parameter_refs: [overlap_precedence], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.ZONE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze normalized level-zone construction, drift, and touch semantics.", affected_families: [double_top, double_bottom, head_shoulders_top, inverse_head_shoulders, breakout, failed_breakout, retest, range, support_resistance_conversion], parameter_refs: [zone_construction], source_evidence: [CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.FILTER_MISSINGNESS.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze missingness and baseline semantics for optional volume/open-interest filters.", affected_families: [ALL], parameter_refs: [optional_volume_oi_confirmations], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.COMMON.LABEL_TIMING.001, category: LABEL, status: NEEDS_HUMAN_REVIEW, question: "Freeze target timing fields while preserving the hard three-namespace separation.", affected_families: [ALL], parameter_refs: [label_namespaces], source_evidence: [TECH_LABEL_SEPARATION], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_UP.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_up anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [trend_up], parameter_refs: [trend_up.sequence_order_policy, trend_up.normalized_order_tolerance, trend_up.geometry_policy, trend_up.duration_policy, trend_up.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_TREND], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_UP.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_up phase evidence and completion semantics.", affected_families: [trend_up], parameter_refs: ["trend_up.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_UP.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_up confirmation and optional filters.", affected_families: [trend_up], parameter_refs: ["trend_up.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_UP.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_up invalidation and expiry.", affected_families: [trend_up], parameter_refs: ["trend_up.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_DOWN.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_down anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [trend_down], parameter_refs: [trend_down.sequence_order_policy, trend_down.normalized_order_tolerance, trend_down.geometry_policy, trend_down.duration_policy, trend_down.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_TREND], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_DOWN.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_down phase evidence and completion semantics.", affected_families: [trend_down], parameter_refs: ["trend_down.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_DOWN.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_down confirmation and optional filters.", affected_families: [trend_down], parameter_refs: ["trend_down.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_DOWN.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_down invalidation and expiry.", affected_families: [trend_down], parameter_refs: ["trend_down.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_TRANSITION.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_transition side basis, anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [trend_transition], parameter_refs: [trend_transition.side_basis_policy, trend_transition.order_loss_policy, trend_transition.break_and_counter_policy, trend_transition.geometry_policy, trend_transition.duration_policy, trend_transition.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_TREND], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_TRANSITION.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze trend_transition phase evidence and completion semantics.", affected_families: [trend_transition], parameter_refs: ["trend_transition.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_TRANSITION.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_transition confirmation and optional filters.", affected_families: [trend_transition], parameter_refs: ["trend_transition.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.TREND_TRANSITION.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal trend_transition invalidation and expiry.", affected_families: [trend_transition], parameter_refs: ["trend_transition.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_TOP.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze double_top anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [double_top], parameter_refs: [double_top.peak_compatibility_policy, double_top.neckline_policy, double_top.geometry_policy, double_top.duration_policy, double_top.price_ratio_policy], source_evidence: [TECH_ONTOLOGY], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_TOP.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze double_top phase evidence and completion semantics.", affected_families: [double_top], parameter_refs: ["double_top.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_TOP.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal double_top confirmation and optional filters.", affected_families: [double_top], parameter_refs: ["double_top.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_TOP.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal double_top invalidation and expiry.", affected_families: [double_top], parameter_refs: ["double_top.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_BOTTOM.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze double_bottom anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [double_bottom], parameter_refs: [double_bottom.trough_compatibility_policy, double_bottom.neckline_policy, double_bottom.geometry_policy, double_bottom.duration_policy, double_bottom.price_ratio_policy], source_evidence: [TECH_ONTOLOGY], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_BOTTOM.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze double_bottom phase evidence and completion semantics.", affected_families: [double_bottom], parameter_refs: ["double_bottom.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_BOTTOM.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal double_bottom confirmation and optional filters.", affected_families: [double_bottom], parameter_refs: ["double_bottom.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.DOUBLE_BOTTOM.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal double_bottom invalidation and expiry.", affected_families: [double_bottom], parameter_refs: ["double_bottom.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze head_shoulders_top anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [head_shoulders_top], parameter_refs: [head_shoulders_top.shoulder_head_policy, head_shoulders_top.neckline_policy, head_shoulders_top.geometry_policy, head_shoulders_top.duration_policy, head_shoulders_top.price_ratio_policy], source_evidence: [TECH_ONTOLOGY], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.HEAD_SHOULDERS_TOP.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze head_shoulders_top phase evidence and completion semantics.", affected_families: [head_shoulders_top], parameter_refs: ["head_shoulders_top.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal head_shoulders_top confirmation and optional filters.", affected_families: [head_shoulders_top], parameter_refs: ["head_shoulders_top.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal head_shoulders_top invalidation and expiry.", affected_families: [head_shoulders_top], parameter_refs: ["head_shoulders_top.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze inverse_head_shoulders anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [inverse_head_shoulders], parameter_refs: [inverse_head_shoulders.shoulder_head_policy, inverse_head_shoulders.neckline_policy, inverse_head_shoulders.geometry_policy, inverse_head_shoulders.duration_policy, inverse_head_shoulders.price_ratio_policy], source_evidence: [TECH_ONTOLOGY], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze inverse_head_shoulders phase evidence and completion semantics.", affected_families: [inverse_head_shoulders], parameter_refs: ["inverse_head_shoulders.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal inverse_head_shoulders confirmation and optional filters.", affected_families: [inverse_head_shoulders], parameter_refs: ["inverse_head_shoulders.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal inverse_head_shoulders invalidation and expiry.", affected_families: [inverse_head_shoulders], parameter_refs: ["inverse_head_shoulders.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.BREAKOUT.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze breakout side basis, anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [breakout], parameter_refs: [breakout.side_basis_policy, breakout.zone_construction_policy, breakout.cross_and_hold_policy, breakout.geometry_policy, breakout.duration_policy, breakout.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.BREAKOUT.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze breakout phase evidence and completion semantics.", affected_families: [breakout], parameter_refs: ["breakout.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.BREAKOUT.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal breakout confirmation and optional filters.", affected_families: [breakout], parameter_refs: ["breakout.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.BREAKOUT.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal breakout invalidation and expiry.", affected_families: [breakout], parameter_refs: ["breakout.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.FAILED_BREAKOUT.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze failed_breakout side basis, anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [failed_breakout], parameter_refs: [failed_breakout.side_basis_policy, failed_breakout.attempt_policy, failed_breakout.reentry_policy, failed_breakout.geometry_policy, failed_breakout.duration_policy, failed_breakout.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.FAILED_BREAKOUT.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze failed_breakout phase evidence and completion semantics.", affected_families: [failed_breakout], parameter_refs: ["failed_breakout.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.FAILED_BREAKOUT.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal failed_breakout confirmation and optional filters.", affected_families: [failed_breakout], parameter_refs: ["failed_breakout.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.FAILED_BREAKOUT.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal failed_breakout invalidation and expiry.", affected_families: [failed_breakout], parameter_refs: ["failed_breakout.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RETEST.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze retest side basis, anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [retest], parameter_refs: [retest.side_basis_policy, retest.source_and_return_policy, retest.hold_policy, retest.geometry_policy, retest.duration_policy, retest.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RETEST.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze retest phase evidence and completion semantics.", affected_families: [retest], parameter_refs: ["retest.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RETEST.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal retest confirmation and optional filters.", affected_families: [retest], parameter_refs: ["retest.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RETEST.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal retest invalidation and expiry.", affected_families: [retest], parameter_refs: ["retest.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RANGE.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze range anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [range], parameter_refs: [range.boundary_and_touch_policy, range.containment_policy, range.geometry_policy, range.duration_policy, range.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_TREND], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RANGE.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze range phase evidence and completion semantics.", affected_families: [range], parameter_refs: ["range.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RANGE.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal range confirmation and optional filters.", affected_families: [range], parameter_refs: ["range.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.RANGE.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal range invalidation and expiry.", affected_families: [range], parameter_refs: ["range.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, category: STRUCTURE, status: NEEDS_HUMAN_REVIEW, question: "Freeze support_resistance_conversion side basis, anchors, topology, geometry, duration, price ratios, and prior context.", affected_families: [support_resistance_conversion], parameter_refs: [support_resistance_conversion.side_basis_policy, support_resistance_conversion.break_policy, support_resistance_conversion.role_conversion_policy, support_resistance_conversion.geometry_policy, support_resistance_conversion.duration_policy, support_resistance_conversion.price_ratio_policy], source_evidence: [TECH_ONTOLOGY, CHENDAGE_LEVELS], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001, category: PHASE, status: NEEDS_HUMAN_REVIEW, question: "Freeze support_resistance_conversion phase evidence and completion semantics.", affected_families: [support_resistance_conversion], parameter_refs: ["support_resistance_conversion.phase.*"], source_evidence: [TECH_LIFECYCLE], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001, category: CONFIRMATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal support_resistance_conversion confirmation and optional filters.", affected_families: [support_resistance_conversion], parameter_refs: ["support_resistance_conversion.confirmation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+    - {assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001, category: INVALIDATION, status: NEEDS_HUMAN_REVIEW, question: "Freeze causal support_resistance_conversion invalidation and expiry.", affected_families: [support_resistance_conversion], parameter_refs: ["support_resistance_conversion.invalidation.*"], source_evidence: [PLAN_MG1A], proposed_default: null, reviewer_decision: null}
+resolved_contract_sha256: 9c832971fcb6a88a67493aef3e81a81ce1aabb8e739b4c6575d96925b706dc36
+source_evidence:
+  - {evidence_id: PLAN_MG1A, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Implementation_Plan_and_Codex_Prompts.md, sha256: a795aececd86e731d12ac1e34e3c44939286f1077a8e91aec67334c07fe05880, availability: REQUIRED, line_range: "365-470", authority: TASK_SPECIFICATION, usage: "MG1-A scope, deliverables, hard constraints, families, phases, tests, and decision."}
+  - {evidence_id: TECH_MULTI_SCALE, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "227-258,611-626", authority: APPROVED_DESIGN_REFERENCE, usage: "Cross-scale family premise and scale-shared ontology fields."}
+  - {evidence_id: TECH_LIFECYCLE, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "260-274", authority: APPROVED_DESIGN_REFERENCE, usage: "Common lifecycle and expert-freeze boundary."}
+  - {evidence_id: TECH_CAUSALITY, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "210-223", authority: APPROVED_DESIGN_REFERENCE, usage: "Prefix-only and mutated-future causality requirement."}
+  - {evidence_id: TECH_LABEL_SEPARATION, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "503-525", authority: APPROVED_DESIGN_REFERENCE, usage: "Online, retrospective completion, and future outcome separation."}
+  - {evidence_id: TECH_ONTOLOGY, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "554-626", authority: APPROVED_DESIGN_REFERENCE, usage: "Pattern object fields, families, and expert review boundary."}
+  - {evidence_id: TECH_PROVENANCE, source_root: REPOSITORY, path: docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md, sha256: f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea, availability: REQUIRED, line_range: "775-809", authority: APPROVED_DESIGN_REFERENCE, usage: "Label provenance categories and independent truth restriction."}
+  - {evidence_id: CHENDAGE_SWING, source_root: CHENDAGE_SIGNAL, path: src/chendage_signal/swings.py, sha256: cc4e154da9529b8818fc6149ebbb25c0affb55729355b06d5f081af9db00f5bf, availability: VERIFY_WHEN_AVAILABLE, line_range: "16-64", authority: NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE, usage: "Observed centered-extreme behavior motivates event versus availability timestamps."}
+  - {evidence_id: CHENDAGE_TREND, source_root: CHENDAGE_SIGNAL, path: src/chendage_signal/daily_trend.py, sha256: 84227d70a7a5aa5da1a478cb5998b49fcaf213ca5033d17a4c3828f39393188a, availability: VERIFY_WHEN_AVAILABLE, line_range: "17-92", authority: NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE, usage: "Observed swing-order terminology only; fixed parameters are not adopted."}
+  - {evidence_id: CHENDAGE_LEVELS, source_root: CHENDAGE_SIGNAL, path: src/chendage_signal/h1_structure.py, sha256: f6e614febdeb7bf1bb4abe3d40333b9d49b9c0dbcadb8684196a8dad27a764be, availability: VERIFY_WHEN_AVAILABLE, line_range: "10-13,68-101", authority: NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE, usage: "Support/resistance role terminology only; absolute-point buffers are rejected."}
+  - {evidence_id: CHENDAGE_AGGREGATION, source_root: CHENDAGE_SIGNAL, path: src/chendage_signal/processed/features.py, sha256: 54180c8b083e215d4c20931e0d48408d3b7d9238c1a8a8ad4ebf79fa5641656a, availability: VERIFY_WHEN_AVAILABLE, line_range: "173-333", authority: NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE, usage: "Observed revisable current aggregation buckets."}
+  - {evidence_id: CHENDAGE_SESSION, source_root: CHENDAGE_SIGNAL, path: src/chendage_signal/timeframe.py, sha256: 56134005b0aee76c14f793ce2d0861e24f0059a73567cb633ee018add0cb7ef5, availability: VERIFY_WHEN_AVAILABLE, line_range: "28-39,59-64,120-140", authority: NON_AUTHORITATIVE_IMPLEMENTATION_REFERENCE, usage: "Observed incomplete instrument calendar coverage and missing-bar policy."}
+  - {evidence_id: ALPHATRADE_ROLL, source_root: REPOSITORY, path: src/alphatrade/scripts/build_continuous_bars.py, sha256: c16aac0cad67d76b37726396aa5bd977702ec5f63d9d47928274c6e618b416a2, availability: REQUIRED, line_range: "149-176", authority: IMPLEMENTATION_REFERENCE, usage: "Observed authoritative trading-day continuous-contract mapping boundary."}
+  - {evidence_id: CHENDAGE_ROLL_BOUNDARY, source_root: REPOSITORY, path: src/alphatrade/scripts/build_m12_chendage_db_formal.py, sha256: d6b7aa02e30fe466eccf0ce8b51d3d0b225b43f046e0313c2ba3e8f158781e9b, availability: REQUIRED, line_range: "408-527", authority: IMPLEMENTATION_REFERENCE, usage: "Observed mapped contract is not retained in the Chendage Candle boundary."}
+  - {evidence_id: CHEN_PACK_POLICY, source_root: CHEN_PACK, path: onenote_codex_pack_01/AGENTS.md, sha256: 9a38201b91680a54883ac6def9c7ed0482145b9373719190d1f14e5877db4c1d, availability: VERIFY_WHEN_AVAILABLE, line_range: "1-10", authority: AVAILABLE_NOT_INGESTED, usage: "Full ordered review was not performed; notebook search hits are not definition evidence."}
+rejected_shortcuts:
+  - {shortcut: COPY_CHENDAGE_TREND_AS_FROZEN_ONTOLOGY, reason: "The observed detector contains fixed lookback and confidence choices and is only a terminology/baseline reference.", evidence_ids: [CHENDAGE_TREND]}
+  - {shortcut: BACKFILL_CENTERED_SWING_TO_EVENT_TIME, reason: "A centered swing consumes right-side bars; online state must use available_as_of_eob.", evidence_ids: [CHENDAGE_SWING, TECH_CAUSALITY]}
+  - {shortcut: USE_ABSOLUTE_POINT_BUFFERS, reason: "Absolute points violate the scale-normalized ontology core.", evidence_ids: [PLAN_MG1A, CHENDAGE_LEVELS]}
+  - {shortcut: MAKE_VOLUME_OR_OPEN_INTEREST_DEFINE_TOPOLOGY, reason: "Volume and open interest remain optional confirmations separate from topology.", evidence_ids: [PLAN_MG1A]}
+  - {shortcut: MERGE_ONLINE_COMPLETION_AND_OUTCOME_LABELS, reason: "The technical report requires three separate namespaces.", evidence_ids: [TECH_LABEL_SEPARATION]}
+  - {shortcut: BIND_FAMILY_EXISTENCE_TO_FIXED_TIMEFRAMES, reason: "Family definitions are scale-independent; timeframe changes statistics, not family existence.", evidence_ids: [TECH_MULTI_SCALE]}
+  - {shortcut: ENCODE_TRADING_ACTIONS_OR_RETURN_CLAIMS, reason: "MG1-A is a descriptive ontology draft, not a trading system.", evidence_ids: [PLAN_MG1A]}
+  - {shortcut: TREAT_M12_FEATURE_PASS_AS_ONTOLOGY_PROOF, reason: "Processed feature gates do not validate pattern families, phases, anchors, or labels.", evidence_ids: [TECH_ONTOLOGY]}
+  - {shortcut: USE_UNORDERED_NOTEBOOK_SEARCH_AS_DEFINITION, reason: "The notebook requires full ordered reading; that review was not performed in MG1-A.", evidence_ids: [CHEN_PACK_POLICY]}
+execution:
+  detector_implemented: false
+  labeler_implemented: false
+  real_data_labels_created: false
+  synthetic_samples_created: false
+  trading_rules_implemented: false
+  model_training_executed: false
+  jax_computation_executed: false
+  gpu_executed: false

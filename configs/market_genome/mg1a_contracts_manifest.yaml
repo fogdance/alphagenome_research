@@ -1,0 +1,9 @@
+version: 1
+profiles:
+  mg1a:
+    description: "MG1-A parameterized pattern ontology review-draft contract."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    decision: DRAFT_NEEDS_HUMAN_FREEZE
+    items:
+      - {name: mg1_pattern_ontology, path: "mg1_pattern_ontology.json", schema: "src/alphatrade/market_genome/ontology/mg1a_pattern_ontology.schema.json", required: true}
+      - {name: mg1_pattern_ontology_md, path: "mg1_pattern_ontology.md", schema: "", required: true}
