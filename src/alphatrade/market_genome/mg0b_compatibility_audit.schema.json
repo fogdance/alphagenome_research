@@ -1,0 +1,428 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mg0b.alphatrade_compatibility_audit.v1",
+  "title": "MG0-B AlphaTrade Compatibility Audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "markdown_sha256",
+    "source_evidence",
+    "resolved_config",
+    "resolved_config_sha256",
+    "m12_evidence",
+    "compatibility_matrix",
+    "architecture_boundaries",
+    "incompatible_assumptions",
+    "metric_reuse",
+    "scaffold_inventory",
+    "preservation",
+    "uncertainties",
+    "execution",
+    "gate"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "sprint",
+        "generated_at",
+        "audited_branch",
+        "audited_source_head",
+        "audit_status",
+        "gate_decision",
+        "implementation_scope"
+      ],
+      "properties": {
+        "schema_version": {"const": "mg0b.alphatrade_compatibility_audit.v1"},
+        "sprint": {"const": "MG0-B AlphaTrade Compatibility Audit + MarketGenome Scaffold"},
+        "generated_at": {"$ref": "#/definitions/non_empty_string"},
+        "audited_branch": {"const": "feature/market-genome-mg0"},
+        "audited_source_head": {"$ref": "#/definitions/git_sha"},
+        "audit_status": {"const": "COMPLETE_WITH_DOCUMENTED_BOUNDARIES"},
+        "gate_decision": {"const": "PASS_WITH_DOCUMENTED_BOUNDARIES"},
+        "implementation_scope": {"const": "SCAFFOLD_ONLY"}
+      }
+    },
+    "markdown_sha256": {
+      "const": "b11c2dc7c5784d635480df7c3f5031c4b036a47a0e089f74ec45dac26df5c7a5"
+    },
+    "source_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documents", "inspected_files", "evidence_boundaries"],
+      "properties": {
+        "documents": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/definitions/artifact"}
+        },
+        "inspected_files": {
+          "type": "array",
+          "minItems": 15,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/non_empty_string"}
+        },
+        "evidence_boundaries": {
+          "type": "array",
+          "minItems": 3,
+          "items": {"$ref": "#/definitions/non_empty_string"}
+        }
+      }
+    },
+    "resolved_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "milestone",
+        "model_line",
+        "report_profile",
+        "implementation_scope",
+        "full_backbone_implemented",
+        "training_enabled",
+        "gpu_required",
+        "pair_stack_status",
+        "ontology_status",
+        "dense_track_schema_status"
+      ],
+      "properties": {
+        "schema_version": {"const": "market_genome.scaffold_config.v1"},
+        "milestone": {"const": "MG0-B"},
+        "model_line": {"const": "market_genome"},
+        "report_profile": {"const": "mg0b"},
+        "implementation_scope": {"const": "SCAFFOLD_ONLY"},
+        "full_backbone_implemented": {"const": false},
+        "training_enabled": {"const": false},
+        "gpu_required": {"const": false},
+        "pair_stack_status": {"const": "DEFERRED"},
+        "ontology_status": {"const": "NOT_IMPLEMENTED"},
+        "dense_track_schema_status": {"const": "NOT_IMPLEMENTED"}
+      }
+    },
+    "resolved_config_sha256": {"$ref": "#/definitions/sha256"},
+    "m12_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_root",
+        "historical_source_commit",
+        "artifacts",
+        "run_completion",
+        "engineering_contract_status",
+        "spotcheck_status",
+        "schema_validation_status",
+        "formal_sweep_completion",
+        "model_quality_status",
+        "formal_decision",
+        "promotion_status",
+        "schema_validation",
+        "m11_closure",
+        "leaderboard_summary",
+        "base8_quality_summary",
+        "interpretation"
+      ],
+      "properties": {
+        "run_root": {"const": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel"},
+        "historical_source_commit": {
+          "const": "d6d050f6184f03e4fc5a426296226e9376e26ce6"
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 5,
+          "items": {"$ref": "#/definitions/artifact"}
+        },
+        "run_completion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["experiment_count", "seeds", "run_count", "steps_per_run", "workload"],
+          "properties": {
+            "experiment_count": {"const": 7},
+            "seeds": {"const": [42, 43, 44]},
+            "run_count": {"const": 21},
+            "steps_per_run": {"const": 3000},
+            "workload": {"const": "HISTORICAL_NON_SMOKE_CUDA_RUNS_NOT_RERUN_IN_MG0B"}
+          }
+        },
+        "engineering_contract_status": {"const": "PASS"},
+        "spotcheck_status": {"const": "PASS"},
+        "schema_validation_status": {"const": "PASS"},
+        "formal_sweep_completion": {"const": "PASS"},
+        "model_quality_status": {"const": "FAIL_MODEL_QUALITY"},
+        "formal_decision": {"const": "FAIL"},
+        "promotion_status": {"const": "REJECTED"},
+        "schema_validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema_passed", "schema_total", "semantic_passed", "semantic_total", "model_quality_status"],
+          "properties": {
+            "schema_passed": {"const": 2},
+            "schema_total": {"const": 2},
+            "semantic_passed": {"const": 15},
+            "semantic_total": {"const": 15},
+            "model_quality_status": {"type": "null"}
+          }
+        },
+        "m11_closure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema_passed", "schema_total", "semantic_passed", "semantic_total", "failed_semantics"],
+          "properties": {
+            "schema_passed": {"const": 9},
+            "schema_total": {"const": 9},
+            "semantic_passed": {"const": 8},
+            "semantic_total": {"const": 9},
+            "failed_semantics": {"const": ["output_calibration_problem_confirmed"]}
+          }
+        },
+        "leaderboard_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["control_exp_id", "control_primary_mean", "best_candidate_exp_id", "best_candidate_primary_mean", "chg_core_primary_mean", "all_processed_candidates_worse_than_control"],
+          "properties": {
+            "control_exp_id": {"const": "base8_control_common_rows"},
+            "control_primary_mean": {"const": 0.0012521361622341064},
+            "best_candidate_exp_id": {"const": "chg_core_no_m5"},
+            "best_candidate_primary_mean": {"const": 0.0013347068852399642},
+            "chg_core_primary_mean": {"const": 0.0015268211131357744},
+            "all_processed_candidates_worse_than_control": {"const": true}
+          }
+        },
+        "base8_quality_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["raw_pinball", "rolling_baseline_pinball", "calibrated_pinball", "calibrated_still_worse_than_rolling"],
+          "properties": {
+            "raw_pinball": {"const": 0.0011936268421304148},
+            "rolling_baseline_pinball": {"const": 0.0008602891155530023},
+            "calibrated_pinball": {"const": 0.0008975829278504696},
+            "calibrated_still_worse_than_rolling": {"const": true}
+          }
+        },
+        "interpretation": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "compatibility_matrix": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {"$ref": "#/definitions/compatibility_item"}
+    },
+    "architecture_boundaries": {
+      "type": "array",
+      "minItems": 6,
+      "items": {"$ref": "#/definitions/architecture_item"}
+    },
+    "incompatible_assumptions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {"$ref": "#/definitions/assumption_item"}
+    },
+    "metric_reuse": {
+      "type": "array",
+      "minItems": 5,
+      "items": {"$ref": "#/definitions/metric_item"}
+    },
+    "scaffold_inventory": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "kind", "import_safe", "implementation_status"],
+        "properties": {
+          "path": {"$ref": "#/definitions/non_empty_string"},
+          "kind": {"enum": ["PACKAGE", "PLACEHOLDER_PACKAGE", "CONTRACT", "CONFIG", "DOCUMENTATION", "TEST"]},
+          "import_safe": {"type": "boolean"},
+          "implementation_status": {"enum": ["SCAFFOLD_ONLY", "CONTRACT_ONLY", "IMPORT_SAFE_PLACEHOLDER", "DOCUMENTATION", "TEST_ONLY"]}
+        }
+      }
+    },
+    "preservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "legacy_model_files_modified",
+        "legacy_report_fields_changed",
+        "legacy_manifest_modified",
+        "legacy_validator_modified",
+        "mg0a_freeze_preserved",
+        "existing_model_execution_performed",
+        "existing_model_result_files_modified",
+        "mg0b_profile_path",
+        "rationale"
+      ],
+      "properties": {
+        "legacy_model_files_modified": {"const": false},
+        "legacy_report_fields_changed": {"const": false},
+        "legacy_manifest_modified": {"const": false},
+        "legacy_validator_modified": {"const": false},
+        "mg0a_freeze_preserved": {"const": true},
+        "existing_model_execution_performed": {"const": false},
+        "existing_model_result_files_modified": {"const": false},
+        "mg0b_profile_path": {"const": "configs/market_genome/contracts_manifest.yaml"},
+        "rationale": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "status", "evidence_gap", "next_verification"],
+        "properties": {
+          "item": {"$ref": "#/definitions/non_empty_string"},
+          "status": {"const": "NEEDS_VERIFICATION"},
+          "evidence_gap": {"$ref": "#/definitions/non_empty_string"},
+          "next_verification": {"$ref": "#/definitions/non_empty_string"}
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_status",
+        "gpu_status",
+        "training_executed",
+        "jax_imported_by_cpu_only_test",
+        "jax_computation_executed",
+        "gpu_executed",
+        "full_backbone_implemented",
+        "deferred_components",
+        "resume_requires_explicit_user_confirmation"
+      ],
+      "properties": {
+        "training_status": {"const": "DEFERRED_BY_USER"},
+        "gpu_status": {"const": "DEFERRED_BY_USER"},
+        "training_executed": {"const": false},
+        "jax_imported_by_cpu_only_test": {"const": true},
+        "jax_computation_executed": {"const": false},
+        "gpu_executed": {"const": false},
+        "full_backbone_implemented": {"const": false},
+        "deferred_components": {
+          "type": "array",
+          "minItems": 6,
+          "items": {"$ref": "#/definitions/non_empty_string"}
+        },
+        "resume_requires_explicit_user_confirmation": {"const": true}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checks", "overall", "next_task"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "passed", "evidence"],
+            "properties": {
+              "name": {"$ref": "#/definitions/non_empty_string"},
+              "passed": {"const": true},
+              "evidence": {"$ref": "#/definitions/non_empty_string"}
+            }
+          }
+        },
+        "overall": {"const": "PASS_WITH_DOCUMENTED_BOUNDARIES"},
+        "next_task": {"const": "MG1-A_PATTERN_ONTOLOGY_DRAFT_REQUIRES_HUMAN_FREEZE"}
+      }
+    }
+  },
+  "definitions": {
+    "non_empty_string": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "classification": {
+      "enum": ["DIRECT_REUSE", "REUSE_WITH_ADAPTER", "ISOLATE", "REPLACE_FOR_MARKETGENOME", "DEFER"]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "role"],
+      "properties": {
+        "path": {"$ref": "#/definitions/non_empty_string"},
+        "sha256": {"$ref": "#/definitions/sha256"},
+        "role": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "start_line", "end_line", "claim"],
+      "properties": {
+        "path": {"$ref": "#/definitions/non_empty_string"},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "claim": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "evidence_array": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/definitions/evidence"}
+    },
+    "compatibility_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subsystem_id", "subsystem", "classification", "evidence", "observed_current_behavior", "reuse_boundary", "market_genome_action", "risk", "verification"],
+      "properties": {
+        "subsystem_id": {"$ref": "#/definitions/non_empty_string"},
+        "subsystem": {"$ref": "#/definitions/non_empty_string"},
+        "classification": {"$ref": "#/definitions/classification"},
+        "evidence": {"$ref": "#/definitions/evidence_array"},
+        "observed_current_behavior": {"$ref": "#/definitions/non_empty_string"},
+        "reuse_boundary": {"$ref": "#/definitions/non_empty_string"},
+        "market_genome_action": {"$ref": "#/definitions/non_empty_string"},
+        "risk": {"$ref": "#/definitions/non_empty_string"},
+        "verification": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "architecture_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_id", "component", "classification", "evidence", "boundary", "required_future_test"],
+      "properties": {
+        "component_id": {"$ref": "#/definitions/non_empty_string"},
+        "component": {"$ref": "#/definitions/non_empty_string"},
+        "classification": {"$ref": "#/definitions/classification"},
+        "evidence": {"$ref": "#/definitions/evidence_array"},
+        "boundary": {"$ref": "#/definitions/non_empty_string"},
+        "required_future_test": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "assumption_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assumption_id", "status", "evidence", "confirmed_behavior", "market_genome_action"],
+      "properties": {
+        "assumption_id": {"$ref": "#/definitions/non_empty_string"},
+        "status": {"const": "CONFIRMED_INCOMPATIBLE"},
+        "evidence": {"$ref": "#/definitions/evidence_array"},
+        "confirmed_behavior": {"$ref": "#/definitions/non_empty_string"},
+        "market_genome_action": {"$ref": "#/definitions/non_empty_string"}
+      }
+    },
+    "metric_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "classification", "evidence", "valid_scope", "adapter", "limitation"],
+      "properties": {
+        "metric": {"$ref": "#/definitions/non_empty_string"},
+        "classification": {"$ref": "#/definitions/classification"},
+        "evidence": {"$ref": "#/definitions/evidence_array"},
+        "valid_scope": {"$ref": "#/definitions/non_empty_string"},
+        "adapter": {"$ref": "#/definitions/non_empty_string"},
+        "limitation": {"$ref": "#/definitions/non_empty_string"}
+      }
+    }
+  }
+}

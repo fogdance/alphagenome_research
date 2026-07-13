@@ -1,0 +1,8 @@
+version: 1
+profiles:
+  mg0b:
+    description: "MG0-B AlphaTrade compatibility audit and scaffold contract."
+    reports_dir: "$ALPHATRADE_RUNS_ROOT/reports"
+    items:
+      - {name: mg0_alphatrade_compatibility_audit, path: "mg0_alphatrade_compatibility_audit.json", schema: "src/alphatrade/market_genome/mg0b_compatibility_audit.schema.json", required: true}
+      - {name: mg0_alphatrade_compatibility_audit_md, path: "mg0_alphatrade_compatibility_audit.md", schema: "", required: true}

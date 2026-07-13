@@ -1,0 +1,615 @@
+{
+  "metadata": {
+    "schema_version": "mg0b.alphatrade_compatibility_audit.v1",
+    "sprint": "MG0-B AlphaTrade Compatibility Audit + MarketGenome Scaffold",
+    "generated_at": "2026-07-13T15:00:27+08:00",
+    "audited_branch": "feature/market-genome-mg0",
+    "audited_source_head": "72df1cc1e340f85447f2d4a0c488a15a20c0b2a1",
+    "audit_status": "COMPLETE_WITH_DOCUMENTED_BOUNDARIES",
+    "gate_decision": "PASS_WITH_DOCUMENTED_BOUNDARIES",
+    "implementation_scope": "SCAFFOLD_ONLY"
+  },
+  "markdown_sha256": "b11c2dc7c5784d635480df7c3f5031c4b036a47a0e089f74ec45dac26df5c7a5",
+  "source_evidence": {
+    "documents": [
+      {
+        "path": "docs/market_genome/AlphaTrade_MarketGenome_Implementation_Plan_and_Codex_Prompts.md",
+        "sha256": "a795aececd86e731d12ac1e34e3c44939286f1077a8e91aec67334c07fe05880",
+        "role": "MG0-B requirements and acceptance gate"
+      },
+      {
+        "path": "docs/market_genome/AlphaTrade_MarketGenome_Technical_Report.md",
+        "sha256": "f64d526f361d1f3fa5a5427b0fdc8d4b16b6c721543d7c7cc688ceb58a745cea",
+        "role": "MarketGenome design boundary and M12 interpretation"
+      }
+    ],
+    "inspected_files": [
+      "src/alphatrade/core/model.py",
+      "src/alphatrade/core/causal_layers.py",
+      "src/alphatrade/core/causal_attention.py",
+      "src/alphatrade/core/losses.py",
+      "src/alphatrade/core/schemas.py",
+      "src/alphatrade/data_pipeline/archive_reader.py",
+      "src/alphatrade/data_pipeline/db_connector.py",
+      "src/alphatrade/data_pipeline/feature_profiles.py",
+      "src/alphatrade/window_cache.py",
+      "src/alphatrade/inference.py",
+      "src/alphatrade/prediction_schema.py",
+      "src/alphatrade/runtime_paths.py",
+      "src/alphatrade/scripts/build_continuous_bars.py",
+      "src/alphatrade/scripts/train_m4_alphatrade.py",
+      "src/alphatrade/scripts/run_m5_sweep.py",
+      "src/alphatrade/scripts/run_iteration.py",
+      "src/alphatrade/scripts/export_model_bundle.py",
+      "src/alphatrade/scripts/batch_infer_offline.py",
+      "src/alphatrade/scripts/build_m10_prediction_eval.py",
+      "src/alphatrade/scripts/build_m11_scale_calibration_report.py",
+      "src/alphatrade/scripts/build_m11_closure.py",
+      "src/alphatrade/scripts/validate_reports_schema.py",
+      "src/alphatrade/schemas/contracts_manifest.yaml",
+      "docs/m8_iteration_loop.md",
+      "docs/m11_calibration_target_scaling_contract.md",
+      "docs/reports_governance.md"
+    ],
+    "evidence_boundaries": [
+      "Code locators establish current implementation behavior; one legacy control test imported JAX with a forced CPU backend, but no JAX computation/model runtime was executed in MG0-B.",
+      "M12 metrics are historical evidence read from the authoritative formal run and were not recomputed.",
+      "Compatibility classifications describe reuse boundaries, not implemented MarketGenome capabilities.",
+      "The untracked planning documents are user-provided inputs and are not part of this commit."
+    ]
+  },
+  "resolved_config": {
+    "schema_version": "market_genome.scaffold_config.v1",
+    "milestone": "MG0-B",
+    "model_line": "market_genome",
+    "report_profile": "mg0b",
+    "implementation_scope": "SCAFFOLD_ONLY",
+    "full_backbone_implemented": false,
+    "training_enabled": false,
+    "gpu_required": false,
+    "pair_stack_status": "DEFERRED",
+    "ontology_status": "NOT_IMPLEMENTED",
+    "dense_track_schema_status": "NOT_IMPLEMENTED"
+  },
+  "resolved_config_sha256": "927c4775b7a857b2346dbfbe44c101cac9d8471b795a8f0733a02201dab9d451",
+  "m12_evidence": {
+    "run_root": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel",
+    "historical_source_commit": "d6d050f6184f03e4fc5a426296226e9376e26ce6",
+    "artifacts": [
+      {
+        "path": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel/reports/M12_CHG_FORMAL_DECISION_MEMO.md",
+        "sha256": "04e5df55d8e74c983a5bb838cf7040af772a5215fbb53401222688a8fdff3afc",
+        "role": "Authoritative formal decision memo"
+      },
+      {
+        "path": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel/reports/m12_formal_decision_summary.json",
+        "sha256": "9e3cc22a3646a9a1e8945631628c51dbfbce96b6feaea8795f90e9f61ce9cfb5",
+        "role": "Machine-readable leaderboard and M10/M11 quality evidence"
+      },
+      {
+        "path": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel/reports/m12_schema_validation.json",
+        "sha256": "98d9b73f8ad877622f21fbcefcfcdc631e54cf88b9b5d9280387701cfc8eec0c",
+        "role": "M12 data-contract schema and semantic validation"
+      },
+      {
+        "path": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel/reports/m12_formal_data_contract_spotcheck.json",
+        "sha256": "4c6465e8d3f4124301f0a467b8ec4c484cb7c13b8f5a1c72d0d84b951a0e0462",
+        "role": "Formal data-contract spotcheck"
+      },
+      {
+        "path": "/data/alphatrade/runs/m12_chg_formal5_20260626_parallel/reports/formal_sweep/m5_sweep_manifest.json",
+        "sha256": "b220773b76b9ef75bc0d546d464affcbe3a8767670a6706c02a5b5f87d407b77",
+        "role": "Seven-experiment, three-seed formal run manifest"
+      }
+    ],
+    "run_completion": {
+      "experiment_count": 7,
+      "seeds": [42, 43, 44],
+      "run_count": 21,
+      "steps_per_run": 3000,
+      "workload": "HISTORICAL_NON_SMOKE_CUDA_RUNS_NOT_RERUN_IN_MG0B"
+    },
+    "engineering_contract_status": "PASS",
+    "spotcheck_status": "PASS",
+    "schema_validation_status": "PASS",
+    "formal_sweep_completion": "PASS",
+    "model_quality_status": "FAIL_MODEL_QUALITY",
+    "formal_decision": "FAIL",
+    "promotion_status": "REJECTED",
+    "schema_validation": {
+      "schema_passed": 2,
+      "schema_total": 2,
+      "semantic_passed": 15,
+      "semantic_total": 15,
+      "model_quality_status": null
+    },
+    "m11_closure": {
+      "schema_passed": 9,
+      "schema_total": 9,
+      "semantic_passed": 8,
+      "semantic_total": 9,
+      "failed_semantics": ["output_calibration_problem_confirmed"]
+    },
+    "leaderboard_summary": {
+      "control_exp_id": "base8_control_common_rows",
+      "control_primary_mean": 0.0012521361622341064,
+      "best_candidate_exp_id": "chg_core_no_m5",
+      "best_candidate_primary_mean": 0.0013347068852399642,
+      "chg_core_primary_mean": 0.0015268211131357744,
+      "all_processed_candidates_worse_than_control": true
+    },
+    "base8_quality_summary": {
+      "raw_pinball": 0.0011936268421304148,
+      "rolling_baseline_pinball": 0.0008602891155530023,
+      "calibrated_pinball": 0.0008975829278504696,
+      "calibrated_still_worse_than_rolling": true
+    },
+    "interpretation": "M12 validates the engineering/data-contract path but rejects every processed-feature candidate for promotion. This neither proves model quality nor disproves the separate MarketGenome hypothesis."
+  },
+  "compatibility_matrix": [
+    {
+      "subsystem_id": "data_ingestion",
+      "subsystem": "Archive data ingestion",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/data_pipeline/archive_reader.py", "start_line": 64, "end_line": 145, "claim": "The reader applies manifest/date filters, sorting, EOB de-duplication, and base-column validation."}
+      ],
+      "observed_current_behavior": "The reader reliably returns ordered OHLCV/OI bars from the existing archive contract.",
+      "reuse_boundary": "Reuse reading, filtering, ordering, and base validation; do not treat its returned frame as a complete long-sequence identity/availability contract.",
+      "market_genome_action": "Add identity, session, missingness, time-slot, source-version, and resolution metadata in a new dataset adapter.",
+      "risk": "Without explicit availability masks, zero-filled missing features become observationally indistinguishable from real zeros.",
+      "verification": "SOURCE_VERIFIED; adapter runtime remains deferred."
+    },
+    {
+      "subsystem_id": "continuous_contract_mapping",
+      "subsystem": "Continuous futures contract mapping",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_continuous_bars.py", "start_line": 149, "end_line": 176, "claim": "Bars are joined to the trading-date continuous map using real contract symbols."}
+      ],
+      "observed_current_behavior": "The pipeline stitches the mapped real contract for each trading date and audits switches in aggregate.",
+      "reuse_boundary": "Reuse authoritative contract selection and stitch ordering; aggregate switch counts are not sufficient as per-position model inputs.",
+      "market_genome_action": "Emit roll boundary, active contract identity, contract age, gap/session masks, and provenance tracks without modifying the current continuous-bar output.",
+      "risk": "An unmarked roll can be learned as a price motif or contaminate dense targets.",
+      "verification": "SOURCE_VERIFIED; dense roll tracks are not implemented."
+    },
+    {
+      "subsystem_id": "feature_profiles",
+      "subsystem": "Feature profile contracts",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/data_pipeline/feature_profiles.py", "start_line": 31, "end_line": 54, "claim": "FeatureProfile records ordered columns, dimension, source schema, scaler, normalization, and fingerprint metadata."},
+        {"path": "src/alphatrade/data_pipeline/feature_profiles.py", "start_line": 82, "end_line": 162, "claim": "Profile resolution and fingerprint checks are centralized and fail on mismatches."}
+      ],
+      "observed_current_behavior": "M12 already supports dynamic feature dimensions and train-only scaler provenance through typed profiles.",
+      "reuse_boundary": "Reuse ordered-column, scaler, normalization, and fingerprint contracts; the current profile lacks modality, resolution, identity, and availability-mask semantics.",
+      "market_genome_action": "Extend through a new MarketGenome profile adapter rather than changing existing M12 profiles.",
+      "risk": "Treating feature_dim as a sufficient schema would hide track modality and missingness differences.",
+      "verification": "SOURCE_VERIFIED; no claim that training is functionally fixed to eight features."
+    },
+    {
+      "subsystem_id": "window_cache",
+      "subsystem": "Fixed-window NPY cache",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/window_cache.py", "start_line": 18, "end_line": 20, "claim": "The cache fixes four horizons globally."},
+        {"path": "src/alphatrade/window_cache.py", "start_line": 150, "end_line": 199, "claim": "It zero-fills non-finite values and materializes [N, lookback, F] plus [N, 4] arrays."}
+      ],
+      "observed_current_behavior": "Every sample is a fixed x_start/x_end window with four terminal-return labels and no explicit availability mask.",
+      "reuse_boundary": "The fingerprint and atomic-publication ideas may be re-applied, but the stored layout and loader contract must not be reused.",
+      "market_genome_action": "Create a separately versioned chunk store with timestamps, valid-position masks, per-track masks, identity, fold, and roll metadata in MG3.",
+      "risk": "Adapting the existing array shapes would silently retain the short-window/terminal-label task.",
+      "verification": "SOURCE_VERIFIED; no cache build or deletion executed."
+    },
+    {
+      "subsystem_id": "long_sequence_storage",
+      "subsystem": "Long-sequence storage",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/window_cache.py", "start_line": 181, "end_line": 200, "claim": "The current training store derives one lookback from the first sample and allocates fixed dense window arrays."}
+      ],
+      "observed_current_behavior": "No versioned long-chunk store or dense multi-track target container exists in the current AlphaTrade path.",
+      "reuse_boundary": "There is no existing storage implementation to claim as direct reuse.",
+      "market_genome_action": "Define storage only after MG1 ontology and MG3 track contracts, including chunk overlap and mask semantics.",
+      "risk": "Premature layout choices would freeze unresolved ontology and label alignment decisions.",
+      "verification": "SOURCE_SEARCH_VERIFIED_ABSENCE; future runtime validation required."
+    },
+    {
+      "subsystem_id": "model_config",
+      "subsystem": "AlphaTrade model configuration",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/core/schemas.py", "start_line": 23, "end_line": 57, "claim": "AlphaTradeConfig contains fixed-family defaults for lookback, architecture, horizons, and quantiles."}
+      ],
+      "observed_current_behavior": "The core default is 4096/8 features/6 stages, while M12 launcher resolution supplies a 60-bar/two-stage v0.2 configuration.",
+      "reuse_boundary": "Do not inherit AlphaTradeConfig or leak its defaults into MarketGenome; only reuse resolved-config hashing conventions.",
+      "market_genome_action": "Freeze a new config after ontology/track contracts and include its complete canonical payload/hash in every artifact.",
+      "risk": "Inheritance would make old short-window architecture behavior an implicit MarketGenome default.",
+      "verification": "SOURCE_VERIFIED; MG0-B config records scaffold state only."
+    },
+    {
+      "subsystem_id": "training_launcher",
+      "subsystem": "M4/M12 training launcher",
+      "classification": "ISOLATE",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/train_m4_alphatrade.py", "start_line": 429, "end_line": 441, "claim": "The launcher constructs the v0.2 horizons, quantiles, two-stage encoder, d_model, and transformer depth in code."},
+        {"path": "src/alphatrade/scripts/run_iteration.py", "start_line": 81, "end_line": 139, "claim": "The M8 runner is wired to the M5 sweep, M7 regression report, and current profile validator commands."}
+      ],
+      "observed_current_behavior": "The launcher is coupled to AlphaTrade model/loss/batches and terminal horizon targets, while the M8 runner is coupled to the M5/M7 command chain.",
+      "reuse_boundary": "Reuse the plan-run-report-strict-gate workflow only through a future MarketGenome-specific runner; do not add conditionals to current scripts.",
+      "market_genome_action": "Add an independent launcher after MG4 and make it require resolved config, data/ontology hashes, explicit backend, and strict resume identity.",
+      "risk": "Patching this launcher would alter M0-M12 behavior and preserve incompatible task semantics.",
+      "verification": "SOURCE_VERIFIED; training remains deferred."
+    },
+    {
+      "subsystem_id": "checkpointing",
+      "subsystem": "Checkpoint persistence",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/train_m4_alphatrade.py", "start_line": 658, "end_line": 685, "claim": "The current trainer persists params, state, optimizer state, step, and best metric."},
+        {"path": "src/alphatrade/scripts/run_m5_sweep.py", "start_line": 183, "end_line": 220, "claim": "Sweep resume compares configuration and data identity before artifact reuse."}
+      ],
+      "observed_current_behavior": "State persistence is usable as a pattern, but direct M4 restore is not the complete fail-closed resume contract used by M5.",
+      "reuse_boundary": "Reuse atomic/state/provenance conventions; never load an AlphaTrade checkpoint into a MarketGenome module or share its format identity.",
+      "market_genome_action": "Define a new checkpoint version with config, dataset, ontology, track-schema, precision, and sharding fingerprints.",
+      "risk": "A structurally loadable checkpoint can still be semantically incompatible.",
+      "verification": "SOURCE_VERIFIED; checkpoint code not executed."
+    },
+    {
+      "subsystem_id": "bundle_format",
+      "subsystem": "M9 bundle format/export",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/export_model_bundle.py", "start_line": 70, "end_line": 103, "claim": "Exporter hashes files and derives deterministic bundle identity."},
+        {"path": "src/alphatrade/scripts/export_model_bundle.py", "start_line": 258, "end_line": 311, "claim": "The payload is explicitly alphatrade_model_bundle_v1 with v0.2/M9 schemas."}
+      ],
+      "observed_current_behavior": "Provenance/hash mechanisms are sound, while champion selection and payload identity are tied to M5/M9 AlphaTrade.",
+      "reuse_boundary": "Reuse hashing, safe paths, manifest integrity, and feature-profile consistency; keep the v1 schema immutable.",
+      "market_genome_action": "Create a new MarketGenome bundle format and export adapter only after model/checkpoint/output contracts exist.",
+      "risk": "Reusing the v1 name would make loaders accept a different model/output contract.",
+      "verification": "SOURCE_VERIFIED; no bundle generated in MG0-B."
+    },
+    {
+      "subsystem_id": "offline_inference",
+      "subsystem": "M9 offline inference",
+      "classification": "ISOLATE",
+      "evidence": [
+        {"path": "src/alphatrade/inference.py", "start_line": 51, "end_line": 74, "claim": "The loader constructs AlphaTradeConfig and the AlphaTrade model."},
+        {"path": "src/alphatrade/inference.py", "start_line": 125, "end_line": 182, "claim": "Prediction accepts fixed lookback windows and returns only terminal log-return quantiles."}
+      ],
+      "observed_current_behavior": "The predictor and response schema are fixed-window AlphaTrade v0.2 interfaces.",
+      "reuse_boundary": "Operational streaming/progress ideas can be adapted, but the model loader, input iterator, restore path, and output writer cannot be shared.",
+      "market_genome_action": "Add an independent chunk/dense-track predictor and an optional terminal-alpha handoff adapter later.",
+      "risk": "Wrapping dense outputs in the old wide schema would discard position, mask, and task identity.",
+      "verification": "SOURCE_VERIFIED; inference/JAX/GPU not executed."
+    },
+    {
+      "subsystem_id": "m10_m11_evaluation",
+      "subsystem": "M10/M11 evaluation",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m10_prediction_eval.py", "start_line": 444, "end_line": 610, "claim": "M10 implements pinball, coverage, and quantile-crossing kernels over canonical terminal-return rows."},
+        {"path": "src/alphatrade/scripts/build_m11_scale_calibration_report.py", "start_line": 590, "end_line": 642, "claim": "M11 fits additive quantile residual calibration on validation data and preserves non-crossing."}
+      ],
+      "observed_current_behavior": "The statistical kernels and common-row/past-only discipline are valid for semantically identical terminal-return quantile tracks.",
+      "reuse_boundary": "Reuse metric math after a versioned adapter; do not reuse wide-row alignment, q50 signal assumptions, historical thresholds, or closure conclusions for dense tasks.",
+      "market_genome_action": "Define task-specific evaluators and gates, with an optional adapter for a terminal return alpha head.",
+      "risk": "Current M10 strict validation has no semantic checks (0/0); schema PASS or a lightweight backtest can be mistaken for general model quality or trade readiness.",
+      "verification": "SOURCE_VERIFIED; historical M12 quality evidence confirms the distinction."
+    },
+    {
+      "subsystem_id": "report_governance",
+      "subsystem": "Report/schema governance",
+      "classification": "DIRECT_REUSE",
+      "evidence": [
+        {"path": "docs/reports_governance.md", "start_line": 7, "end_line": 40, "claim": "Governance defines source-of-truth order, external run roots, and isolated profiles."},
+        {"path": "src/alphatrade/runtime_paths.py", "start_line": 21, "end_line": 37, "claim": "Generated reports default to an external sibling runs root."}
+      ],
+      "observed_current_behavior": "Schemas, required report pairs, external artifacts, and profile isolation are established repository contracts.",
+      "reuse_boundary": "Reuse the governance rules directly; use a separate MG0-B manifest because MG0-A freezes the legacy validator/manifest bytes at its tag.",
+      "market_genome_action": "Keep canonical audit sources in repo and generated validation/report copies under the external run root.",
+      "risk": "Editing the legacy manifest now would fail the frozen MG0-A 13/13 tag-anchor check.",
+      "verification": "SOURCE_AND_BASELINE_VALIDATOR_VERIFIED."
+    },
+    {
+      "subsystem_id": "resume_safety",
+      "subsystem": "M8/M5 resume safety",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/run_m5_sweep.py", "start_line": 70, "end_line": 86, "claim": "Sweep configurations receive a canonical SHA256 fingerprint."},
+        {"path": "src/alphatrade/scripts/run_m5_sweep.py", "start_line": 183, "end_line": 271, "claim": "Resume metadata mismatch and stale partial artifacts fail closed."}
+      ],
+      "observed_current_behavior": "The M5 runner rejects reuse when config/data/universe/eval/checkpoint identity differs.",
+      "reuse_boundary": "Reuse fail-closed comparison and immutable baseline principles, not the M5-specific field set or runner.",
+      "market_genome_action": "Add ontology, track schema, resolved config, storage, model, precision, and distributed-layout hashes to a future runner.",
+      "risk": "A narrower resume identity can silently combine incompatible dense-task runs.",
+      "verification": "SOURCE_VERIFIED; no resume action executed."
+    }
+  ],
+  "architecture_boundaries": [
+    {
+      "component_id": "causal_convolution",
+      "component": "Causal convolution and feature-axis normalization",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/core/causal_layers.py", "start_line": 71, "end_line": 94, "claim": "The standardized convolution left-pads and takes only current/past inputs."}
+      ],
+      "boundary": "The causal pattern is reusable, but MarketGenome requires valid-position/availability-mask behavior and separate namespace tests.",
+      "required_future_test": "Prefix equivalence, future mutation, gap/session mask, and arbitrary chunk-length tests."
+    },
+    {
+      "component_id": "pool_decoder_alignment",
+      "component": "Causal pooling and decoder alignment",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/core/causal_layers.py", "start_line": 121, "end_line": 143, "claim": "Pooling left-pads non-divisible lengths."},
+        {"path": "src/alphatrade/core/causal_layers.py", "start_line": 200, "end_line": 205, "claim": "Decoder repeats and right-crops to the skip length."}
+      ],
+      "boundary": "Alignment behavior must be re-proven for arbitrary long chunks and dense output positions.",
+      "required_future_test": "Impulse alignment at every remainder modulo each downsampling stage."
+    },
+    {
+      "component_id": "causal_attention",
+      "component": "Soft-capped causal attention",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/core/causal_attention.py", "start_line": 134, "end_line": 170, "claim": "Attention applies RoPE, soft-cap, then a negative-infinity causal mask before softmax."}
+      ],
+      "boundary": "Current attention has no padding/session/roll/time-gap mask and uses implicit sequence positions.",
+      "required_future_test": "Mask composition and actual-time position tests plus prefix/future-mutation invariance."
+    },
+    {
+      "component_id": "alphatrade_trunk",
+      "component": "AlphaTrade encoder-transformer-decoder trunk",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/core/model.py", "start_line": 238, "end_line": 269, "claim": "The current trunk is a fixed encoder, transformer tower, and decoder driven by AlphaTradeConfig."}
+      ],
+      "boundary": "MarketGenome architecture decisions remain unimplemented; the existing trunk is not a long-sequence backbone prototype.",
+      "required_future_test": "MG4 architecture, resolution, causality, and parameter-contract tests after MG2/MG3."
+    },
+    {
+      "component_id": "last_readout",
+      "component": "Last-timestep readout",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/core/model.py", "start_line": 271, "end_line": 315, "claim": "All heads consume x[:, -1, :] and return batch-level horizon predictions."}
+      ],
+      "boundary": "This readout conflicts directly with dense per-position supervision.",
+      "required_future_test": "Dense output length/alignment/mask tests; no implicit terminal-only fallback."
+    },
+    {
+      "component_id": "quantile_head",
+      "component": "Median-plus-cumulative-delta quantile head",
+      "classification": "REPLACE_FOR_MARKETGENOME",
+      "evidence": [
+        {"path": "src/alphatrade/core/model.py", "start_line": 118, "end_line": 171, "claim": "The head parameterizes a median with cumulative positive/negative softplus deltas."},
+        {"path": "src/alphatrade/core/schemas.py", "start_line": 77, "end_line": 102, "claim": "Configuration requires an odd quantile count with 0.5 in the center."}
+      ],
+      "boundary": "The ordering trick is specific to the current terminal quantile head and does not define dense multimodal outputs.",
+      "required_future_test": "Task-specific head shapes, masks, calibration, and monotonicity tests after track freeze."
+    },
+    {
+      "component_id": "loss_primitives",
+      "component": "Pinball/crossing loss primitives",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/core/losses.py", "start_line": 23, "end_line": 132, "claim": "The module implements pinball, crossing, and multi-horizon terminal losses."}
+      ],
+      "boundary": "Primitive math can be reused for compatible quantile tracks; current horizon dict aggregation and defaults cannot represent masked dense multi-task losses.",
+      "required_future_test": "Masked reductions, empty-mask behavior, per-track weighting, and train-only scale tests."
+    }
+  ],
+  "incompatible_assumptions": [
+    {
+      "assumption_id": "fixed_short_lookback",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/train_m4_alphatrade.py", "start_line": 379, "end_line": 403, "claim": "The operational launcher resolves one lookback value with a 60-bar default."}
+      ],
+      "confirmed_behavior": "M12 used a fixed 60-bar window; this is an operational path fact, distinct from AlphaTradeConfig's 4096 default.",
+      "market_genome_action": "Use versioned long chunks with explicit context, overlap, valid positions, and resolution metadata."
+    },
+    {
+      "assumption_id": "last_timestep_only_readout",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/core/model.py", "start_line": 271, "end_line": 280, "claim": "All required return heads consume only x[:, -1, :]."}
+      ],
+      "confirmed_behavior": "The current task emits one prediction vector per window rather than one or more dense tracks.",
+      "market_genome_action": "Replace with explicitly aligned dense heads; optional terminal alpha output must be an adapter."
+    },
+    {
+      "assumption_id": "terminal_return_only_labels",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/window_cache.py", "start_line": 158, "end_line": 194, "claim": "Each sample stores y_h1/y_h5/y_h20/y_h60 terminal returns in four scalar columns."}
+      ],
+      "confirmed_behavior": "No per-position target values or target-specific masks are retained by the cache.",
+      "market_genome_action": "Define masked dense track targets after ontology/track freeze; never infer missingness from zero."
+    },
+    {
+      "assumption_id": "fixed_window_cache_layout",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/window_cache.py", "start_line": 181, "end_line": 200, "claim": "The cache allocates fixed [N, lookback, F], [N, 4], and symbol arrays, including a hard-coded 60 length for empty data."}
+      ],
+      "confirmed_behavior": "The layout cannot encode variable valid length, timestamps, folds, roll boundaries, or track-specific masks.",
+      "market_genome_action": "Replace the layout under a new schema/version; preserve the existing cache for M0-M12."
+    },
+    {
+      "assumption_id": "current_quantile_head_parameterization",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/core/model.py", "start_line": 149, "end_line": 169, "claim": "Quantiles are produced as median plus cumulative signed deltas."},
+        {"path": "src/alphatrade/core/schemas.py", "start_line": 77, "end_line": 102, "claim": "The configuration enforces the centered odd-quantile assumption."}
+      ],
+      "confirmed_behavior": "Quantile values affect loss labels but not the head's interval parameterization; the head is not a general dense-track interface.",
+      "market_genome_action": "Specify heads per target modality and resolution after MG3; reuse pinball only where semantics match."
+    },
+    {
+      "assumption_id": "hard_coded_architecture_behavior",
+      "status": "CONFIRMED_INCOMPATIBLE",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/train_m4_alphatrade.py", "start_line": 429, "end_line": 441, "claim": "The launcher fixes horizons, quantiles, two encoder stages, channel sizes, d_model, and transformer depth."},
+        {"path": "src/alphatrade/core/schemas.py", "start_line": 113, "end_line": 159, "claim": "The public tensor contract remains typed around B L 8 inputs and horizon-level outputs."}
+      ],
+      "confirmed_behavior": "Feature dimension is dynamically passed by M12, but architecture/task choices and stale 8D annotations remain coupled to the AlphaTrade line.",
+      "market_genome_action": "Keep a separate resolved config and schemas; do not conditionalize current core/launcher code."
+    }
+  ],
+  "metric_reuse": [
+    {
+      "metric": "Pinball loss, coverage MAE, and quantile crossing",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m10_prediction_eval.py", "start_line": 444, "end_line": 613, "claim": "M10 computes these metrics from canonical realized/prediction rows."}
+      ],
+      "valid_scope": "Terminal-return quantile tracks with identical units, horizons, valid-row masks, and quantile semantics.",
+      "adapter": "Convert a versioned MarketGenome terminal-alpha head into M10 canonical rows without changing current report fields.",
+      "limitation": "Not applicable to categorical pattern, barrier, path, range, volatility, MFE/MAE, or perturbation outputs."
+    },
+    {
+      "metric": "Distribution summaries, Pearson/rank IC, and direction hit",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m10_prediction_eval.py", "start_line": 616, "end_line": 739, "claim": "M10 computes distribution, IC, and direction metrics from terminal-return rows."}
+      ],
+      "valid_scope": "Continuous scalar alpha outputs after common-row alignment.",
+      "adapter": "Select a declared terminal scalar/median track and preserve symbol/horizon grouping and masks.",
+      "limitation": "q50-based direction is not a universal summary for multimodal dense heads."
+    },
+    {
+      "metric": "Past-only rolling and zero baselines",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m10_prediction_eval.py", "start_line": 955, "end_line": 998, "claim": "Baseline availability and selection distinguish zero and past-only rolling quantile sources."}
+      ],
+      "valid_scope": "Terminal-return targets where the historical window is causally defined.",
+      "adapter": "Recompute on the same fold/common rows as each compatible MarketGenome output.",
+      "limitation": "A rolling return baseline does not benchmark pattern phases, barriers, paths, or perturbation effects."
+    },
+    {
+      "metric": "Lightweight cost/turnover/backtest diagnostics",
+      "classification": "ISOLATE",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m10_prediction_eval.py", "start_line": 750, "end_line": 952, "claim": "The diagnostic derives q50/quantile signals and simplified costs/returns."}
+      ],
+      "valid_scope": "Optional diagnostic for a terminal alpha handoff only.",
+      "adapter": "A future alpha adapter may call it without changing M10 output contracts.",
+      "limitation": "It is not an execution simulator, annualized promotion proof, or model-quality substitute."
+    },
+    {
+      "metric": "Validation-only additive quantile calibration",
+      "classification": "REUSE_WITH_ADAPTER",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/build_m11_scale_calibration_report.py", "start_line": 552, "end_line": 642, "claim": "M11 fits calibration on validation data and applies ordered additive shifts."}
+      ],
+      "valid_scope": "Diagnostic calibration for semantically equivalent terminal quantile tracks.",
+      "adapter": "Fit only on the declared validation fold and preserve train/test isolation.",
+      "limitation": "Current thresholds and the historical M11 closure conclusion do not transfer to MarketGenome."
+    },
+    {
+      "metric": "M11 quality and closure gate",
+      "classification": "ISOLATE",
+      "evidence": [
+        {"path": "src/alphatrade/scripts/validate_reports_schema.py", "start_line": 778, "end_line": 911, "claim": "The checker encodes the historical output-scale, rolling-baseline, rejection, and next-M12 conclusion."}
+      ],
+      "valid_scope": "The frozen AlphaTrade M11 closure only.",
+      "adapter": "Reuse the principle that schema/semantic validity and model quality are separate statuses.",
+      "limitation": "Do not reuse its fixed thresholds, milestone conclusion, or output-scale diagnosis as a MarketGenome gate."
+    }
+  ],
+  "scaffold_inventory": [
+    {"path": "configs/market_genome/README.md", "kind": "DOCUMENTATION", "import_safe": false, "implementation_status": "DOCUMENTATION"},
+    {"path": "configs/market_genome/contracts_manifest.yaml", "kind": "CONFIG", "import_safe": false, "implementation_status": "CONTRACT_ONLY"},
+    {"path": "docs/alphaTrade/market_genome/MG0_ALPHATRADE_COMPATIBILITY_AUDIT.json", "kind": "DOCUMENTATION", "import_safe": false, "implementation_status": "DOCUMENTATION"},
+    {"path": "docs/alphaTrade/market_genome/MG0_ALPHATRADE_COMPATIBILITY_AUDIT.md", "kind": "DOCUMENTATION", "import_safe": false, "implementation_status": "DOCUMENTATION"},
+    {"path": "src/alphatrade/market_genome/README.md", "kind": "DOCUMENTATION", "import_safe": false, "implementation_status": "DOCUMENTATION"},
+    {"path": "src/alphatrade/market_genome/__init__.py", "kind": "PACKAGE", "import_safe": true, "implementation_status": "SCAFFOLD_ONLY"},
+    {"path": "src/alphatrade/market_genome/config.py", "kind": "CONTRACT", "import_safe": true, "implementation_status": "CONTRACT_ONLY"},
+    {"path": "src/alphatrade/market_genome/datasets/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/evaluation/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/heads/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/losses/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/mg0b_compatibility_audit.schema.json", "kind": "CONTRACT", "import_safe": false, "implementation_status": "CONTRACT_ONLY"},
+    {"path": "src/alphatrade/market_genome/ontology/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/perturbation/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/schemas.py", "kind": "CONTRACT", "import_safe": true, "implementation_status": "CONTRACT_ONLY"},
+    {"path": "src/alphatrade/market_genome/synthetic/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "src/alphatrade/market_genome/training/__init__.py", "kind": "PLACEHOLDER_PACKAGE", "import_safe": true, "implementation_status": "IMPORT_SAFE_PLACEHOLDER"},
+    {"path": "tests/market_genome/__init__.py", "kind": "TEST", "import_safe": true, "implementation_status": "TEST_ONLY"},
+    {"path": "tests/market_genome/test_mg0b_scaffold.py", "kind": "TEST", "import_safe": true, "implementation_status": "TEST_ONLY"}
+  ],
+  "preservation": {
+    "legacy_model_files_modified": false,
+    "legacy_report_fields_changed": false,
+    "legacy_manifest_modified": false,
+    "legacy_validator_modified": false,
+    "mg0a_freeze_preserved": true,
+    "existing_model_execution_performed": false,
+    "existing_model_result_files_modified": false,
+    "mg0b_profile_path": "configs/market_genome/contracts_manifest.yaml",
+    "rationale": "MG0-A freezes the current validator, legacy manifest, and validator tests at tag mg0-a-alphagenome-parity-v1. MG0-B therefore uses an independent profile and validator under the new namespace, leaving every M0-M12 contract byte-for-byte unchanged."
+  },
+  "uncertainties": [
+    {
+      "item": "Dynamic feature dimension versus stale B L 8 type annotations",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "M12 passes feature_profile.feature_dim into the launcher, while core annotations still say eight; MG0-B did not execute JAX to probe runtime type behavior.",
+      "next_verification": "Cover the new MG3 input schema independently and retain an explicit terminal-alpha adapter test."
+    },
+    {
+      "item": "Long-sequence chunk length, overlap, and storage format",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "No current AlphaTrade implementation or frozen MarketGenome track contract determines these values.",
+      "next_verification": "Resolve after MG1 ontology freeze and specify in MG3 with causality/alignment tests."
+    },
+    {
+      "item": "MarketGenome task metrics and promotion thresholds",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "Current M10/M11 covers terminal-return quantiles but not path, barrier, pattern, dense range/volatility, MFE/MAE, or perturbation tasks.",
+      "next_verification": "Freeze per-task metrics and fold-aware thresholds before MG5 learnability evaluation."
+    },
+    {
+      "item": "Checkpoint and distributed resume format",
+      "status": "NEEDS_VERIFICATION",
+      "evidence_gap": "The future model topology, precision, optimizer, and sharding coordinates do not exist in MG0-B.",
+      "next_verification": "Define a versioned fail-closed contract with the MG4 trainer."
+    }
+  ],
+  "execution": {
+    "training_status": "DEFERRED_BY_USER",
+    "gpu_status": "DEFERRED_BY_USER",
+    "training_executed": false,
+    "jax_imported_by_cpu_only_test": true,
+    "jax_computation_executed": false,
+    "gpu_executed": false,
+    "full_backbone_implemented": false,
+    "deferred_components": [
+      "ontology",
+      "synthetic generator",
+      "long-sequence datasets",
+      "dense heads and losses",
+      "training and checkpointing",
+      "pair stack, teachers, and distillation",
+      "perturbation/effect scoring",
+      "MarketGenome evaluation"
+    ],
+    "resume_requires_explicit_user_confirmation": true
+  },
+  "gate": {
+    "checks": [
+      {"name": "compatibility_matrix_complete", "passed": true, "evidence": "All 13 plan-listed subsystems have exact source-grounded boundaries."},
+      {"name": "incompatible_assumptions_explicit", "passed": true, "evidence": "All six mandatory incompatible assumptions are separately recorded."},
+      {"name": "m12_statuses_not_conflated", "passed": true, "evidence": "Engineering/schema PASS and model-quality/formal decision FAIL are separate fields."},
+      {"name": "market_genome_import_safe", "passed": true, "evidence": "The 19-test MG0-B suite confirms the package and placeholders import without JAX, Haiku, model, training, or GPU initialization."},
+      {"name": "legacy_contracts_preserved", "passed": true, "evidence": "The non-GPU AlphaTrade regression set passed 108 tests; frozen MG0-A strict remains schema 2/2 and semantic 13/13."},
+      {"name": "independent_mg0b_schema_profile", "passed": true, "evidence": "Strict mg0b validation passes schema 1/1 and semantic 14/14; manifest required artifacts pass 2/2."},
+      {"name": "scaffold_only_scope", "passed": true, "evidence": "No backbone, data pipeline, tensor model schema, training, inference, or evaluation implementation was added."},
+      {"name": "training_and_gpu_deferred", "passed": true, "evidence": "No training, inference, checkpoint, JAX computation, or GPU command ran. One legacy control test imported JAX under the forced CPU backend."}
+    ],
+    "overall": "PASS_WITH_DOCUMENTED_BOUNDARIES",
+    "next_task": "MG1-A_PATTERN_ONTOLOGY_DRAFT_REQUIRES_HUMAN_FREEZE"
+  }
+}
