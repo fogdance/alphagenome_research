@@ -1,0 +1,300 @@
+schema_version: mg1.review_findings.v1
+base_contract_sha256: 9c832971fcb6a88a67493aef3e81a81ce1aabb8e739b4c6575d96925b706dc36
+reviewer_id: CODEX_DOMAIN_EXPERT_01
+reviewed_at: "2026-07-13T16:59:26+08:00"
+findings:
+  - assumption_id: MG1A.DOUBLE_TOP.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain fixed bearish side, two peak anchors, the intervening trough, and a
+      derived neckline. Mirror only schema shape; keep parameters independent.
+    approved_invariants: ["The right peak cannot be evaluated before causal availability.", "A neckline break is linked to the same source zone and pattern."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Resolve peak compatibility, neckline, geometry, duration, and ratio policies.", "Add generic breakout and retest event links."]
+    blocking_items: [DOUBLE_TOP_POLICY_REFS_UNRESOLVED, NECKLINE_OVERLAP_IDENTITY_MISSING]
+    evidence_ids: [TECH_ONTOLOGY]
+
+  - assumption_id: MG1A.DOUBLE_TOP.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Candidate begins after left peak and intervening trough, developing after a
+      right-peak candidate, mature after compatible peaks and neckline, and confirmed
+      only after a causal downward neckline cross.
+    approved_invariants: ["Right-peak rejection is formation evidence, not confirmation.", "No-retest continuation requires an explicit common-phase mapping."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Enumerate phase evidence, no-retest continuation, completion, and invalidation transitions."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, COMPLETION_POLICY_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.DOUBLE_TOP.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Confirm only on a causal downward neckline cross. Right-peak rejection supports
+      mature state, retest is post-confirmation, and volume or OI remains optional.
+    approved_invariants: ["Confirmation uses the neckline version derived by the pattern.", "Optional filters cannot create topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand confirmation rules around the downward cross and UNKNOWN filter states."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, NECKLINE_CROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.DOUBLE_TOP.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Separate pre-confirmation peak/order/expiry failure from post-confirmation
+      neckline recross failure; all observations use normalized, versioned policies.
+    approved_invariants: ["Formation expiry is scale-relative.", "Post-confirmation failure never erases the prior confirmed state."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define peak-zone failure, ordering failure, expiry, and post-break recross semantics."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_AND_RECROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.DOUBLE_BOTTOM.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain fixed bullish side, two trough anchors, the intervening peak, and a
+      derived neckline as the schema mirror of double top with independent parameters.
+    approved_invariants: ["The right trough must be causally available.", "Mirroring does not imply numerical symmetry."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Resolve trough compatibility, neckline, geometry, duration, and ratio policies.", "Add breakout and retest event links."]
+    blocking_items: [DOUBLE_BOTTOM_POLICY_REFS_UNRESOLVED, NECKLINE_OVERLAP_IDENTITY_MISSING]
+    evidence_ids: [TECH_ONTOLOGY]
+
+  - assumption_id: MG1A.DOUBLE_BOTTOM.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Candidate begins after left trough and intervening peak, developing after a
+      right-trough candidate, mature after compatible troughs and neckline, and
+      confirmed only after a causal upward neckline cross.
+    approved_invariants: ["Right-trough rejection is formation evidence.", "No-retest continuation is explicitly represented."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Enumerate phase evidence, continuation, completion, and invalidation transitions."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, COMPLETION_POLICY_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.DOUBLE_BOTTOM.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Confirm only on a causal upward neckline cross; right-trough rejection belongs
+      to mature formation evidence and retest follows confirmation.
+    approved_invariants: ["Confirmation references the pattern neckline version.", "Volume and OI remain optional context."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand the upward-cross confirmation rule and missing-filter truth table."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, NECKLINE_CROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.DOUBLE_BOTTOM.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Separate pre-confirmation trough/order/expiry failure from post-confirmation
+      downward neckline recross failure.
+    approved_invariants: ["Failure observations are prefix-only.", "Expiry is scale-relative and versioned."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define trough-zone failure, ordering failure, expiry, and post-break recross."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_AND_RECROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain head above both shoulders, shoulder compatibility, two neckline anchors,
+      and fixed bearish side. Add post-break retest linkage or an explicit alternative
+      for the common retest-or-continuation phase.
+    approved_invariants: ["All five formation anchors are causally available.", "Neckline cross shares identity with generic breakout."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Resolve shoulder/head, neckline, geometry, duration, and ratio policies.", "Add neckline retest or continuation linkage and overlap scope."]
+    blocking_items: [HEAD_SHOULDERS_POLICY_REFS_UNRESOLVED, RETEST_ANCHOR_OR_ALTERNATIVE_MISSING]
+    evidence_ids: [TECH_ONTOLOGY]
+
+  - assumption_id: MG1A.HEAD_SHOULDERS_TOP.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Map left shoulder and left neckline to candidate, head and right neckline to
+      developing, completed right shoulder topology to mature, and a causal downward
+      neckline cross to confirmed.
+    approved_invariants: ["Formation evidence is distinct from confirmation.", "Retest, continuation, completion, and invalidation are explicit."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand every phase rule including post-break continuation and completion."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, POST_BREAK_PHASES_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Shoulder and head states are formation evidence. Confirmation is the causal
+      downward cross of the versioned neckline derived by this pattern.
+    approved_invariants: ["Confirmation cannot precede the right shoulder.", "Optional filters remain outside topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Replace formation-state confirmation with a neckline-cross rule and UNKNOWN handling."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, NECKLINE_CROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain head breach and anchor-order failure, then add formation expiry,
+      neckline-break absence expiry, and post-confirmation recross failure.
+    approved_invariants: ["Pre- and post-confirmation failure semantics are separate.", "Historical phase remains append-only."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define normalized breach, ordering failure, two expiry modes, and recross failure."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_POLICY_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain head below both shoulders, shoulder compatibility, two neckline anchors,
+      and fixed bullish side as a schema-only mirror with independent parameters.
+    approved_invariants: ["All formation anchors are causally available.", "Neckline identity is shared with linked breakout and retest events."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Resolve mirrored structure policies independently.", "Add post-break retest or continuation linkage and overlap scope."]
+    blocking_items: [INVERSE_HEAD_SHOULDERS_POLICY_REFS_UNRESOLVED, RETEST_ANCHOR_OR_ALTERNATIVE_MISSING]
+    evidence_ids: [TECH_ONTOLOGY]
+
+  - assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Mirror the formation evidence schema without sharing thresholds; completed
+      right shoulder topology is mature and a causal upward neckline cross confirms.
+    approved_invariants: ["Phase evidence remains causal.", "Post-break continuation and completion are not implicit."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand all phase rules and post-break lifecycle semantics."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, POST_BREAK_PHASES_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Shoulder and head states support formation; only a causal upward neckline cross
+      confirms the inverse pattern.
+    approved_invariants: ["Confirmation cannot precede the right shoulder.", "Optional filters cannot define topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define upward neckline-cross confirmation and missing-filter behavior."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, NECKLINE_CROSS_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Add formation expiry, neckline-break absence expiry, and post-confirmation
+      downward recross failure to the existing head/order failures.
+    approved_invariants: ["Pre- and post-confirmation failures are distinct.", "All invalidation observations are prefix-only."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define normalized breach, order failure, expiry, and recross semantics."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_POLICY_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.RETEST.STRUCTURE.001
+    disposition: DEFER
+    expert_decision: >-
+      Side inherits the origin break direction, not the return-leg direction. Freeze
+      requires a source-family registry and immutable source event and zone links;
+      the independent-object versus source-phase choice remains unresolved.
+    approved_invariants: ["Retest uses the exact source zone version.", "A failed breakout cannot simultaneously be a successful retest of the same event."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Enumerate legal source families and add source_event_id, source_pattern_id, and source_zone_id.", "Select independent object or linked source phase semantics."]
+    blocking_items: [RETEST_OBJECT_MODEL_UNRESOLVED, SOURCE_IDENTITY_FIELDS_MISSING]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.RETEST.PHASE.001
+    disposition: DEFER
+    expert_decision: >-
+      Source break and return leg can support candidate and developing, zone touch can
+      support mature, and a new-side hold or rejection can confirm, but this mapping
+      depends on the unresolved retest object model.
+    approved_invariants: ["Retest phase never precedes its source break.", "Later hold does not backfill touch-time state."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Resolve the object model, then enumerate all phase evidence and completion."]
+    blocking_items: [RETEST_OBJECT_MODEL_UNRESOLVED, PHASE_WILDCARD_UNEXPANDED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.RETEST.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Source break and return touch are prerequisites; confirmation requires a causal
+      new-side hold or rejection. Continuation is a later phase.
+    approved_invariants: ["Confirmation references the same source event and zone.", "Volume and OI remain optional filters."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand new-side hold/rejection rules and UNKNOWN filter behavior."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, HOLD_OR_REJECTION_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.RETEST.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain full recross and source failure, then add scale-relative touch/hold absence
+      expiry and explicit source-zone version handling.
+    approved_invariants: ["Invalidation cannot precede causal return evidence.", "Source failure and retest failure remain linked but distinct events."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define full recross, source failure, touch expiry, hold expiry, and event precedence."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_POLICY_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001
+    disposition: DEFER
+    expert_decision: >-
+      Resistance broken upward maps to bullish converted support; support broken
+      downward maps to bearish converted resistance. Freeze requires source event and
+      zone identity plus a decision whether conversion is an independent object or subtype.
+    approved_invariants: ["Side is the origin break direction.", "Role conversion preserves original zone lineage."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Add source break, source pattern, and source zone identifiers.", "Select independent object versus breakout-retest subtype."]
+    blocking_items: [CONVERSION_OBJECT_MODEL_UNRESOLVED, SOURCE_IDENTITY_FIELDS_MISSING]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001
+    disposition: DEFER
+    expert_decision: >-
+      The draft requires an opposite-side return while the reference implementation
+      changes role at break time. Select whether conversion exists at break, return,
+      or confirmed hold before mapping the lifecycle.
+    approved_invariants: ["Online state cannot be backfilled from a later return.", "Break, return, and hold are distinct causal events."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Select conversion creation time and enumerate the resulting phase mapping."]
+    blocking_items: [CONVERSION_CREATION_EVENT_UNSELECTED, PHASE_WILDCARD_UNEXPANDED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      The break starts formation; an opposite-side return followed by causal
+      converted-role hold or rejection confirms. Optional filters remain non-topological.
+    approved_invariants: ["Confirmation references the original zone version.", "Later confirmation does not rewrite break-time state."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Expand return and converted-role hold/rejection rules with UNKNOWN behavior."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, CONVERSION_OBJECT_MODEL_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Distinguish ordinary zone penetration, full recross, source-break invalidation,
+      original-role restoration, and scale-relative expiry.
+    approved_invariants: ["Invalidation preserves source zone and event lineage.", "A normal touch is not automatically a full role-restoration failure."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define penetration, full recross, source failure, role restoration, expiry, and precedence."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_POLICY_MISSING]
+    evidence_ids: [PLAN_MG1A]

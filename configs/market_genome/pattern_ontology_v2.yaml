@@ -1,0 +1,881 @@
+schema_version: mg1a.pattern_ontology.v2
+profile: mg1a-v2
+milestone: MG1-A.1
+decision: DRAFT_NEEDS_HUMAN_FREEZE
+human_review:
+  status: PENDING
+  frozen: false
+  reviewer_decisions_recorded: false
+  approver: null
+  approved_at: null
+  frozen_sha256: null
+review_outcome_v1:
+  decision: DOMAIN_REVIEW_COMPLETED_WITH_REQUIRED_REVISIONS
+  draft_assessment: APPROVED_AS_DRAFT
+  freeze_assessment: REVISION_REQUIRED_BEFORE_FREEZE
+  mg1b_status: BLOCKED
+  next_milestone: MG1-A.1
+base_v1:
+  config_path: configs/market_genome/pattern_ontology_v1.yaml
+  config_sha256: 3ab4ce88dd63dbb5ec484b6ca420ce9a3ab06579f63b53776252216a10012b90
+  resolved_contract_sha256: 9c832971fcb6a88a67493aef3e81a81ce1aabb8e739b4c6575d96925b706dc36
+  review_ledger_path: configs/market_genome/pattern_ontology_v1_review.yaml
+  review_records_sha256: fdf2328d1fb8b63c6c342498ade11f29c47db467a28c17a190a0290cdad8132c
+v1_artifact_hashes:
+  - {path: configs/market_genome/pattern_ontology_v1.yaml, sha256: 3ab4ce88dd63dbb5ec484b6ca420ce9a3ab06579f63b53776252216a10012b90}
+  - {path: configs/market_genome/mg1a_contracts_manifest.yaml, sha256: 02820dca83420add736a1fa6168d2acc33e7f81ae6f3629d6340500afc636ac2}
+  - {path: docs/alphaTrade/market_genome/MG1_PATTERN_ONTOLOGY.md, sha256: d205d1511dc9750f031030a15f139b1cb3220bba0dcfc375212ee20a0d670779}
+  - {path: src/alphatrade/market_genome/ontology/schema.py, sha256: 3143100cc22f9674539ef9a3f4abe72d9698a2d2d1de72acf9d0178d391d493e}
+  - {path: src/alphatrade/market_genome/ontology/validation.py, sha256: 251764717de39e6c6470c3ef5fff716209676e3db6052de4018839477dfeb72d}
+  - {path: src/alphatrade/market_genome/ontology/mg1a_pattern_ontology.schema.json, sha256: badd21886961c2dbe59e12b24b5682110529b61be187736d91d6b233c699037e}
+  - {path: tests/market_genome/test_mg1a_ontology.py, sha256: b31f341389215574c80ddfa7ad84f3c59609d9c4c6179ab085f6bf9bbf1f4a40}
+resolved_contract:
+  ontology_id: market_genome_pattern_ontology
+  ontology_version: v2-review
+  contract_status: REVISED_REVIEW_DRAFT
+  object_model:
+    assumption_ids: [MG1A1.COMMON.OBJECT_MODEL.001, MG1A1.COMMON.MORPHOLOGY_EFFECT.001]
+    object_classes: [STRUCTURAL_STATE, MORPHOLOGY, LEVEL_EVENT, STRUCTURAL_RELATION]
+    class_by_family:
+      trend_up: STRUCTURAL_STATE
+      trend_down: STRUCTURAL_STATE
+      trend_transition: LEVEL_EVENT
+      double_top: MORPHOLOGY
+      double_bottom: MORPHOLOGY
+      head_shoulders_top: MORPHOLOGY
+      inverse_head_shoulders: MORPHOLOGY
+      breakout: LEVEL_EVENT
+      failed_breakout: LEVEL_EVENT
+      retest: LEVEL_EVENT
+      range: STRUCTURAL_STATE
+      support_resistance_conversion: STRUCTURAL_RELATION
+    structural_orientations: [UPPER, LOWER, UPWARD, DOWNWARD, NEUTRAL]
+    orientation_binding_values: [FIXED, INSTANCE_BOUND]
+    semantic_roles:
+      - TREND_STATE
+      - RANGE_STATE
+      - REVERSAL_CANDIDATE
+      - RANGE_BOUNDARY_REJECTION
+      - CONTINUATION_STRUCTURE
+      - TRANSITION_EVENT
+      - BREAK_EVENT
+      - FAILURE_EVENT
+      - RETEST_EVENT
+      - ROLE_CONVERSION
+      - UNCLASSIFIED
+    morphology_effect_separation:
+      structural_orientation_is_future_effect: false
+      semantic_role_is_future_outcome: false
+      classic_reversal_role_requires_preceding_context: true
+      future_effect_namespace: future_outcome
+      future_effect_allowed_in_family_contract: false
+  common_lifecycle:
+    assumption_ids: [MG1A.COMMON.LIFECYCLE.001, MG1A1.COMMON.LIFECYCLE_MAPPING.001]
+    statuses: [INACTIVE, ACTIVE, RESOLVED, INVALIDATED]
+    projected_edges:
+      - INACTIVE_TO_ACTIVE
+      - ACTIVE_TO_ACTIVE
+      - ACTIVE_TO_RESOLVED
+      - ACTIVE_TO_INVALIDATED
+    mapping_policy: VARIABLE_LENGTH_MANY_TO_ONE
+    branch_transitions_required: true
+    retest_and_continuation_must_be_separate: true
+    terminal_objects_are_immutable: true
+    reactivation_requires_new_pattern_id: true
+    every_invalidated_phase_requires_explicit_causal_in_edge: true
+  scale_spec_contract:
+    assumption_ids: [MG1A.COMMON.SCALE.001, MG1A.COMMON.SESSION.001, MG1A1.COMMON.SCALE_SPEC.001]
+    required_fields:
+      - scale_id
+      - scale_registry_version
+      - scale_registry_sha256
+      - bar_resolution
+      - aggregation_policy
+      - session_alignment
+      - pivot_prominence_scale_ref
+      - formation_span_bars
+      - formation_span_session_bars
+      - scale_octave
+      - encoder_scale_ref
+    bar_resolution: INSTANCE_PARAMETER
+    aggregation_policy: SESSION_ALIGNED_CLOSED_BAR
+    session_alignment: VERSIONED_INSTANCE_PARAMETER
+    pivot_prominence_scale_ref: VERSIONED_CAUSAL_INSTANCE_PARAMETER
+    formation_span_bars: INSTANCE_OBSERVATION
+    formation_span_session_bars: INSTANCE_OBSERVATION
+    scale_octave: OPTIONAL_INSTANCE_PARAMETER
+    encoder_scale_ref: OPTIONAL_MODEL_METADATA_NOT_FAMILY_IDENTITY
+    nullable_fields: [scale_octave, encoder_scale_ref]
+    scale_id_must_resolve_in_versioned_registry: true
+    topology_scale_invariant: true
+    scale_specific_parameter_policy: TRAIN_PARTITION_ONLY
+    test_selection_allowed: false
+  anchor_contract:
+    assumption_ids: [MG1A.COMMON.SWING_CAUSALITY.001, MG1A.COMMON.PARTIAL_BAR.001, MG1A1.COMMON.ANCHOR_REVISION.001]
+    states: [PROVISIONAL, CONFIRMED, REVISED, SUPERSEDED, REVOKED]
+    state_transitions:
+      PROVISIONAL: [CONFIRMED, REVISED, REVOKED]
+      REVISED: [CONFIRMED, SUPERSEDED, REVOKED]
+      CONFIRMED: [SUPERSEDED]
+      SUPERSEDED: []
+      REVOKED: []
+    required_fields:
+      - anchor_id
+      - anchor_lineage_id
+      - role
+      - event_eob
+      - available_as_of_eob
+      - as_of_eob
+      - source_bar_ref
+      - source_bar_closed
+      - anchor_state
+      - anchor_revision
+      - supersedes_anchor_id
+      - revision_reason
+      - normalized_price
+      - price_basis
+      - confirmation_basis
+      - scale_spec_ref
+      - source_method
+      - source_method_version
+      - assumption_ids
+    price_basis_values: [HIGH, LOW, CLOSE, BODY_HIGH, BODY_LOW, SETTLEMENT, VWAP]
+    confirmation_basis_values:
+      - PIVOT_SOURCE_RULE
+      - CLOSED_BAR_CROSS
+      - CLOSED_BAR_HOLD
+      - ANCHOR_SEQUENCE
+      - ZONE_ROLE_TEST
+    time_order: EVENT_NOT_AFTER_AVAILABILITY_NOT_AFTER_OBSERVATION
+    committed_anchor_requires_closed_bar: true
+    partial_bar_namespace: PROVISIONAL_RUNTIME_ONLY
+    committed_history_is_append_only: true
+    revision_zero_requires_no_predecessor: true
+    revision_successor_requires_same_lineage_role_and_scale: true
+    confirmed_revision_reason: SOURCE_CORRECTION_ONLY
+  relationship_graph:
+    assumption_ids: [MG1A.COMMON.OVERLAP.001, MG1A.COMMON.PROVENANCE.001, MG1A1.COMMON.RELATION_GRAPH.001]
+    relation_types:
+      - NESTED_IN
+      - CONTAINS
+      - CONFIRMED_BY
+      - INVALIDATED_BY
+      - RETESTS
+      - ORIGINATES_FROM
+      - CONVERTS_ROLE_OF
+      - SAME_STRUCTURE_DIFFERENT_SCALE
+    required_fields:
+      - relation_id
+      - relation_type
+      - source_ref
+      - target_ref
+      - relation_event_id
+      - source_event_ids
+      - relation_ordinal
+      - event_eob
+      - available_as_of_eob
+      - as_of_eob
+      - relation_provenance
+      - assumption_ids
+    cross_family_objects_remain_distinct: true
+    cross_scale_objects_remain_distinct: true
+    destructive_merge_allowed: false
+    source_event_identity_required: true
+    binary_edges_only: true
+    derived_views: [source_pattern_ids, target_pattern_ids, related_level_ids]
+  geometry_formula_contract:
+    assumption_ids: [MG1A.COMMON.NORMALIZATION.001, MG1A.COMMON.FILTER_MISSINGNESS.001, MG1A1.COMMON.FORMULA_CONTRACT.001]
+    required_fields: [name, numerator, denominator, sign, unit, missingness, clipping_policy, fit_boundary]
+    sign_values: [SIGNED, NONNEGATIVE, UNIT_INTERVAL_WHEN_DEFINED]
+    missingness_values: [UNKNOWN_WITH_MASK, NOT_APPLICABLE_WITH_MASK]
+    clipping_policy_values: [NO_CLIPPING, TRAIN_FROZEN_CLIP_POLICY]
+    fit_boundary_values: [NOT_APPLICABLE, TRAIN_PARTITION_ONLY]
+    absolute_price_denominator_allowed: false
+    numeric_detector_thresholds_allowed: false
+    causality: PREFIX_ONLY
+    denominator_zero_policy: UNKNOWN_WITH_MASK
+    insufficient_history_policy: UNKNOWN_WITH_MASK
+    formula_dependencies_must_be_acyclic: true
+    every_output_has_exactly_one_formula: true
+  label_namespaces:
+    assumption_ids: [MG1A.COMMON.LABEL_TIMING.001]
+    online_causal_phase:
+      future_visible: false
+      runtime_input_allowed: false
+      fields: [phase_at_as_of, causal_evidence, ambiguity_status]
+    retrospective_completion:
+      future_visible: true
+      runtime_input_allowed: false
+      fields: [completion_state, completion_event_eob, completion_censor_state]
+    future_outcome:
+      future_visible: true
+      runtime_input_allowed: false
+      fields: [outcome_profile_ref, outcome_horizon_ref, outcome_censor_state]
+  review_protocol:
+    assumption_ids: [MG1A1.COMMON.REVIEW_PROTOCOL.001]
+    review_modes: [ONLINE_BLINDED, RETROSPECTIVE, OUTCOME]
+    required_fields:
+      - review_mode
+      - review_id
+      - sample_id
+      - namespace
+      - reviewer_ids
+      - reviewer_decisions
+      - adjudicator_id
+      - adjudication_status
+      - ambiguity_status
+      - future_visibility_policy
+      - evidence_snapshot_sha256
+      - reviewed_at
+      - provenance
+    adjudication_statuses: [NOT_REQUIRED, PENDING, ADJUDICATED]
+    ambiguity_statuses: [UNAMBIGUOUS, AMBIGUOUS, INSUFFICIENT_EVIDENCE]
+    future_visibility_by_mode:
+      ONLINE_BLINDED: PREFIX_ONLY
+      RETROSPECTIVE: COMPLETION_WINDOW_ONLY
+      OUTCOME: DECLARED_OUTCOME_WINDOW_ONLY
+    reviewer_identity_policy: PSEUDONYMOUS_IDS_NO_PERSONAL_DATA
+    independent_review_policy: TWO_REVIEWERS_THEN_ADJUDICATE_DISAGREEMENT
+    model_assisted_independent_truth_allowed: false
+    minimum_independent_reviewers: TWO
+    ambiguity_blocks_gold_eligibility: true
+    ontology_freeze_requires_separate_v2_hash_bound_review: true
+  families:
+    - family: trend_up
+      object_class: STRUCTURAL_STATE
+      structural_orientation: UPWARD
+      orientation_binding: FIXED
+      allowed_instance_orientations: [UPWARD]
+      semantic_roles: [TREND_STATE]
+      persistent_state: true
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: trend_origin_low, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: swing_high, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: pullback_low, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: current_frontier, cardinality: ONE, state_requirement: PROVISIONAL_ALLOWED_RUNTIME_ONLY}
+      phase_contract:
+        family_phases: [INACTIVE, IMPULSE_CANDIDATE, SEQUENCE_FORMING, ESTABLISHED, PULLBACK, RESUMING, WEAKENING, STRUCTURE_BREAK, TERMINATED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [IMPULSE_CANDIDATE, SEQUENCE_FORMING, ESTABLISHED, PULLBACK, RESUMING, WEAKENING, STRUCTURE_BREAK]
+          RESOLVED: [TERMINATED]
+          INVALIDATED: [INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: IMPULSE_CANDIDATE, event: CAUSAL_DIRECTIONAL_IMPULSE}
+          - {from_phase: IMPULSE_CANDIDATE, to_phase: SEQUENCE_FORMING, event: FIRST_COMPARABLE_SWING_PAIR}
+          - {from_phase: SEQUENCE_FORMING, to_phase: ESTABLISHED, event: ASCENDING_SEQUENCE_READY}
+          - {from_phase: ESTABLISHED, to_phase: PULLBACK, event: CAUSAL_PULLBACK_OBSERVED}
+          - {from_phase: PULLBACK, to_phase: RESUMING, event: PRIOR_STRUCTURE_HOLDS}
+          - {from_phase: RESUMING, to_phase: ESTABLISHED, event: NEW_ASCENDING_SEQUENCE_EVIDENCE}
+          - {from_phase: ESTABLISHED, to_phase: WEAKENING, event: ORDER_OR_MOMENTUM_WEAKENS}
+          - {from_phase: WEAKENING, to_phase: STRUCTURE_BREAK, event: DEFENDING_PIVOT_BREAK}
+          - {from_phase: STRUCTURE_BREAK, to_phase: TERMINATED, event: TERMINATION_RECORDED}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [CONFIRMED_PULLBACK_LOW_BREACH, ASCENDING_ORDER_BREAK, SCALE_RELATIVE_FORMATION_EXPIRY]}
+      topology_rules: [TEMPORALLY_ALTERNATING_CONFIRMED_SWINGS, SUCCESSIVE_HIGHS_AND_LOWS_ASCEND, SEQUENCE_READINESS_EXPLICIT]
+      formula_contracts:
+        - {name: high_envelope_slope_ratio, numerator: high_envelope_normalized_price_change, denominator: high_envelope_elapsed_session_bars, sign: SIGNED, unit: NORMALIZED_PRICE_PER_SESSION_BAR, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: pullback_depth_to_prior_impulse_ratio, numerator: prior_swing_high_minus_pullback_low, denominator: prior_impulse_price_change, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: path_efficiency_ratio, numerator: absolute_frontier_minus_origin, denominator: cumulative_absolute_closed_bar_price_change, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [ASCENDING_SEQUENCE_READY, LATEST_PULLBACK_HOLDS, OPTIONAL_FILTERS_DO_NOT_DEFINE_TOPOLOGY]
+      invalidation_rules: [CONFIRMED_PULLBACK_LOW_BREACH, ASCENDING_ORDER_BREAK, SCALE_RELATIVE_FORMATION_EXPIRY]
+      relationship_types: [CONTAINS, INVALIDATED_BY, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.TREND_UP.STRUCTURE.001, MG1A.TREND_UP.PHASE.001, MG1A.TREND_UP.CONFIRMATION.001, MG1A.TREND_UP.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: trend_down
+      object_class: STRUCTURAL_STATE
+      structural_orientation: DOWNWARD
+      orientation_binding: FIXED
+      allowed_instance_orientations: [DOWNWARD]
+      semantic_roles: [TREND_STATE]
+      persistent_state: true
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: trend_origin_high, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: swing_low, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: reaction_high, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: current_frontier, cardinality: ONE, state_requirement: PROVISIONAL_ALLOWED_RUNTIME_ONLY}
+      phase_contract:
+        family_phases: [INACTIVE, IMPULSE_CANDIDATE, SEQUENCE_FORMING, ESTABLISHED, REACTION, RESUMING, WEAKENING, STRUCTURE_BREAK, TERMINATED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [IMPULSE_CANDIDATE, SEQUENCE_FORMING, ESTABLISHED, REACTION, RESUMING, WEAKENING, STRUCTURE_BREAK]
+          RESOLVED: [TERMINATED]
+          INVALIDATED: [INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: IMPULSE_CANDIDATE, event: CAUSAL_DIRECTIONAL_IMPULSE}
+          - {from_phase: IMPULSE_CANDIDATE, to_phase: SEQUENCE_FORMING, event: FIRST_COMPARABLE_SWING_PAIR}
+          - {from_phase: SEQUENCE_FORMING, to_phase: ESTABLISHED, event: DESCENDING_SEQUENCE_READY}
+          - {from_phase: ESTABLISHED, to_phase: REACTION, event: CAUSAL_REACTION_OBSERVED}
+          - {from_phase: REACTION, to_phase: RESUMING, event: PRIOR_STRUCTURE_HOLDS}
+          - {from_phase: RESUMING, to_phase: ESTABLISHED, event: NEW_DESCENDING_SEQUENCE_EVIDENCE}
+          - {from_phase: ESTABLISHED, to_phase: WEAKENING, event: ORDER_OR_MOMENTUM_WEAKENS}
+          - {from_phase: WEAKENING, to_phase: STRUCTURE_BREAK, event: DEFENDING_PIVOT_BREAK}
+          - {from_phase: STRUCTURE_BREAK, to_phase: TERMINATED, event: TERMINATION_RECORDED}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [CONFIRMED_REACTION_HIGH_BREACH, DESCENDING_ORDER_BREAK, SCALE_RELATIVE_FORMATION_EXPIRY]}
+      topology_rules: [TEMPORALLY_ALTERNATING_CONFIRMED_SWINGS, SUCCESSIVE_LOWS_AND_HIGHS_DESCEND, SEQUENCE_READINESS_EXPLICIT]
+      formula_contracts:
+        - {name: low_envelope_slope_ratio, numerator: low_envelope_normalized_price_change, denominator: low_envelope_elapsed_session_bars, sign: SIGNED, unit: NORMALIZED_PRICE_PER_SESSION_BAR, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: reaction_depth_to_prior_impulse_ratio, numerator: reaction_high_minus_prior_swing_low, denominator: prior_impulse_absolute_price_change, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: path_efficiency_ratio, numerator: absolute_frontier_minus_origin, denominator: cumulative_absolute_closed_bar_price_change, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [DESCENDING_SEQUENCE_READY, LATEST_REACTION_HOLDS, OPTIONAL_FILTERS_DO_NOT_DEFINE_TOPOLOGY]
+      invalidation_rules: [CONFIRMED_REACTION_HIGH_BREACH, DESCENDING_ORDER_BREAK, SCALE_RELATIVE_FORMATION_EXPIRY]
+      relationship_types: [CONTAINS, INVALIDATED_BY, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.TREND_DOWN.STRUCTURE.001, MG1A.TREND_DOWN.PHASE.001, MG1A.TREND_DOWN.CONFIRMATION.001, MG1A.TREND_DOWN.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: trend_transition
+      object_class: LEVEL_EVENT
+      structural_orientation: null
+      orientation_binding: INSTANCE_BOUND
+      allowed_instance_orientations: [UPWARD, DOWNWARD]
+      semantic_roles: [TRANSITION_EVENT]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: prior_pattern_ref, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: prior_sequence_terminal_extreme, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: last_defending_pivot, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: structure_break, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: first_counter_pivot, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: transition_retest, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [INACTIVE, STRUCTURE_BREAK_OBSERVED, COUNTER_PIVOT_AVAILABLE, COUNTER_SEQUENCE_FORMING, REVERSE_TREND_CONFIRMED, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [STRUCTURE_BREAK_OBSERVED, COUNTER_PIVOT_AVAILABLE, COUNTER_SEQUENCE_FORMING]
+          RESOLVED: [REVERSE_TREND_CONFIRMED]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: STRUCTURE_BREAK_OBSERVED, event: SHARED_DEFENDING_PIVOT_BREAK}
+          - {from_phase: STRUCTURE_BREAK_OBSERVED, to_phase: COUNTER_PIVOT_AVAILABLE, event: CAUSAL_COUNTER_PIVOT}
+          - {from_phase: COUNTER_PIVOT_AVAILABLE, to_phase: COUNTER_SEQUENCE_FORMING, event: COUNTER_SEQUENCE_EVIDENCE}
+          - {from_phase: COUNTER_SEQUENCE_FORMING, to_phase: REVERSE_TREND_CONFIRMED, event: LINKED_REVERSE_TREND_ESTABLISHED}
+          - {from_phase: STRUCTURE_BREAK_OBSERVED, to_phase: EXPIRED, event: SCALE_RELATIVE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [PRIOR_TREND_RESUMPTION, DEFENDING_PIVOT_RECOVERY, COUNTER_SEQUENCE_FAILURE]}
+      topology_rules: [PRIOR_ORDERED_TREND_REFERENCE_REQUIRED, SHARED_DEFENDING_PIVOT_BREAK_EVENT, COUNTER_DIRECTION_AVAILABLE_BEFORE_ORIENTATION_BIND]
+      formula_contracts:
+        - {name: break_displacement_to_prior_swing_ratio, numerator: structure_break_displacement, denominator: prior_swing_absolute_price_change, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: counter_swing_to_prior_impulse_ratio, numerator: counter_swing_absolute_price_change, denominator: prior_impulse_absolute_price_change, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [DEFENDING_PIVOT_BREAK_RECORDED, COUNTER_SEQUENCE_EXPLICIT, REVERSE_TREND_CONFIRMATION_IS_SEPARATE]
+      invalidation_rules: [PRIOR_TREND_RESUMPTION, DEFENDING_PIVOT_RECOVERY, COUNTER_SEQUENCE_FAILURE, SCALE_RELATIVE_EXPIRY]
+      relationship_types: [ORIGINATES_FROM, CONFIRMED_BY, INVALIDATED_BY]
+      assumption_ids: [MG1A.TREND_TRANSITION.STRUCTURE.001, MG1A.TREND_TRANSITION.PHASE.001, MG1A.TREND_TRANSITION.CONFIRMATION.001, MG1A.TREND_TRANSITION.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: double_top
+      object_class: MORPHOLOGY
+      structural_orientation: UPPER
+      orientation_binding: FIXED
+      allowed_instance_orientations: [UPPER]
+      semantic_roles: [REVERSAL_CANDIDATE, RANGE_BOUNDARY_REJECTION, CONTINUATION_STRUCTURE, UNCLASSIFIED]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: left_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: intervening_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: neckline_zone, cardinality: DERIVED, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: neckline_break, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: neckline_retest, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: continuation_anchor, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [NO_PATTERN, LEFT_PEAK_AVAILABLE, NECKLINE_PIVOT_AVAILABLE, RIGHT_PEAK_CANDIDATE, RIGHT_PEAK_CONFIRMED, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST, CONTINUATION, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [NO_PATTERN]
+          ACTIVE: [LEFT_PEAK_AVAILABLE, NECKLINE_PIVOT_AVAILABLE, RIGHT_PEAK_CANDIDATE, RIGHT_PEAK_CONFIRMED, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: NO_PATTERN, to_phase: LEFT_PEAK_AVAILABLE, event: CONFIRMED_LEFT_PEAK}
+          - {from_phase: LEFT_PEAK_AVAILABLE, to_phase: NECKLINE_PIVOT_AVAILABLE, event: CONFIRMED_INTERVENING_TROUGH}
+          - {from_phase: NECKLINE_PIVOT_AVAILABLE, to_phase: RIGHT_PEAK_CANDIDATE, event: PROVISIONAL_RIGHT_PEAK}
+          - {from_phase: RIGHT_PEAK_CANDIDATE, to_phase: RIGHT_PEAK_CONFIRMED, event: CONFIRMED_RIGHT_PEAK}
+          - {from_phase: RIGHT_PEAK_CONFIRMED, to_phase: SHAPE_COMPLETE, event: GEOMETRY_POLICY_SATISFIED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: NECKLINE_BREAK_CONFIRMED, event: CAUSAL_DOWNWARD_NECKLINE_CROSS}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: RETEST, event: LINKED_NECKLINE_RETEST}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: CONTINUATION, event: NO_RETEST_CONTINUATION}
+          - {from_phase: RETEST, to_phase: CONTINUATION, event: RETEST_HOLD_CONFIRMED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: EXPIRED, event: SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [PEAK_ZONE_UPSIDE_BREACH, ANCHOR_ORDER_FAILURE, POST_BREAK_NECKLINE_RECROSS]}
+      topology_rules: [TWO_CONFIRMED_UPPER_EXTREMA_WITH_INTERVENING_LOWER_EXTREMUM, SHAPE_IDENTITY_INDEPENDENT_OF_FUTURE_EFFECT, NECKLINE_BREAK_IS_LINKED_EVENT]
+      formula_contracts:
+        - {name: peak_height_difference_to_formation_amplitude, numerator: absolute_left_peak_minus_right_peak, denominator: compatible_peak_reference_minus_intervening_trough, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: time_symmetry_ratio, numerator: absolute_left_peak_to_trough_duration_minus_trough_to_right_peak_duration, denominator: total_formation_session_bars, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: trough_depth_to_formation_amplitude, numerator: compatible_peak_reference_minus_intervening_trough, denominator: causal_price_scale, sign: NONNEGATIVE, unit: NORMALIZED_PRICE_MULTIPLE, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [SHAPE_COMPLETION_IS_NOT_BEARISH_EFFECT, CAUSAL_DOWNWARD_NECKLINE_CROSS_CONFIRMS_CLASSIC_REVERSAL_ROLE, PRECEDING_UPTREND_REQUIRED_FOR_CLASSIC_REVERSAL_ROLE]
+      invalidation_rules: [PEAK_ZONE_UPSIDE_BREACH, ANCHOR_ORDER_FAILURE, SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY, POST_BREAK_NECKLINE_RECROSS]
+      relationship_types: [NESTED_IN, CONFIRMED_BY, RETESTS, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.DOUBLE_TOP.STRUCTURE.001, MG1A.DOUBLE_TOP.PHASE.001, MG1A.DOUBLE_TOP.CONFIRMATION.001, MG1A.DOUBLE_TOP.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: double_bottom
+      object_class: MORPHOLOGY
+      structural_orientation: LOWER
+      orientation_binding: FIXED
+      allowed_instance_orientations: [LOWER]
+      semantic_roles: [REVERSAL_CANDIDATE, RANGE_BOUNDARY_REJECTION, CONTINUATION_STRUCTURE, UNCLASSIFIED]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: left_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: intervening_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: neckline_zone, cardinality: DERIVED, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: neckline_break, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: neckline_retest, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: continuation_anchor, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [NO_PATTERN, LEFT_TROUGH_AVAILABLE, NECKLINE_PIVOT_AVAILABLE, RIGHT_TROUGH_CANDIDATE, RIGHT_TROUGH_CONFIRMED, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST, CONTINUATION, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [NO_PATTERN]
+          ACTIVE: [LEFT_TROUGH_AVAILABLE, NECKLINE_PIVOT_AVAILABLE, RIGHT_TROUGH_CANDIDATE, RIGHT_TROUGH_CONFIRMED, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: NO_PATTERN, to_phase: LEFT_TROUGH_AVAILABLE, event: CONFIRMED_LEFT_TROUGH}
+          - {from_phase: LEFT_TROUGH_AVAILABLE, to_phase: NECKLINE_PIVOT_AVAILABLE, event: CONFIRMED_INTERVENING_PEAK}
+          - {from_phase: NECKLINE_PIVOT_AVAILABLE, to_phase: RIGHT_TROUGH_CANDIDATE, event: PROVISIONAL_RIGHT_TROUGH}
+          - {from_phase: RIGHT_TROUGH_CANDIDATE, to_phase: RIGHT_TROUGH_CONFIRMED, event: CONFIRMED_RIGHT_TROUGH}
+          - {from_phase: RIGHT_TROUGH_CONFIRMED, to_phase: SHAPE_COMPLETE, event: GEOMETRY_POLICY_SATISFIED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: NECKLINE_BREAK_CONFIRMED, event: CAUSAL_UPWARD_NECKLINE_CROSS}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: RETEST, event: LINKED_NECKLINE_RETEST}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: CONTINUATION, event: NO_RETEST_CONTINUATION}
+          - {from_phase: RETEST, to_phase: CONTINUATION, event: RETEST_HOLD_CONFIRMED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: EXPIRED, event: SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [TROUGH_ZONE_DOWNSIDE_BREACH, ANCHOR_ORDER_FAILURE, POST_BREAK_NECKLINE_RECROSS]}
+      topology_rules: [TWO_CONFIRMED_LOWER_EXTREMA_WITH_INTERVENING_UPPER_EXTREMUM, SHAPE_IDENTITY_INDEPENDENT_OF_FUTURE_EFFECT, NECKLINE_BREAK_IS_LINKED_EVENT]
+      formula_contracts:
+        - {name: trough_height_difference_to_formation_amplitude, numerator: absolute_left_trough_minus_right_trough, denominator: intervening_peak_minus_compatible_trough_reference, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: time_symmetry_ratio, numerator: absolute_left_trough_to_peak_duration_minus_peak_to_right_trough_duration, denominator: total_formation_session_bars, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: intervening_peak_height_to_formation_amplitude, numerator: intervening_peak_minus_compatible_trough_reference, denominator: causal_price_scale, sign: NONNEGATIVE, unit: NORMALIZED_PRICE_MULTIPLE, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [SHAPE_COMPLETION_IS_NOT_BULLISH_EFFECT, CAUSAL_UPWARD_NECKLINE_CROSS_CONFIRMS_CLASSIC_REVERSAL_ROLE, PRECEDING_DOWNTREND_REQUIRED_FOR_CLASSIC_REVERSAL_ROLE]
+      invalidation_rules: [TROUGH_ZONE_DOWNSIDE_BREACH, ANCHOR_ORDER_FAILURE, SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY, POST_BREAK_NECKLINE_RECROSS]
+      relationship_types: [NESTED_IN, CONFIRMED_BY, RETESTS, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.DOUBLE_BOTTOM.STRUCTURE.001, MG1A.DOUBLE_BOTTOM.PHASE.001, MG1A.DOUBLE_BOTTOM.CONFIRMATION.001, MG1A.DOUBLE_BOTTOM.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: head_shoulders_top
+      object_class: MORPHOLOGY
+      structural_orientation: UPPER
+      orientation_binding: FIXED
+      allowed_instance_orientations: [UPPER]
+      semantic_roles: [REVERSAL_CANDIDATE, RANGE_BOUNDARY_REJECTION, CONTINUATION_STRUCTURE, UNCLASSIFIED]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: left_shoulder_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: left_neck_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: head_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_neck_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_shoulder_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: neckline_segment, cardinality: DERIVED, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: neckline_break, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: neckline_retest, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: continuation_anchor, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [NO_PATTERN, LEFT_SHOULDER_AVAILABLE, LEFT_NECKLINE_AVAILABLE, HEAD_AVAILABLE, RIGHT_NECKLINE_AVAILABLE, RIGHT_SHOULDER_CANDIDATE, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST, CONTINUATION, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [NO_PATTERN]
+          ACTIVE: [LEFT_SHOULDER_AVAILABLE, LEFT_NECKLINE_AVAILABLE, HEAD_AVAILABLE, RIGHT_NECKLINE_AVAILABLE, RIGHT_SHOULDER_CANDIDATE, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: NO_PATTERN, to_phase: LEFT_SHOULDER_AVAILABLE, event: CONFIRMED_LEFT_SHOULDER}
+          - {from_phase: LEFT_SHOULDER_AVAILABLE, to_phase: LEFT_NECKLINE_AVAILABLE, event: CONFIRMED_LEFT_NECK_TROUGH}
+          - {from_phase: LEFT_NECKLINE_AVAILABLE, to_phase: HEAD_AVAILABLE, event: CONFIRMED_HEAD_PEAK}
+          - {from_phase: HEAD_AVAILABLE, to_phase: RIGHT_NECKLINE_AVAILABLE, event: CONFIRMED_RIGHT_NECK_TROUGH}
+          - {from_phase: RIGHT_NECKLINE_AVAILABLE, to_phase: RIGHT_SHOULDER_CANDIDATE, event: PROVISIONAL_RIGHT_SHOULDER}
+          - {from_phase: RIGHT_SHOULDER_CANDIDATE, to_phase: SHAPE_COMPLETE, event: CONFIRMED_RIGHT_SHOULDER_AND_GEOMETRY}
+          - {from_phase: SHAPE_COMPLETE, to_phase: NECKLINE_BREAK_CONFIRMED, event: CAUSAL_DOWNWARD_DYNAMIC_NECKLINE_CROSS}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: RETEST, event: LINKED_NECKLINE_RETEST}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: CONTINUATION, event: NO_RETEST_CONTINUATION}
+          - {from_phase: RETEST, to_phase: CONTINUATION, event: RETEST_HOLD_CONFIRMED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: EXPIRED, event: SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [HEAD_ZONE_UPSIDE_BREACH, RIGHT_SHOULDER_TOPOLOGY_FAILURE, ANCHOR_ORDER_FAILURE, POST_BREAK_NECKLINE_RECROSS]}
+      topology_rules: [FIVE_CONFIRMED_ALTERNATING_EXTREMA, HEAD_ABOVE_BOTH_SHOULDERS, SHOULDERS_GEOMETRICALLY_COMPATIBLE, TWO_NECK_ANCHORS_DEFINE_DYNAMIC_NECKLINE]
+      formula_contracts:
+        - {name: head_prominence_to_formation_amplitude, numerator: head_peak_minus_shoulder_reference, denominator: head_peak_minus_neckline_at_head_eob, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: shoulder_amplitude_symmetry, numerator: absolute_left_shoulder_minus_right_shoulder, denominator: head_peak_minus_neckline_at_head_eob, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: shoulder_time_symmetry, numerator: absolute_left_shoulder_to_head_duration_minus_head_to_right_shoulder_duration, denominator: total_formation_session_bars, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: dynamic_neckline_slope, numerator: right_neck_trough_minus_left_neck_trough, denominator: right_neck_eob_minus_left_neck_eob_in_session_bars, sign: SIGNED, unit: NORMALIZED_PRICE_PER_SESSION_BAR, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [SHAPE_COMPLETION_IS_NOT_BEARISH_EFFECT, DYNAMIC_NECKLINE_VALUE_EVALUATED_AT_CROSS_EOB, CAUSAL_DOWNWARD_NECKLINE_CROSS_CONFIRMS_CLASSIC_REVERSAL_ROLE]
+      invalidation_rules: [HEAD_ZONE_UPSIDE_BREACH, RIGHT_SHOULDER_TOPOLOGY_FAILURE, ANCHOR_ORDER_FAILURE, SCALE_RELATIVE_EXPIRY, POST_BREAK_NECKLINE_RECROSS]
+      relationship_types: [NESTED_IN, CONFIRMED_BY, RETESTS, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001, MG1A.HEAD_SHOULDERS_TOP.PHASE.001, MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001, MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: inverse_head_shoulders
+      object_class: MORPHOLOGY
+      structural_orientation: LOWER
+      orientation_binding: FIXED
+      allowed_instance_orientations: [LOWER]
+      semantic_roles: [REVERSAL_CANDIDATE, RANGE_BOUNDARY_REJECTION, CONTINUATION_STRUCTURE, UNCLASSIFIED]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: left_shoulder_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: left_neck_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: head_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_neck_peak, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: right_shoulder_trough, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: neckline_segment, cardinality: DERIVED, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: neckline_break, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: neckline_retest, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: continuation_anchor, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [NO_PATTERN, LEFT_SHOULDER_AVAILABLE, LEFT_NECKLINE_AVAILABLE, HEAD_AVAILABLE, RIGHT_NECKLINE_AVAILABLE, RIGHT_SHOULDER_CANDIDATE, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST, CONTINUATION, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [NO_PATTERN]
+          ACTIVE: [LEFT_SHOULDER_AVAILABLE, LEFT_NECKLINE_AVAILABLE, HEAD_AVAILABLE, RIGHT_NECKLINE_AVAILABLE, RIGHT_SHOULDER_CANDIDATE, SHAPE_COMPLETE, NECKLINE_BREAK_CONFIRMED, RETEST]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: NO_PATTERN, to_phase: LEFT_SHOULDER_AVAILABLE, event: CONFIRMED_LEFT_SHOULDER}
+          - {from_phase: LEFT_SHOULDER_AVAILABLE, to_phase: LEFT_NECKLINE_AVAILABLE, event: CONFIRMED_LEFT_NECK_PEAK}
+          - {from_phase: LEFT_NECKLINE_AVAILABLE, to_phase: HEAD_AVAILABLE, event: CONFIRMED_HEAD_TROUGH}
+          - {from_phase: HEAD_AVAILABLE, to_phase: RIGHT_NECKLINE_AVAILABLE, event: CONFIRMED_RIGHT_NECK_PEAK}
+          - {from_phase: RIGHT_NECKLINE_AVAILABLE, to_phase: RIGHT_SHOULDER_CANDIDATE, event: PROVISIONAL_RIGHT_SHOULDER}
+          - {from_phase: RIGHT_SHOULDER_CANDIDATE, to_phase: SHAPE_COMPLETE, event: CONFIRMED_RIGHT_SHOULDER_AND_GEOMETRY}
+          - {from_phase: SHAPE_COMPLETE, to_phase: NECKLINE_BREAK_CONFIRMED, event: CAUSAL_UPWARD_DYNAMIC_NECKLINE_CROSS}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: RETEST, event: LINKED_NECKLINE_RETEST}
+          - {from_phase: NECKLINE_BREAK_CONFIRMED, to_phase: CONTINUATION, event: NO_RETEST_CONTINUATION}
+          - {from_phase: RETEST, to_phase: CONTINUATION, event: RETEST_HOLD_CONFIRMED}
+          - {from_phase: SHAPE_COMPLETE, to_phase: EXPIRED, event: SCALE_RELATIVE_BREAK_ABSENCE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [HEAD_ZONE_DOWNSIDE_BREACH, RIGHT_SHOULDER_TOPOLOGY_FAILURE, ANCHOR_ORDER_FAILURE, POST_BREAK_NECKLINE_RECROSS]}
+      topology_rules: [FIVE_CONFIRMED_ALTERNATING_EXTREMA, HEAD_BELOW_BOTH_SHOULDERS, SHOULDERS_GEOMETRICALLY_COMPATIBLE, TWO_NECK_ANCHORS_DEFINE_DYNAMIC_NECKLINE]
+      formula_contracts:
+        - {name: head_prominence_to_formation_amplitude, numerator: shoulder_reference_minus_head_trough, denominator: neckline_at_head_eob_minus_head_trough, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: shoulder_amplitude_symmetry, numerator: absolute_left_shoulder_minus_right_shoulder, denominator: neckline_at_head_eob_minus_head_trough, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: shoulder_time_symmetry, numerator: absolute_left_shoulder_to_head_duration_minus_head_to_right_shoulder_duration, denominator: total_formation_session_bars, sign: UNIT_INTERVAL_WHEN_DEFINED, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: dynamic_neckline_slope, numerator: right_neck_peak_minus_left_neck_peak, denominator: right_neck_eob_minus_left_neck_eob_in_session_bars, sign: SIGNED, unit: NORMALIZED_PRICE_PER_SESSION_BAR, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [SHAPE_COMPLETION_IS_NOT_BULLISH_EFFECT, DYNAMIC_NECKLINE_VALUE_EVALUATED_AT_CROSS_EOB, CAUSAL_UPWARD_NECKLINE_CROSS_CONFIRMS_CLASSIC_REVERSAL_ROLE]
+      invalidation_rules: [HEAD_ZONE_DOWNSIDE_BREACH, RIGHT_SHOULDER_TOPOLOGY_FAILURE, ANCHOR_ORDER_FAILURE, SCALE_RELATIVE_EXPIRY, POST_BREAK_NECKLINE_RECROSS]
+      relationship_types: [NESTED_IN, CONFIRMED_BY, RETESTS, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001, MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001, MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001, MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: breakout
+      object_class: LEVEL_EVENT
+      structural_orientation: null
+      orientation_binding: INSTANCE_BOUND
+      allowed_instance_orientations: [UPWARD, DOWNWARD]
+      semantic_roles: [BREAK_EVENT]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      instance_fields: [source_pattern_ids, source_zone_id, boundary_geometry, cross_direction]
+      anchors:
+        - {role: reference_level_anchor, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: reference_zone, cardinality: ONE, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: approach_leg_start, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: boundary_cross_attempt, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: outside_close, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: post_cross_hold, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: retest_touch, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [INACTIVE, APPROACHING_BOUNDARY, CROSS_ATTEMPT, OUTSIDE_CLOSE, ACCEPTANCE_PENDING, ACCEPTED_BREAK, RETEST, CONTINUATION, REENTRY_FAILURE, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [APPROACHING_BOUNDARY, CROSS_ATTEMPT, OUTSIDE_CLOSE, ACCEPTANCE_PENDING, ACCEPTED_BREAK, RETEST]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [REENTRY_FAILURE, EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: APPROACHING_BOUNDARY, event: CAUSAL_APPROACH_LEG}
+          - {from_phase: APPROACHING_BOUNDARY, to_phase: CROSS_ATTEMPT, event: OUTWARD_BOUNDARY_CROSS_ATTEMPT}
+          - {from_phase: CROSS_ATTEMPT, to_phase: OUTSIDE_CLOSE, event: CLOSED_BAR_OUTSIDE_ZONE}
+          - {from_phase: OUTSIDE_CLOSE, to_phase: ACCEPTANCE_PENDING, event: HOLD_POLICY_STARTED}
+          - {from_phase: ACCEPTANCE_PENDING, to_phase: ACCEPTED_BREAK, event: CAUSAL_OUTSIDE_HOLD_CONFIRMED}
+          - {from_phase: ACCEPTED_BREAK, to_phase: RETEST, event: LINKED_RETEST_TOUCH}
+          - {from_phase: ACCEPTED_BREAK, to_phase: CONTINUATION, event: NO_RETEST_CONTINUATION}
+          - {from_phase: RETEST, to_phase: CONTINUATION, event: RETEST_HOLD_OR_RECLAIM}
+          - {from_phase: CROSS_ATTEMPT, to_phase: REENTRY_FAILURE, event: SHARED_BOUNDARY_REENTRY}
+          - {from_phase: ACCEPTANCE_PENDING, to_phase: REENTRY_FAILURE, event: SHARED_BOUNDARY_REENTRY}
+          - {from_phase: CROSS_ATTEMPT, to_phase: EXPIRED, event: SCALE_RELATIVE_ACCEPTANCE_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [OPPOSITE_BOUNDARY_CROSS, OUTSIDE_HOLD_FAILURE]}
+      topology_rules: [VERSIONED_REFERENCE_ZONE_REQUIRED, OUTWARD_CROSS_ATTEMPT_SEPARATE_FROM_ACCEPTED_BREAK, CLOSED_BAR_CONFIRMATION_ONLY, BOUNDARY_GEOMETRY_EXPLICIT]
+      formula_contracts:
+        - {name: cross_displacement_to_zone_width, numerator: cross_price_minus_crossed_boundary_value, denominator: reference_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: outside_hold_displacement_to_zone_width, numerator: causal_outside_hold_distance, denominator: reference_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: approach_duration_to_zone_age, numerator: approach_session_bars, denominator: causal_zone_age_session_bars, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [CROSS_ATTEMPT_IS_NOT_ACCEPTED_BREAK, CLOSED_BAR_OUTSIDE_ZONE_REQUIRED, CAUSAL_OUTSIDE_HOLD_POLICY_REQUIRED, RETEST_IS_POST_CONFIRMATION]
+      invalidation_rules: [SHARED_BOUNDARY_REENTRY, OPPOSITE_BOUNDARY_CROSS, OUTSIDE_HOLD_FAILURE, SCALE_RELATIVE_ACCEPTANCE_EXPIRY]
+      relationship_types: [ORIGINATES_FROM, CONFIRMED_BY, INVALIDATED_BY, RETESTS]
+      assumption_ids: [MG1A.BREAKOUT.STRUCTURE.001, MG1A.BREAKOUT.PHASE.001, MG1A.BREAKOUT.CONFIRMATION.001, MG1A.BREAKOUT.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: failed_breakout
+      object_class: LEVEL_EVENT
+      structural_orientation: null
+      orientation_binding: INSTANCE_BOUND
+      allowed_instance_orientations: [UPWARD, DOWNWARD]
+      semantic_roles: [FAILURE_EVENT]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      instance_fields: [source_breakout_attempt_id, source_zone_id, attempt_direction, reentry_direction, resolution_direction]
+      direction_contract:
+        attempt_direction: [UPWARD, DOWNWARD]
+        reentry_direction: [UPWARD, DOWNWARD]
+        resolution_direction: [UPWARD, DOWNWARD, NEUTRAL, UNRESOLVED]
+        structural_orientation_basis: ATTEMPT_DIRECTION
+        reentry_direction_is_opposite_attempt: true
+        directions_must_not_be_collapsed: true
+      object_creation_event: SHARED_BOUNDARY_REENTRY
+      historical_attempt_relationship: ORIGINATES_FROM
+      historical_source_evidence_available_at_creation_only: true
+      anchors:
+        - {role: reference_level_anchor, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: reference_zone, cardinality: ONE, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: attempt_cross, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: max_outside_excursion, cardinality: ONE, state_requirement: CONFIRMED_AT_REENTRY}
+        - {role: boundary_reentry, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: inside_rejection, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [INACTIVE, REENTRY_OBSERVED, INSIDE_REJECTION, RESOLUTION_OBSERVED, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [REENTRY_OBSERVED, INSIDE_REJECTION]
+          RESOLVED: [RESOLUTION_OBSERVED]
+          INVALIDATED: [EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: REENTRY_OBSERVED, event: SHARED_BOUNDARY_REENTRY}
+          - {from_phase: REENTRY_OBSERVED, to_phase: INSIDE_REJECTION, event: CAUSAL_INSIDE_REJECTION}
+          - {from_phase: REENTRY_OBSERVED, to_phase: RESOLUTION_OBSERVED, event: REENTRY_ONLY_RESOLUTION_POLICY}
+          - {from_phase: INSIDE_REJECTION, to_phase: RESOLUTION_OBSERVED, event: RESOLUTION_DIRECTION_AVAILABLE}
+          - {from_phase: REENTRY_OBSERVED, to_phase: EXPIRED, event: SCALE_RELATIVE_REENTRY_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [RENEWED_ACCEPTED_BREAK_LINK, SOURCE_ZONE_REDEFINITION]}
+      topology_rules: [SOURCE_BREAKOUT_ATTEMPT_ID_REQUIRED, REENTRY_CANNOT_BE_BACKFILLED, MAX_OUTSIDE_EXCURSION_REVISED_UNTIL_REENTRY, ATTEMPT_AND_RESOLUTION_DIRECTIONS_SEPARATE]
+      formula_contracts:
+        - {name: outside_excursion_to_zone_width, numerator: maximum_outside_excursion_distance_at_reentry, denominator: source_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: reentry_depth_to_zone_width, numerator: causal_reentry_depth, denominator: source_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: attempt_to_reentry_duration_ratio, numerator: attempt_to_reentry_session_bars, denominator: source_zone_age_session_bars, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+      confirmation_rules: [REENTRY_ESTABLISHES_FAILURE_TO_ACCEPT, OPTIONAL_INSIDE_REJECTION_IS_SEPARATE, RESOLUTION_DIRECTION_REQUIRES_CAUSAL_EVIDENCE]
+      invalidation_rules: [RENEWED_ACCEPTED_BREAK_LINK, SOURCE_ZONE_REDEFINITION, SCALE_RELATIVE_EXPIRY]
+      relationship_types: [ORIGINATES_FROM, INVALIDATED_BY, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.FAILED_BREAKOUT.STRUCTURE.001, MG1A.FAILED_BREAKOUT.PHASE.001, MG1A.FAILED_BREAKOUT.CONFIRMATION.001, MG1A.FAILED_BREAKOUT.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: retest
+      object_class: LEVEL_EVENT
+      structural_orientation: null
+      orientation_binding: INSTANCE_BOUND
+      allowed_instance_orientations: [UPWARD, DOWNWARD]
+      semantic_roles: [RETEST_EVENT]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      instance_fields: [source_event_id, source_pattern_id, source_zone_id, origin_break_direction, retest_ordinal]
+      anchors:
+        - {role: source_event_ref, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: source_zone_ref, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: origin_break, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: post_break_extreme, cardinality: ONE, state_requirement: REVISED_UNTIL_RETURN}
+        - {role: return_touch, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: hold_or_rejection, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: reclaim, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+        - {role: continuation_anchor, cardinality: OPTIONAL, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [INACTIVE, SOURCE_EVENT_LINKED, RETURNING, TOUCH_OBSERVED, HOLD_CONFIRMED, PENETRATE_RECLAIMED, FULL_RECROSS_FAILURE, CONTINUATION, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [SOURCE_EVENT_LINKED, RETURNING, TOUCH_OBSERVED, HOLD_CONFIRMED, PENETRATE_RECLAIMED]
+          RESOLVED: [CONTINUATION]
+          INVALIDATED: [FULL_RECROSS_FAILURE, EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: SOURCE_EVENT_LINKED, event: SOURCE_BREAK_AVAILABLE}
+          - {from_phase: SOURCE_EVENT_LINKED, to_phase: RETURNING, event: RETURN_LEG_OBSERVED}
+          - {from_phase: RETURNING, to_phase: TOUCH_OBSERVED, event: SOURCE_ZONE_TOUCH}
+          - {from_phase: TOUCH_OBSERVED, to_phase: HOLD_CONFIRMED, event: NEW_SIDE_HOLD_OR_REJECTION}
+          - {from_phase: TOUCH_OBSERVED, to_phase: PENETRATE_RECLAIMED, event: PENETRATION_THEN_CAUSAL_RECLAIM}
+          - {from_phase: TOUCH_OBSERVED, to_phase: FULL_RECROSS_FAILURE, event: FULL_RECROSS_TO_ORIGINAL_SIDE}
+          - {from_phase: HOLD_CONFIRMED, to_phase: CONTINUATION, event: CONTINUATION_ANCHOR}
+          - {from_phase: PENETRATE_RECLAIMED, to_phase: CONTINUATION, event: CONTINUATION_ANCHOR}
+          - {from_phase: SOURCE_EVENT_LINKED, to_phase: EXPIRED, event: SCALE_RELATIVE_RETURN_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [SOURCE_BREAK_INVALIDATED]}
+      topology_rules: [SOURCE_EVENT_PATTERN_AND_ZONE_IDS_REQUIRED, ORIENTATION_INHERITS_ORIGIN_BREAK_DIRECTION, RETEST_ORDINAL_REQUIRED, HOLD_RECLAIM_AND_FULL_RECROSS_DISTINCT]
+      formula_contracts:
+        - {name: penetration_to_zone_width, numerator: maximum_return_penetration_distance, denominator: source_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: return_duration_to_break_leg_duration, numerator: break_to_touch_session_bars, denominator: source_break_leg_session_bars, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: NO_CLIPPING, fit_boundary: NOT_APPLICABLE}
+        - {name: continuation_to_break_displacement, numerator: continuation_displacement, denominator: source_break_displacement, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [SOURCE_BREAK_AND_TOUCH_ARE_PREREQUISITES, NEW_SIDE_HOLD_OR_RECLAIM_CONFIRMS, CONTINUATION_IS_LATER_RESOLUTION]
+      invalidation_rules: [FULL_RECROSS_TO_ORIGINAL_SIDE, SOURCE_BREAK_INVALIDATED, SCALE_RELATIVE_TOUCH_OR_HOLD_EXPIRY]
+      relationship_types: [ORIGINATES_FROM, RETESTS, CONFIRMED_BY, INVALIDATED_BY]
+      assumption_ids: [MG1A.RETEST.STRUCTURE.001, MG1A.RETEST.PHASE.001, MG1A.RETEST.CONFIRMATION.001, MG1A.RETEST.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: range
+      object_class: STRUCTURAL_STATE
+      structural_orientation: NEUTRAL
+      orientation_binding: FIXED
+      allowed_instance_orientations: [NEUTRAL]
+      semantic_roles: [RANGE_STATE]
+      persistent_state: true
+      range_geometry: HORIZONTAL_ZONE_PAIR
+      scale_spec: INSTANCE_PARAMETER
+      anchors:
+        - {role: upper_boundary_touch, cardinality: ORDERED_MANY, state_requirement: CONFIRMED}
+        - {role: lower_boundary_touch, cardinality: ORDERED_MANY, state_requirement: CONFIRMED}
+        - {role: upper_boundary_zone, cardinality: ONE, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: lower_boundary_zone, cardinality: ONE, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: range_midline, cardinality: DERIVED, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: current_frontier, cardinality: ONE, state_requirement: PROVISIONAL_ALLOWED_RUNTIME_ONLY}
+      phase_contract:
+        family_phases: [INACTIVE, FORMING, ESTABLISHED, BOUNDARY_TEST, FALSE_BREAK, ACCEPTED_BREAK, TERMINATED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [FORMING, ESTABLISHED, BOUNDARY_TEST, FALSE_BREAK, ACCEPTED_BREAK]
+          RESOLVED: [TERMINATED]
+          INVALIDATED: [INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: FORMING, event: BOTH_BOUNDARY_CANDIDATES_AVAILABLE}
+          - {from_phase: FORMING, to_phase: ESTABLISHED, event: ALTERNATING_BOUNDARY_SEQUENCE_READY}
+          - {from_phase: ESTABLISHED, to_phase: BOUNDARY_TEST, event: CAUSAL_BOUNDARY_INTERACTION}
+          - {from_phase: BOUNDARY_TEST, to_phase: FALSE_BREAK, event: LINKED_FAILED_BREAKOUT_REENTRY}
+          - {from_phase: FALSE_BREAK, to_phase: ESTABLISHED, event: CONTAINMENT_REESTABLISHED}
+          - {from_phase: BOUNDARY_TEST, to_phase: ACCEPTED_BREAK, event: LINKED_ACCEPTED_BREAKOUT}
+          - {from_phase: ACCEPTED_BREAK, to_phase: TERMINATED, event: RANGE_TERMINATION_RECORDED}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [MATERIAL_BOUNDARY_DRIFT, SCALE_RELATIVE_DISSOLUTION_EXPIRY]}
+      topology_rules: [HORIZONTAL_UPPER_AND_LOWER_ZONES, ALTERNATING_CONFIRMED_TOUCH_SEQUENCE, CONTAINMENT_IS_PREFIX_ONLY, DIRECTION_CONFLICT_ALONE_IS_INSUFFICIENT]
+      formula_contracts:
+        - {name: range_width_to_causal_price_scale, numerator: upper_zone_reference_minus_lower_zone_reference, denominator: causal_price_scale, sign: NONNEGATIVE, unit: NORMALIZED_PRICE_MULTIPLE, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: upper_anchor_dispersion_to_range_width, numerator: upper_anchor_dispersion, denominator: upper_zone_reference_minus_lower_zone_reference, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: lower_anchor_dispersion_to_range_width, numerator: lower_anchor_dispersion, denominator: upper_zone_reference_minus_lower_zone_reference, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [BOTH_ZONES_VERSIONED, ALTERNATING_SEQUENCE_READY, CONTAINED_PREFIX_REQUIRED, OPTIONAL_FILTERS_DO_NOT_DEFINE_RANGE]
+      invalidation_rules: [MATERIAL_BOUNDARY_DRIFT, SCALE_RELATIVE_DISSOLUTION_EXPIRY]
+      relationship_types: [CONTAINS, CONFIRMED_BY, INVALIDATED_BY, SAME_STRUCTURE_DIFFERENT_SCALE]
+      assumption_ids: [MG1A.RANGE.STRUCTURE.001, MG1A.RANGE.PHASE.001, MG1A.RANGE.CONFIRMATION.001, MG1A.RANGE.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+    - family: support_resistance_conversion
+      object_class: STRUCTURAL_RELATION
+      structural_orientation: null
+      orientation_binding: INSTANCE_BOUND
+      allowed_instance_orientations: [UPWARD, DOWNWARD]
+      semantic_roles: [ROLE_CONVERSION]
+      persistent_state: false
+      scale_spec: INSTANCE_PARAMETER
+      instance_fields: [source_breakout_id, source_retest_id, source_zone_id, original_role, converted_role]
+      role_conversion_contract:
+        upward_break: RESISTANCE_TO_SUPPORT
+        downward_break: SUPPORT_TO_RESISTANCE
+        source_breakout_and_retest_required: true
+        independent_morphology_label: false
+      anchors:
+        - {role: original_level_anchor, cardinality: ONE_OR_MORE, state_requirement: CONFIRMED}
+        - {role: original_level_zone, cardinality: ONE, state_requirement: DERIVED_FROM_CONFIRMED}
+        - {role: role_break, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: opposite_side_return, cardinality: ONE, state_requirement: CONFIRMED}
+        - {role: converted_role_hold_or_rejection, cardinality: ONE, state_requirement: CONFIRMED}
+      phase_contract:
+        family_phases: [INACTIVE, SOURCE_BREAK_LINKED, RETURN_OBSERVED, CONVERTED_ROLE_TEST, CONVERSION_CONFIRMED, ROLE_RESTORED, EXPIRED, INVALIDATED]
+        common_mapping:
+          INACTIVE: [INACTIVE]
+          ACTIVE: [SOURCE_BREAK_LINKED, RETURN_OBSERVED, CONVERTED_ROLE_TEST]
+          RESOLVED: [CONVERSION_CONFIRMED]
+          INVALIDATED: [ROLE_RESTORED, EXPIRED, INVALIDATED]
+        branch_transitions:
+          - {from_phase: INACTIVE, to_phase: SOURCE_BREAK_LINKED, event: ACCEPTED_BREAKOUT_AVAILABLE}
+          - {from_phase: SOURCE_BREAK_LINKED, to_phase: RETURN_OBSERVED, event: OPPOSITE_SIDE_RETURN}
+          - {from_phase: RETURN_OBSERVED, to_phase: CONVERTED_ROLE_TEST, event: CONVERTED_ZONE_INTERACTION}
+          - {from_phase: CONVERTED_ROLE_TEST, to_phase: CONVERSION_CONFIRMED, event: CONVERTED_ROLE_HOLD_OR_REJECTION}
+          - {from_phase: CONVERTED_ROLE_TEST, to_phase: ROLE_RESTORED, event: FULL_RECROSS_AND_ORIGINAL_ROLE_RESTORATION}
+          - {from_phase: SOURCE_BREAK_LINKED, to_phase: EXPIRED, event: SCALE_RELATIVE_RETURN_EXPIRY}
+        invalidation_transitions:
+          - {from_phases: ALL_ACTIVE_FAMILY_PHASES, to_phase: INVALIDATED, events: [SOURCE_BREAK_INVALIDATED]}
+      topology_rules: [SOURCE_BREAKOUT_RETEST_AND_ZONE_IDS_REQUIRED, ORIGINAL_AND_CONVERTED_ROLES_EXPLICIT, ROLE_CONVERSION_IS_RELATION_NOT_FUTURE_EFFECT]
+      formula_contracts:
+        - {name: break_displacement_to_zone_width, numerator: source_break_displacement, denominator: source_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: return_depth_to_break_leg, numerator: opposite_side_return_depth, denominator: source_break_displacement, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+        - {name: penetration_to_zone_width, numerator: converted_role_test_penetration, denominator: source_zone_width, sign: NONNEGATIVE, unit: DIMENSIONLESS_RATIO, missingness: UNKNOWN_WITH_MASK, clipping_policy: TRAIN_FROZEN_CLIP_POLICY, fit_boundary: TRAIN_PARTITION_ONLY}
+      confirmation_rules: [SOURCE_BREAK_STARTS_RELATION_CANDIDATE, RETURN_AND_CONVERTED_ROLE_TEST_REQUIRED, CONVERTED_ROLE_HOLD_OR_REJECTION_CONFIRMS]
+      invalidation_rules: [SOURCE_BREAK_INVALIDATED, FULL_RECROSS, ORIGINAL_ROLE_RESTORED, SCALE_RELATIVE_EXPIRY]
+      relationship_types: [ORIGINATES_FROM, RETESTS, CONVERTS_ROLE_OF, INVALIDATED_BY]
+      assumption_ids: [MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001, MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001, MG1A1.COMMON.FAMILY_REVISIONS.001]
+
+  assumption_registry:
+    inherited_from_v1:
+      status: NEEDS_HUMAN_REVIEW
+      proposed_default: null
+      reviewer_decision: null
+      source_review_ledger: configs/market_genome/pattern_ontology_v1_review.yaml
+      assumption_ids:
+        - MG1A.COMMON.LIFECYCLE.001
+        - MG1A.COMMON.SCALE.001
+        - MG1A.COMMON.NORMALIZATION.001
+        - MG1A.COMMON.SWING_CAUSALITY.001
+        - MG1A.COMMON.PARTIAL_BAR.001
+        - MG1A.COMMON.SESSION.001
+        - MG1A.COMMON.ROLL.001
+        - MG1A.COMMON.PROVENANCE.001
+        - MG1A.COMMON.MIRROR.001
+        - MG1A.COMMON.OVERLAP.001
+        - MG1A.COMMON.ZONE.001
+        - MG1A.COMMON.FILTER_MISSINGNESS.001
+        - MG1A.COMMON.LABEL_TIMING.001
+        - MG1A.TREND_UP.STRUCTURE.001
+        - MG1A.TREND_UP.PHASE.001
+        - MG1A.TREND_UP.CONFIRMATION.001
+        - MG1A.TREND_UP.INVALIDATION.001
+        - MG1A.TREND_DOWN.STRUCTURE.001
+        - MG1A.TREND_DOWN.PHASE.001
+        - MG1A.TREND_DOWN.CONFIRMATION.001
+        - MG1A.TREND_DOWN.INVALIDATION.001
+        - MG1A.TREND_TRANSITION.STRUCTURE.001
+        - MG1A.TREND_TRANSITION.PHASE.001
+        - MG1A.TREND_TRANSITION.CONFIRMATION.001
+        - MG1A.TREND_TRANSITION.INVALIDATION.001
+        - MG1A.DOUBLE_TOP.STRUCTURE.001
+        - MG1A.DOUBLE_TOP.PHASE.001
+        - MG1A.DOUBLE_TOP.CONFIRMATION.001
+        - MG1A.DOUBLE_TOP.INVALIDATION.001
+        - MG1A.DOUBLE_BOTTOM.STRUCTURE.001
+        - MG1A.DOUBLE_BOTTOM.PHASE.001
+        - MG1A.DOUBLE_BOTTOM.CONFIRMATION.001
+        - MG1A.DOUBLE_BOTTOM.INVALIDATION.001
+        - MG1A.HEAD_SHOULDERS_TOP.STRUCTURE.001
+        - MG1A.HEAD_SHOULDERS_TOP.PHASE.001
+        - MG1A.HEAD_SHOULDERS_TOP.CONFIRMATION.001
+        - MG1A.HEAD_SHOULDERS_TOP.INVALIDATION.001
+        - MG1A.INVERSE_HEAD_SHOULDERS.STRUCTURE.001
+        - MG1A.INVERSE_HEAD_SHOULDERS.PHASE.001
+        - MG1A.INVERSE_HEAD_SHOULDERS.CONFIRMATION.001
+        - MG1A.INVERSE_HEAD_SHOULDERS.INVALIDATION.001
+        - MG1A.BREAKOUT.STRUCTURE.001
+        - MG1A.BREAKOUT.PHASE.001
+        - MG1A.BREAKOUT.CONFIRMATION.001
+        - MG1A.BREAKOUT.INVALIDATION.001
+        - MG1A.FAILED_BREAKOUT.STRUCTURE.001
+        - MG1A.FAILED_BREAKOUT.PHASE.001
+        - MG1A.FAILED_BREAKOUT.CONFIRMATION.001
+        - MG1A.FAILED_BREAKOUT.INVALIDATION.001
+        - MG1A.RETEST.STRUCTURE.001
+        - MG1A.RETEST.PHASE.001
+        - MG1A.RETEST.CONFIRMATION.001
+        - MG1A.RETEST.INVALIDATION.001
+        - MG1A.RANGE.STRUCTURE.001
+        - MG1A.RANGE.PHASE.001
+        - MG1A.RANGE.CONFIRMATION.001
+        - MG1A.RANGE.INVALIDATION.001
+        - MG1A.SUPPORT_RESISTANCE_CONVERSION.STRUCTURE.001
+        - MG1A.SUPPORT_RESISTANCE_CONVERSION.PHASE.001
+        - MG1A.SUPPORT_RESISTANCE_CONVERSION.CONFIRMATION.001
+        - MG1A.SUPPORT_RESISTANCE_CONVERSION.INVALIDATION.001
+    new_v2_assumptions:
+      - {assumption_id: MG1A1.COMMON.OBJECT_MODEL.001, status: NEEDS_HUMAN_REVIEW, question: Freeze object classes and exact family mapping, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.MORPHOLOGY_EFFECT.001, status: NEEDS_HUMAN_REVIEW, question: Freeze orientation and semantic role without future-effect leakage, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.LIFECYCLE_MAPPING.001, status: NEEDS_HUMAN_REVIEW, question: Freeze variable family phases and many-to-one common mapping, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.SCALE_SPEC.001, status: NEEDS_HUMAN_REVIEW, question: Freeze ScaleSpec fields and versioned registries, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.ANCHOR_REVISION.001, status: NEEDS_HUMAN_REVIEW, question: Freeze anchor states revision transitions and price basis, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.RELATION_GRAPH.001, status: NEEDS_HUMAN_REVIEW, question: Freeze relationship graph identity nesting and overlap rules, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.FORMULA_CONTRACT.001, status: NEEDS_HUMAN_REVIEW, question: Freeze formula numerator denominator sign missingness and clipping, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.REVIEW_PROTOCOL.001, status: NEEDS_HUMAN_REVIEW, question: Freeze blinded retrospective outcome and adjudication protocol, proposed_default: null, reviewer_decision: null}
+      - {assumption_id: MG1A1.COMMON.FAMILY_REVISIONS.001, status: NEEDS_HUMAN_REVIEW, question: Freeze the family-specific MG1-A.1 revisions, proposed_default: null, reviewer_decision: null}
+resolved_contract_sha256: ad3228a608998cc0823c440af0013b12658c9f8dcda4b858ea719be879389ebd
+execution:
+  detector_implemented: false
+  labeler_implemented: false
+  real_data_labels_created: false
+  synthetic_samples_created: false
+  trading_rules_implemented: false
+  model_training_executed: false
+  jax_computation_executed: false
+  gpu_executed: false

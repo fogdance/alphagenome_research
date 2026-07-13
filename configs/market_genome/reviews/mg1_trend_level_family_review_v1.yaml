@@ -1,0 +1,292 @@
+schema_version: mg1.review_findings.v1
+base_contract_sha256: 9c832971fcb6a88a67493aef3e81a81ce1aabb8e739b4c6575d96925b706dc36
+reviewer_id: CODEX_DOMAIN_EXPERT_01
+reviewed_at: "2026-07-13T16:59:26+08:00"
+findings:
+  - assumption_id: MG1A.TREND_UP.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain alternating highs and pullback lows with ascending order, but require
+      an explicit sequence-readiness policy before the family can mature.
+    approved_invariants: ["Trend-up topology requires ascending swing highs and pullback lows.", "Every compared anchor must be causally available."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define the minimum adjacent comparisons, order tolerance, and sequence readiness without fixing a data-derived threshold."]
+    blocking_items: [SEQUENCE_READINESS_NOT_DEFINED, TREND_UP_GEOMETRY_POLICIES_UNRESOLVED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_TREND]
+
+  - assumption_id: MG1A.TREND_UP.PHASE.001
+    disposition: DEFER
+    expert_decision: >-
+      Phase names can follow the common lifecycle, but persistent-trend completion
+      and new-object reset semantics must be selected before phase evidence is frozen.
+    approved_invariants: ["Each phase transition is prefix-only.", "Completion and invalidation remain distinct terminal meanings."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define earliest evidence for all eight phases and persistent-trend completion."]
+    blocking_items: [PERSISTENT_TREND_COMPLETION_UNRESOLVED, PHASE_WILDCARD_UNEXPANDED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.TREND_UP.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Ascending sequence state, latest pullback hold, and sequence completeness are
+      valid confirmation inputs; volume and OI remain optional filters.
+    approved_invariants: ["Confirmation is causal and separate from topology.", "Optional filters cannot create trend topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define the confirmation truth table, UNKNOWN handling, and required sequence completeness."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, FILTER_MISSINGNESS_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.TREND_UP.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain confirmed-pullback breach, ascending-order break, and formation expiry,
+      but bind each event to a versioned pivot and scale-relative observation policy.
+    approved_invariants: ["Invalidation uses prefix-only evidence.", "A formation expiry is not a future outcome label."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define pivot selection, breach observation, expiry clock, and simultaneous-event priority."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, PIVOT_AND_EXPIRY_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.TREND_DOWN.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain alternating lows and reaction highs with descending order, using a
+      schema mirror of trend-up but independently fitted parameters.
+    approved_invariants: ["Trend-down topology requires descending swing lows and reaction highs.", "Mirroring does not imply shared numerical parameters."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define sequence readiness and enumerate the exact trend-up to trend-down role transform."]
+    blocking_items: [SEQUENCE_READINESS_NOT_DEFINED, MIRROR_TRANSFORM_NOT_APPLIED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_TREND]
+
+  - assumption_id: MG1A.TREND_DOWN.PHASE.001
+    disposition: DEFER
+    expert_decision: >-
+      Use the common lifecycle but independently freeze down-trend phase evidence,
+      completion, and reset after the persistent-trend policy is resolved.
+    approved_invariants: ["Down-trend phases remain causal.", "Directional mirroring cannot backfill phase evidence."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define earliest evidence for all phases and completion without assuming bullish symmetry."]
+    blocking_items: [PERSISTENT_TREND_COMPLETION_UNRESOLVED, PHASE_WILDCARD_UNEXPANDED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.TREND_DOWN.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Descending sequence, reaction hold, and completeness are valid causal inputs;
+      their combination and missing-filter behavior require an explicit truth table.
+    approved_invariants: ["Confirmation remains separate from structural identity.", "Volume and OI are optional context only."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define confirmation combination, UNKNOWN propagation, and completeness requirements."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, FILTER_MISSINGNESS_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.TREND_DOWN.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain reaction-high breach, descending-order break, and expiry with explicit
+      pivot identity, normalized breach observation, and event priority.
+    approved_invariants: ["Invalidation is causal.", "Expiry is scale-relative and versioned."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define pivot selection, breach observation, expiry, and mirror parameter independence."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, PIVOT_AND_EXPIRY_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.TREND_TRANSITION.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      A transition must reference the prior ordered trend and its causal structure
+      break. Bind side only when the counter-sequence direction is available.
+    approved_invariants: ["Transition identity requires prior trend context.", "Side describes structural counter direction, not a trade action."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Add prior_pattern_id and shared structure_break_event_id.", "Define whether the object exists before counter-side availability."]
+    blocking_items: [PRIOR_TREND_REFERENCE_MISSING, TRANSITION_SIDE_AVAILABILITY_UNRESOLVED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_TREND]
+
+  - assumption_id: MG1A.TREND_TRANSITION.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      The original trend invalidation and transition candidate must share one causal
+      break event; neither object may rewrite the other's historical phase.
+    approved_invariants: ["Linked objects preserve independent lifecycle histories.", "Candidate phase begins no earlier than its required event availability."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define event-linked phase evidence and the pre-side candidate rule."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, SHARED_BREAK_EVENT_ID_MISSING]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.TREND_TRANSITION.CONFIRMATION.001
+    disposition: DEFER
+    expert_decision: >-
+      Defending-pivot break, counter sequence, and optional retest are plausible
+      evidence, but the draft does not select the minimum confirmation event.
+    approved_invariants: ["Confirmation is later than and linked to the prior trend break.", "Optional retest cannot be silently mandatory."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Select and define the minimum causal confirmation event and truth table."]
+    blocking_items: [TRANSITION_CONFIRMATION_EVENT_UNSELECTED, CONFIRMATION_WILDCARD_UNEXPANDED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.TREND_TRANSITION.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Prior-trend resumption and defending-pivot recovery must be de-duplicated or
+      prioritized, and a scale-relative formation expiry must be added.
+    approved_invariants: ["Invalidation cannot depend on a future outcome namespace.", "Linked trend and transition objects retain the same event lineage."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define recovery-versus-resumption precedence and add expiry."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, EXPIRY_POLICY_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.RANGE.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      A range requires causally available alternating upper and lower boundary
+      evidence plus stable versioned zones; direction conflict alone is insufficient.
+    approved_invariants: ["Range side remains NEUTRAL.", "Both boundaries use normalized zone semantics."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define boundary-sequence readiness, stable-boundary evidence, and zone version identity."]
+    blocking_items: [RANGE_SEQUENCE_READINESS_NOT_DEFINED, COMMON_ZONE_CONTRACT_UNRESOLVED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_TREND]
+
+  - assumption_id: MG1A.RANGE.PHASE.001
+    disposition: DEFER
+    expert_decision: >-
+      Range completion cannot be frozen until a boundary break is classified as
+      invalidation, completion linked to breakout, or another explicit transition.
+    approved_invariants: ["Range phases are prefix-only.", "A boundary break emits one shared causal event."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Select persistent-range completion and boundary-break lifecycle semantics."]
+    blocking_items: [RANGE_COMPLETION_UNRESOLVED, PHASE_WILDCARD_UNEXPANDED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.RANGE.CONFIRMATION.001
+    disposition: DEFER
+    expert_decision: >-
+      Zone availability and containment restate topology and are insufficient as an
+      independent confirmation rule; the minimum causal confirmation is unselected.
+    approved_invariants: ["Confirmation cannot be supplied by volume or OI alone.", "UNKNOWN filters do not fail topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define independent confirmation evidence and its truth table."]
+    blocking_items: [RANGE_CONFIRMATION_EVENT_UNSELECTED, CONFIRMATION_WILDCARD_UNEXPANDED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.RANGE.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Upward and downward boundary breaks must emit a shared event and zone identity
+      consumable by breakout; boundary drift and containment failure need precedence.
+    approved_invariants: ["A range break is causal and direction-specific.", "Dissolution and expiry are not outcome labels."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Add shared break event identity, drift precedence, dissolution, and expiry."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, CROSS_FAMILY_IDENTITY_FIELDS_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.BREAKOUT.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      Breakout topology is a versioned reference zone plus an outward causal cross.
+      Hold and retest are confirmation or linked-object evidence, not required topology.
+    approved_invariants: ["Side equals boundary-cross direction.", "Cross distance is normalized and references a causal source zone."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Add source_zone_id and source_pattern_id.", "Move optional hold/retest out of defining topology."]
+    blocking_items: [SOURCE_ZONE_ID_MISSING, BREAKOUT_POLICY_REFS_UNRESOLVED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.BREAKOUT.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Outward attempt, cross, outside hold, reentry, and retest require distinct
+      causal phases or linked events; later failure never backfills earlier state.
+    approved_invariants: ["Online phase history is append-only.", "Failed breakout is not known before causal reentry."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define phase evidence and links to failed-breakout and retest objects."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, BREAKOUT_OBJECT_RELATION_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.BREAKOUT.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      The outward cross establishes breakout topology; confirmation must use a
+      separately defined causal outside-hold rule. Retest belongs after confirmation.
+    approved_invariants: ["Confirmation cannot duplicate the sole topology predicate.", "Retest is post-cross evidence with explicit identity."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define outside-hold confirmation and move retest to a linked phase/object."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, HOLD_POLICY_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.BREAKOUT.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Boundary reentry must share the failed-breakout reentry event and terminate or
+      transition the original breakout without rewriting prior phases.
+    approved_invariants: ["Reentry is causal and zone-version specific.", "Opposite-boundary cross creates a separately linked event."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define breakout terminal transition, shared reentry identity, opposite break, and expiry."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, SHARED_REENTRY_EVENT_ID_MISSING]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.FAILED_BREAKOUT.STRUCTURE.001
+    disposition: REVISE
+    expert_decision: >-
+      A failed breakout references an actual attempted-breakout event and the same
+      zone version. Side always denotes attempted-cross direction, not reversal action.
+    approved_invariants: ["Failure cannot exist before reentry is available.", "Maximum outside excursion is observed no earlier than reentry."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Add attempted_breakout_event_id and source_zone_id with availability constraints."]
+    blocking_items: [SOURCE_EVENT_LINK_MISSING, FAILED_BREAKOUT_POLICIES_UNRESOLVED]
+    evidence_ids: [TECH_ONTOLOGY, CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.FAILED_BREAKOUT.PHASE.001
+    disposition: REVISE
+    expert_decision: >-
+      Before reentry the object is only a breakout attempt. At causal reentry, create
+      or link the failed-breakout object without backfilling its earlier online phase.
+    approved_invariants: ["Failure phase starts no earlier than reentry availability.", "Earlier breakout history remains immutable."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define creation/link timing and all phase evidence after reentry."]
+    blocking_items: [PHASE_WILDCARD_UNEXPANDED, FAILED_BREAKOUT_CREATION_POLICY_UNRESOLVED]
+    evidence_ids: [TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.FAILED_BREAKOUT.CONFIRMATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Reentry establishes failed-breakout topology; confirmation must either equal
+      reentry by explicit policy or require a separately causal inside rejection.
+    approved_invariants: ["Future rejection cannot rewrite the phase at reentry.", "Optional filters remain outside topology."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Select reentry-only or reentry-plus-inside-rejection confirmation and define UNKNOWN behavior."]
+    blocking_items: [CONFIRMATION_WILDCARD_UNEXPANDED, CONFIRMATION_EVENT_UNSELECTED]
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.FAILED_BREAKOUT.INVALIDATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Renewed outside hold links to the original or a new breakout event. Reversal
+      direction, zone redefinition priority, and expiry require explicit semantics.
+    approved_invariants: ["Invalidation remains causal and zone-version specific.", "A renewed breakout has explicit event lineage."]
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes: ["Define renewed-hold identity, reversal meaning, zone-redefinition precedence, and expiry."]
+    blocking_items: [INVALIDATION_WILDCARD_UNEXPANDED, RENEWED_BREAKOUT_LINK_UNRESOLVED]
+    evidence_ids: [PLAN_MG1A]

@@ -1,0 +1,796 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mg1a.pattern_ontology.v2",
+  "title": "MG1-A.1 pattern ontology revision draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "milestone",
+    "decision",
+    "human_review",
+    "review_outcome_v1",
+    "base_v1",
+    "v1_artifact_hashes",
+    "resolved_contract",
+    "resolved_contract_sha256",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": {"const": "mg1a.pattern_ontology.v2"},
+    "profile": {"const": "mg1a-v2"},
+    "milestone": {"const": "MG1-A.1"},
+    "decision": {"const": "DRAFT_NEEDS_HUMAN_FREEZE"},
+    "human_review": {"$ref": "#/definitions/humanReview"},
+    "review_outcome_v1": {"$ref": "#/definitions/reviewOutcome"},
+    "base_v1": {"$ref": "#/definitions/baseV1"},
+    "v1_artifact_hashes": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/hashRecord"}
+    },
+    "resolved_contract": {"$ref": "#/definitions/resolvedContract"},
+    "resolved_contract_sha256": {"$ref": "#/definitions/sha256"},
+    "execution": {"$ref": "#/definitions/execution"}
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+    },
+    "upperIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "fieldIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "familyName": {
+      "enum": [
+        "trend_up",
+        "trend_down",
+        "trend_transition",
+        "double_top",
+        "double_bottom",
+        "head_shoulders_top",
+        "inverse_head_shoulders",
+        "breakout",
+        "failed_breakout",
+        "retest",
+        "range",
+        "support_resistance_conversion"
+      ]
+    },
+    "assumptionId": {
+      "type": "string",
+      "pattern": "^MG1A1?\\.[A-Z_]+\\.[A-Z_]+\\.001$"
+    },
+    "assumptionIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/assumptionId"}
+    },
+    "uniqueIdentifiers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/identifier"}
+    },
+    "nonEmptyUniqueIdentifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/identifier"}
+    },
+    "nonEmptyUniqueUpperIdentifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/upperIdentifier"}
+    },
+    "nonEmptyUniqueFieldIdentifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/fieldIdentifier"}
+    },
+    "humanReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "frozen",
+        "reviewer_decisions_recorded",
+        "approver",
+        "approved_at",
+        "frozen_sha256"
+      ],
+      "properties": {
+        "status": {"const": "PENDING"},
+        "frozen": {"const": false},
+        "reviewer_decisions_recorded": {"const": false},
+        "approver": {"type": "null"},
+        "approved_at": {"type": "null"},
+        "frozen_sha256": {"type": "null"}
+      }
+    },
+    "reviewOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "draft_assessment",
+        "freeze_assessment",
+        "mg1b_status",
+        "next_milestone"
+      ],
+      "properties": {
+        "decision": {"const": "DOMAIN_REVIEW_COMPLETED_WITH_REQUIRED_REVISIONS"},
+        "draft_assessment": {"const": "APPROVED_AS_DRAFT"},
+        "freeze_assessment": {"const": "REVISION_REQUIRED_BEFORE_FREEZE"},
+        "mg1b_status": {"const": "BLOCKED"},
+        "next_milestone": {"const": "MG1-A.1"}
+      }
+    },
+    "baseV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config_path",
+        "config_sha256",
+        "resolved_contract_sha256",
+        "review_ledger_path",
+        "review_records_sha256"
+      ],
+      "properties": {
+        "config_path": {"const": "configs/market_genome/pattern_ontology_v1.yaml"},
+        "config_sha256": {"$ref": "#/definitions/sha256"},
+        "resolved_contract_sha256": {"$ref": "#/definitions/sha256"},
+        "review_ledger_path": {"const": "configs/market_genome/pattern_ontology_v1_review.yaml"},
+        "review_records_sha256": {"$ref": "#/definitions/sha256"}
+      }
+    },
+    "hashRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "pattern": "^[^/].*"},
+        "sha256": {"$ref": "#/definitions/sha256"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detector_implemented",
+        "labeler_implemented",
+        "real_data_labels_created",
+        "synthetic_samples_created",
+        "trading_rules_implemented",
+        "model_training_executed",
+        "jax_computation_executed",
+        "gpu_executed"
+      ],
+      "properties": {
+        "detector_implemented": {"const": false},
+        "labeler_implemented": {"const": false},
+        "real_data_labels_created": {"const": false},
+        "synthetic_samples_created": {"const": false},
+        "trading_rules_implemented": {"const": false},
+        "model_training_executed": {"const": false},
+        "jax_computation_executed": {"const": false},
+        "gpu_executed": {"const": false}
+      }
+    },
+    "resolvedContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ontology_id",
+        "ontology_version",
+        "contract_status",
+        "object_model",
+        "common_lifecycle",
+        "scale_spec_contract",
+        "anchor_contract",
+        "relationship_graph",
+        "geometry_formula_contract",
+        "label_namespaces",
+        "review_protocol",
+        "families",
+        "assumption_registry"
+      ],
+      "properties": {
+        "ontology_id": {"const": "market_genome_pattern_ontology"},
+        "ontology_version": {"const": "v2-review"},
+        "contract_status": {"const": "REVISED_REVIEW_DRAFT"},
+        "object_model": {"$ref": "#/definitions/objectModel"},
+        "common_lifecycle": {"$ref": "#/definitions/commonLifecycle"},
+        "scale_spec_contract": {"$ref": "#/definitions/scaleSpecContract"},
+        "anchor_contract": {"$ref": "#/definitions/anchorContract"},
+        "relationship_graph": {"$ref": "#/definitions/relationshipGraph"},
+        "geometry_formula_contract": {"$ref": "#/definitions/geometryFormulaContract"},
+        "label_namespaces": {"$ref": "#/definitions/labelNamespaces"},
+        "review_protocol": {"$ref": "#/definitions/reviewProtocol"},
+        "families": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {"$ref": "#/definitions/family"}
+        },
+        "assumption_registry": {"$ref": "#/definitions/assumptionRegistry"}
+      }
+    },
+    "objectModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "object_classes",
+        "class_by_family",
+        "structural_orientations",
+        "orientation_binding_values",
+        "semantic_roles",
+        "morphology_effect_separation"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "object_classes": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "class_by_family": {"$ref": "#/definitions/classByFamily"},
+        "structural_orientations": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "orientation_binding_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "semantic_roles": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "morphology_effect_separation": {"$ref": "#/definitions/effectSeparation"}
+      }
+    },
+    "classByFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trend_up",
+        "trend_down",
+        "trend_transition",
+        "double_top",
+        "double_bottom",
+        "head_shoulders_top",
+        "inverse_head_shoulders",
+        "breakout",
+        "failed_breakout",
+        "retest",
+        "range",
+        "support_resistance_conversion"
+      ],
+      "properties": {
+        "trend_up": {"$ref": "#/definitions/upperIdentifier"},
+        "trend_down": {"$ref": "#/definitions/upperIdentifier"},
+        "trend_transition": {"$ref": "#/definitions/upperIdentifier"},
+        "double_top": {"$ref": "#/definitions/upperIdentifier"},
+        "double_bottom": {"$ref": "#/definitions/upperIdentifier"},
+        "head_shoulders_top": {"$ref": "#/definitions/upperIdentifier"},
+        "inverse_head_shoulders": {"$ref": "#/definitions/upperIdentifier"},
+        "breakout": {"$ref": "#/definitions/upperIdentifier"},
+        "failed_breakout": {"$ref": "#/definitions/upperIdentifier"},
+        "retest": {"$ref": "#/definitions/upperIdentifier"},
+        "range": {"$ref": "#/definitions/upperIdentifier"},
+        "support_resistance_conversion": {"$ref": "#/definitions/upperIdentifier"}
+      }
+    },
+    "effectSeparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "structural_orientation_is_future_effect",
+        "semantic_role_is_future_outcome",
+        "classic_reversal_role_requires_preceding_context",
+        "future_effect_namespace",
+        "future_effect_allowed_in_family_contract"
+      ],
+      "properties": {
+        "structural_orientation_is_future_effect": {"const": false},
+        "semantic_role_is_future_outcome": {"const": false},
+        "classic_reversal_role_requires_preceding_context": {"const": true},
+        "future_effect_namespace": {"const": "future_outcome"},
+        "future_effect_allowed_in_family_contract": {"const": false}
+      }
+    },
+    "commonLifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "statuses",
+        "projected_edges",
+        "mapping_policy",
+        "branch_transitions_required",
+        "retest_and_continuation_must_be_separate",
+        "terminal_objects_are_immutable",
+        "reactivation_requires_new_pattern_id",
+        "every_invalidated_phase_requires_explicit_causal_in_edge"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "statuses": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "projected_edges": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "mapping_policy": {"const": "VARIABLE_LENGTH_MANY_TO_ONE"},
+        "branch_transitions_required": {"const": true},
+        "retest_and_continuation_must_be_separate": {"const": true},
+        "terminal_objects_are_immutable": {"const": true},
+        "reactivation_requires_new_pattern_id": {"const": true},
+        "every_invalidated_phase_requires_explicit_causal_in_edge": {"const": true}
+      }
+    },
+    "scaleSpecContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "required_fields",
+        "bar_resolution",
+        "aggregation_policy",
+        "session_alignment",
+        "pivot_prominence_scale_ref",
+        "formation_span_bars",
+        "formation_span_session_bars",
+        "scale_octave",
+        "encoder_scale_ref",
+        "nullable_fields",
+        "scale_id_must_resolve_in_versioned_registry",
+        "topology_scale_invariant",
+        "scale_specific_parameter_policy",
+        "test_selection_allowed"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "required_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "bar_resolution": {"$ref": "#/definitions/upperIdentifier"},
+        "aggregation_policy": {"$ref": "#/definitions/upperIdentifier"},
+        "session_alignment": {"$ref": "#/definitions/upperIdentifier"},
+        "pivot_prominence_scale_ref": {"$ref": "#/definitions/upperIdentifier"},
+        "formation_span_bars": {"$ref": "#/definitions/upperIdentifier"},
+        "formation_span_session_bars": {"$ref": "#/definitions/upperIdentifier"},
+        "scale_octave": {"$ref": "#/definitions/upperIdentifier"},
+        "encoder_scale_ref": {"$ref": "#/definitions/upperIdentifier"},
+        "nullable_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "scale_id_must_resolve_in_versioned_registry": {"const": true},
+        "topology_scale_invariant": {"const": true},
+        "scale_specific_parameter_policy": {"const": "TRAIN_PARTITION_ONLY"},
+        "test_selection_allowed": {"const": false}
+      }
+    },
+    "anchorContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "states",
+        "state_transitions",
+        "required_fields",
+        "price_basis_values",
+        "confirmation_basis_values",
+        "time_order",
+        "committed_anchor_requires_closed_bar",
+        "partial_bar_namespace",
+        "committed_history_is_append_only",
+        "revision_zero_requires_no_predecessor",
+        "revision_successor_requires_same_lineage_role_and_scale",
+        "confirmed_revision_reason"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "states": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "state_transitions": {"$ref": "#/definitions/anchorStateTransitions"},
+        "required_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "price_basis_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "confirmation_basis_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "time_order": {"const": "EVENT_NOT_AFTER_AVAILABILITY_NOT_AFTER_OBSERVATION"},
+        "committed_anchor_requires_closed_bar": {"const": true},
+        "partial_bar_namespace": {"const": "PROVISIONAL_RUNTIME_ONLY"},
+        "committed_history_is_append_only": {"const": true},
+        "revision_zero_requires_no_predecessor": {"const": true},
+        "revision_successor_requires_same_lineage_role_and_scale": {"const": true},
+        "confirmed_revision_reason": {"const": "SOURCE_CORRECTION_ONLY"}
+      }
+    },
+    "anchorStateTransitions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PROVISIONAL", "REVISED", "CONFIRMED", "SUPERSEDED", "REVOKED"],
+      "properties": {
+        "PROVISIONAL": {"$ref": "#/definitions/uniqueIdentifiers"},
+        "REVISED": {"$ref": "#/definitions/uniqueIdentifiers"},
+        "CONFIRMED": {"$ref": "#/definitions/uniqueIdentifiers"},
+        "SUPERSEDED": {"$ref": "#/definitions/uniqueIdentifiers"},
+        "REVOKED": {"$ref": "#/definitions/uniqueIdentifiers"}
+      }
+    },
+    "relationshipGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "relation_types",
+        "required_fields",
+        "cross_family_objects_remain_distinct",
+        "cross_scale_objects_remain_distinct",
+        "destructive_merge_allowed",
+        "source_event_identity_required",
+        "binary_edges_only",
+        "derived_views"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "relation_types": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "required_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "cross_family_objects_remain_distinct": {"const": true},
+        "cross_scale_objects_remain_distinct": {"const": true},
+        "destructive_merge_allowed": {"const": false},
+        "source_event_identity_required": {"const": true},
+        "binary_edges_only": {"const": true},
+        "derived_views": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"}
+      }
+    },
+    "geometryFormulaContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "required_fields",
+        "sign_values",
+        "missingness_values",
+        "clipping_policy_values",
+        "fit_boundary_values",
+        "absolute_price_denominator_allowed",
+        "numeric_detector_thresholds_allowed",
+        "causality",
+        "denominator_zero_policy",
+        "insufficient_history_policy",
+        "formula_dependencies_must_be_acyclic",
+        "every_output_has_exactly_one_formula"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "required_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "sign_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "missingness_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "clipping_policy_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "fit_boundary_values": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "absolute_price_denominator_allowed": {"const": false},
+        "numeric_detector_thresholds_allowed": {"const": false},
+        "causality": {"const": "PREFIX_ONLY"},
+        "denominator_zero_policy": {"const": "UNKNOWN_WITH_MASK"},
+        "insufficient_history_policy": {"const": "UNKNOWN_WITH_MASK"},
+        "formula_dependencies_must_be_acyclic": {"const": true},
+        "every_output_has_exactly_one_formula": {"const": true}
+      }
+    },
+    "labelNamespaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "online_causal_phase",
+        "retrospective_completion",
+        "future_outcome"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "online_causal_phase": {"$ref": "#/definitions/namespace"},
+        "retrospective_completion": {"$ref": "#/definitions/namespace"},
+        "future_outcome": {"$ref": "#/definitions/namespace"}
+      }
+    },
+    "namespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["future_visible", "runtime_input_allowed", "fields"],
+      "properties": {
+        "future_visible": {"type": "boolean"},
+        "runtime_input_allowed": {"const": false},
+        "fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"}
+      }
+    },
+    "reviewProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_ids",
+        "review_modes",
+        "required_fields",
+        "adjudication_statuses",
+        "ambiguity_statuses",
+        "future_visibility_by_mode",
+        "reviewer_identity_policy",
+        "independent_review_policy",
+        "model_assisted_independent_truth_allowed",
+        "minimum_independent_reviewers",
+        "ambiguity_blocks_gold_eligibility",
+        "ontology_freeze_requires_separate_v2_hash_bound_review"
+      ],
+      "properties": {
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"},
+        "review_modes": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "required_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "adjudication_statuses": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "ambiguity_statuses": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "future_visibility_by_mode": {"$ref": "#/definitions/futureVisibilityByMode"},
+        "reviewer_identity_policy": {"$ref": "#/definitions/upperIdentifier"},
+        "independent_review_policy": {"$ref": "#/definitions/upperIdentifier"},
+        "model_assisted_independent_truth_allowed": {"const": false},
+        "minimum_independent_reviewers": {"const": "TWO"},
+        "ambiguity_blocks_gold_eligibility": {"const": true},
+        "ontology_freeze_requires_separate_v2_hash_bound_review": {"const": true}
+      }
+    },
+    "futureVisibilityByMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ONLINE_BLINDED", "RETROSPECTIVE", "OUTCOME"],
+      "properties": {
+        "ONLINE_BLINDED": {"const": "PREFIX_ONLY"},
+        "RETROSPECTIVE": {"const": "COMPLETION_WINDOW_ONLY"},
+        "OUTCOME": {"const": "DECLARED_OUTCOME_WINDOW_ONLY"}
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "object_class",
+        "structural_orientation",
+        "orientation_binding",
+        "allowed_instance_orientations",
+        "semantic_roles",
+        "persistent_state",
+        "scale_spec",
+        "anchors",
+        "phase_contract",
+        "topology_rules",
+        "formula_contracts",
+        "confirmation_rules",
+        "invalidation_rules",
+        "relationship_types",
+        "assumption_ids"
+      ],
+      "properties": {
+        "family": {"$ref": "#/definitions/familyName"},
+        "object_class": {"$ref": "#/definitions/upperIdentifier"},
+        "structural_orientation": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/definitions/upperIdentifier"}
+          ]
+        },
+        "orientation_binding": {"enum": ["FIXED", "INSTANCE_BOUND"]},
+        "allowed_instance_orientations": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "semantic_roles": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "persistent_state": {"type": "boolean"},
+        "scale_spec": {"const": "INSTANCE_PARAMETER"},
+        "instance_fields": {"$ref": "#/definitions/nonEmptyUniqueFieldIdentifiers"},
+        "direction_contract": {"$ref": "#/definitions/directionContract"},
+        "object_creation_event": {"$ref": "#/definitions/upperIdentifier"},
+        "historical_attempt_relationship": {"$ref": "#/definitions/upperIdentifier"},
+        "historical_source_evidence_available_at_creation_only": {"const": true},
+        "range_geometry": {"$ref": "#/definitions/upperIdentifier"},
+        "role_conversion_contract": {"$ref": "#/definitions/roleConversionContract"},
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/anchor"}
+        },
+        "phase_contract": {"$ref": "#/definitions/phaseContract"},
+        "topology_rules": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "formula_contracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/formula"}
+        },
+        "confirmation_rules": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "invalidation_rules": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "relationship_types": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "assumption_ids": {"$ref": "#/definitions/assumptionIds"}
+      }
+    },
+    "directionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_direction",
+        "reentry_direction",
+        "resolution_direction",
+        "structural_orientation_basis",
+        "reentry_direction_is_opposite_attempt",
+        "directions_must_not_be_collapsed"
+      ],
+      "properties": {
+        "attempt_direction": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "reentry_direction": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "resolution_direction": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "structural_orientation_basis": {"const": "ATTEMPT_DIRECTION"},
+        "reentry_direction_is_opposite_attempt": {"const": true},
+        "directions_must_not_be_collapsed": {"const": true}
+      }
+    },
+    "roleConversionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upward_break",
+        "downward_break",
+        "source_breakout_and_retest_required",
+        "independent_morphology_label"
+      ],
+      "properties": {
+        "upward_break": {"const": "RESISTANCE_TO_SUPPORT"},
+        "downward_break": {"const": "SUPPORT_TO_RESISTANCE"},
+        "source_breakout_and_retest_required": {"const": true},
+        "independent_morphology_label": {"const": false}
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "cardinality", "state_requirement"],
+      "properties": {
+        "role": {"$ref": "#/definitions/fieldIdentifier"},
+        "cardinality": {"$ref": "#/definitions/upperIdentifier"},
+        "state_requirement": {"$ref": "#/definitions/upperIdentifier"}
+      }
+    },
+    "phaseContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family_phases",
+        "common_mapping",
+        "branch_transitions",
+        "invalidation_transitions"
+      ],
+      "properties": {
+        "family_phases": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "common_mapping": {"$ref": "#/definitions/commonMapping"},
+        "branch_transitions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/branchTransition"}
+        },
+        "invalidation_transitions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/invalidationTransition"}
+        }
+      }
+    },
+    "commonMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["INACTIVE", "ACTIVE", "RESOLVED", "INVALIDATED"],
+      "properties": {
+        "INACTIVE": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "ACTIVE": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "RESOLVED": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"},
+        "INVALIDATED": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"}
+      }
+    },
+    "branchTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_phase", "to_phase", "event"],
+      "properties": {
+        "from_phase": {"$ref": "#/definitions/upperIdentifier"},
+        "to_phase": {"$ref": "#/definitions/upperIdentifier"},
+        "event": {"$ref": "#/definitions/upperIdentifier"}
+      }
+    },
+    "invalidationTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_phases", "to_phase", "events"],
+      "properties": {
+        "from_phases": {
+          "oneOf": [
+            {"const": "ALL_ACTIVE_FAMILY_PHASES"},
+            {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"}
+          ]
+        },
+        "to_phase": {"$ref": "#/definitions/upperIdentifier"},
+        "events": {"$ref": "#/definitions/nonEmptyUniqueUpperIdentifiers"}
+      }
+    },
+    "formula": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "numerator",
+        "denominator",
+        "sign",
+        "unit",
+        "missingness",
+        "clipping_policy",
+        "fit_boundary"
+      ],
+      "properties": {
+        "name": {"$ref": "#/definitions/fieldIdentifier"},
+        "numerator": {"$ref": "#/definitions/fieldIdentifier"},
+        "denominator": {"$ref": "#/definitions/fieldIdentifier"},
+        "sign": {"$ref": "#/definitions/upperIdentifier"},
+        "unit": {"$ref": "#/definitions/upperIdentifier"},
+        "missingness": {"$ref": "#/definitions/upperIdentifier"},
+        "clipping_policy": {"$ref": "#/definitions/upperIdentifier"},
+        "fit_boundary": {"$ref": "#/definitions/upperIdentifier"}
+      }
+    },
+    "assumptionRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inherited_from_v1", "new_v2_assumptions"],
+      "properties": {
+        "inherited_from_v1": {"$ref": "#/definitions/inheritedAssumptions"},
+        "new_v2_assumptions": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {"$ref": "#/definitions/openAssumption"}
+        }
+      }
+    },
+    "inheritedAssumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "proposed_default",
+        "reviewer_decision",
+        "source_review_ledger",
+        "assumption_ids"
+      ],
+      "properties": {
+        "status": {"const": "NEEDS_HUMAN_REVIEW"},
+        "proposed_default": {"type": "null"},
+        "reviewer_decision": {"type": "null"},
+        "source_review_ledger": {"const": "configs/market_genome/pattern_ontology_v1_review.yaml"},
+        "assumption_ids": {
+          "type": "array",
+          "minItems": 61,
+          "maxItems": 61,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/assumptionId"}
+        }
+      }
+    },
+    "openAssumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_id",
+        "status",
+        "question",
+        "proposed_default",
+        "reviewer_decision"
+      ],
+      "properties": {
+        "assumption_id": {"$ref": "#/definitions/assumptionId"},
+        "status": {"const": "NEEDS_HUMAN_REVIEW"},
+        "question": {"$ref": "#/definitions/nonEmptyString"},
+        "proposed_default": {"type": "null"},
+        "reviewer_decision": {"type": "null"}
+      }
+    }
+  }
+}

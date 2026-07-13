@@ -1,0 +1,267 @@
+schema_version: mg1.review_findings.v1
+base_contract_sha256: 9c832971fcb6a88a67493aef3e81a81ce1aabb8e739b4c6575d96925b706dc36
+reviewer_id: CODEX_DOMAIN_EXPERT_01
+reviewed_at: "2026-07-13T16:59:26+08:00"
+findings:
+  - assumption_id: MG1A.COMMON.LIFECYCLE.001
+    disposition: REVISE
+    expert_decision: >-
+      Retain the eight-phase causal lifecycle, but do not reset a terminal object
+      to INACTIVE under the same pattern_id. Terminal objects remain immutable;
+      a later formation creates a new object and may link to its predecessor.
+    approved_invariants:
+      - The eight common phase names remain the shared lifecycle vocabulary.
+      - Online transitions use only evidence available at or before as_of_eob.
+      - Any pre-terminal formation phase may transition to INVALIDATED.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Remove same-object COMPLETED-to-INACTIVE and INVALIDATED-to-INACTIVE resets.
+      - Define earliest causal evidence for each family phase and persistent-family completion.
+    blocking_items:
+      - OBJECT_ID_RESET_POLICY_NOT_APPLIED
+      - FAMILY_PHASE_EVIDENCE_NOT_DEFINED
+    evidence_ids: [PLAN_MG1A, TECH_LIFECYCLE]
+
+  - assumption_id: MG1A.COMMON.SCALE.001
+    disposition: REVISE
+    expert_decision: >-
+      Keep topology, anchor roles, phase ordering, and normalization form shared
+      across scale. Supply scale_id and base_timeframe per instance; permit only
+      noise tolerance, minimum duration, and optional-filter strength to vary by
+      scale under a versioned train-only policy.
+    approved_invariants:
+      - A timeframe changes scale statistics, not family identity.
+      - Scale-specific parameters cannot be selected using validation or test outcomes.
+      - Every scale statistic is versioned and computed from causal observations.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define the legal scale registry and base-timeframe registry.
+      - Define scale-window statistics and the exact shared-versus-specific parameter matrix.
+    blocking_items:
+      - SCALE_REGISTRY_NOT_DEFINED
+      - SCALE_STATISTIC_POLICY_NOT_DEFINED
+    evidence_ids: [PLAN_MG1A, TECH_MULTI_SCALE]
+
+  - assumption_id: MG1A.COMMON.NORMALIZATION.001
+    disposition: REVISE
+    expert_decision: >-
+      Use dimensionless ratios directly and use a versioned causal volatility or
+      train-frozen scale for price distances. Absolute point thresholds are
+      prohibited. Any fitted transform is learned on the training partition only
+      and then fixed for validation and test.
+    approved_invariants:
+      - Price geometry uses normalized multiples or dimensionless ratios.
+      - Duration uses scale-window statistic ratios.
+      - Online rolling statistics are prefix-only and fitted artifacts are train-only.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Bind each geometry field to one allowed normalization method.
+      - Define lookback, stability floor, fit partition, artifact version, and hash requirements.
+    blocking_items:
+      - FIELD_NORMALIZER_BINDINGS_NOT_DEFINED
+      - NORMALIZER_FIT_CONTRACT_NOT_DEFINED
+    evidence_ids: [PLAN_MG1A, CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.COMMON.SWING_CAUSALITY.001
+    disposition: REVISE
+    expert_decision: >-
+      Enforce event_eob <= available_as_of_eob <= as_of_eob. An anchor may affect
+      an online phase only after availability; its source method, source version,
+      closed-bar state, tie rule, and revision policy must be recorded.
+    approved_invariants:
+      - Centered extrema are never backfilled as if known at their event bar.
+      - Anchor availability is explicit and independently testable.
+      - Pattern state cannot consume an anchor before available_as_of_eob.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define the allowed anchor-source registry and availability delay for each method.
+      - Define tie handling, replacement, and retraction behavior.
+    blocking_items:
+      - ANCHOR_SOURCE_REGISTRY_NOT_DEFINED
+      - ANCHOR_REVISION_POLICY_NOT_DEFINED
+    evidence_ids: [TECH_CAUSALITY, CHENDAGE_SWING]
+
+  - assumption_id: MG1A.COMMON.PARTIAL_BAR.001
+    disposition: REVISE
+    expert_decision: >-
+      Version 1 pattern anchors and phase transitions are closed-bar only. A
+      partial aggregate may be exposed as separate provisional telemetry, but it
+      cannot mutate committed pattern state or be backfilled after bucket close.
+    approved_invariants:
+      - Committed online pattern state uses closed source bars only.
+      - Provisional partial-bar observations remain outside the committed lifecycle.
+      - Later bucket completion cannot rewrite prior online availability.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Replace INSTANCE_PARAMETER with CLOSED_BAR_ONLY for committed state.
+      - Specify a separate provisional namespace if partial-bar telemetry is retained.
+    blocking_items:
+      - CLOSED_BAR_ONLY_POLICY_NOT_APPLIED
+    evidence_ids: [TECH_CAUSALITY, CHENDAGE_AGGREGATION]
+
+  - assumption_id: MG1A.COMMON.SESSION.001
+    disposition: DEFER
+    expert_decision: >-
+      Require a versioned authoritative calendar per instrument, deterministic
+      session-to-trading-day mapping, and explicit masks for out-of-session and
+      missing bars. No generic fallback calendar is acceptable for a frozen run.
+      The repository does not yet provide the authoritative registry needed to
+      select concrete calendar versions.
+    approved_invariants:
+      - Every instance names its session calendar version.
+      - Missing and out-of-session bars are distinct from observed zero values.
+      - Bucket boundaries are deterministic in the instrument exchange timezone.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Provide an authoritative instrument-to-calendar registry with holiday and night-session rules.
+      - Define missing-bar, early-close, timezone, and unsupported-instrument behavior.
+    blocking_items:
+      - AUTHORITATIVE_CALENDAR_REGISTRY_UNAVAILABLE
+    evidence_ids: [CHENDAGE_SESSION]
+
+  - assumption_id: MG1A.COMMON.ROLL.001
+    disposition: REVISE
+    expert_decision: >-
+      For version 1, a contract roll terminates every open pattern on the old
+      active contract and new objects start on the new contract. Cross-roll
+      anchors are prohibited. Continuous adjusted prices may be context, but
+      active_contract, roll event, mapping version, and contract age remain explicit.
+    approved_invariants:
+      - Roll mapping is causal, versioned, and retained at bar and pattern level.
+      - A roll cannot silently create, preserve, or invalidate an anchor.
+      - Evaluation uses roll-aware embargo at split boundaries.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Add explicit roll-event identity, mapping version, and contract-age semantics.
+      - Encode TERMINATE_AT_ROLL and prohibit cross-roll anchors in the frozen contract.
+    blocking_items:
+      - ROLL_TERMINATION_POLICY_NOT_APPLIED
+      - ACTIVE_CONTRACT_IDENTITY_NOT_PRESERVED_END_TO_END
+    evidence_ids: [ALPHATRADE_ROLL, CHENDAGE_ROLL_BOUNDARY]
+
+  - assumption_id: MG1A.COMMON.PROVENANCE.001
+    disposition: REVISE
+    expert_decision: >-
+      Preserve rule-derived, human-reviewed, synthetic, and auto-model-assisted
+      provenance as separate lineages. Only independently human-reviewed labels
+      are eligible for the real-data test gold set; model-assisted labels cannot
+      be independent truth, and corrections never overwrite source records.
+    approved_invariants:
+      - Label lineage and reviewer/adjudication lineage are immutable and versioned.
+      - Model-assisted labels are excluded from independent test truth.
+      - Engine output and human correction remain separate fields.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Add a provenance-by-benchmark-use eligibility matrix.
+      - Define reviewer independence, adjudication, correction, and lineage fields.
+    blocking_items:
+      - BENCHMARK_PROVENANCE_MATRIX_NOT_DEFINED
+    evidence_ids: [TECH_PROVENANCE]
+
+  - assumption_id: MG1A.COMMON.MIRROR.001
+    disposition: REVISE
+    expert_decision: >-
+      Mirrored families share schema shape and an explicit role/relation transform
+      only. They retain distinct family identity and independently fitted
+      parameters; bullish and bearish numerical symmetry is not assumed.
+    approved_invariants:
+      - Mirroring never merges family identities.
+      - Parameter sharing is disabled for version 1.
+      - Any future sharing requires a new reviewed ontology version and train-only evidence.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define the exact anchor-role, side, and relation transform for each mirrored pair.
+      - Encode SCHEMA_ONLY and INDEPENDENT_PARAMETERS in the mirror contract.
+    blocking_items:
+      - MIRROR_TRANSFORMS_NOT_ENUMERATED
+    evidence_ids: [TECH_MULTI_SCALE]
+
+  - assumption_id: MG1A.COMMON.OVERLAP.001
+    disposition: REVISE
+    expert_decision: >-
+      Related families are independent, concurrently observable objects linked by
+      immutable source_event_id, source_pattern_id, and source_zone_id. No object
+      deletes or rewrites another. Identical family, scale, source event, and
+      formation epoch are idempotently de-duplicated; cross-scale objects remain distinct.
+    approved_invariants:
+      - Concurrent objects retain independent family, phase, provenance, and pattern_id.
+      - Related lifecycle events share explicit causal event identity.
+      - De-duplication never merges different scales or families.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Add source event, pattern, zone, formation-epoch, and relation fields.
+      - Extend overlap scope to neckline families that can emit breakout and retest links.
+      - Define idempotency, nesting, expiry, and conflict precedence without destructive rewrites.
+    blocking_items:
+      - CROSS_FAMILY_IDENTITY_FIELDS_MISSING
+      - NECKLINE_FAMILIES_MISSING_FROM_OVERLAP_SCOPE
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.COMMON.ZONE.001
+    disposition: REVISE
+    expert_decision: >-
+      A zone is an immutable versioned object derived only from causal anchors.
+      Width, touch, penetration, and break are expressed in normalized units;
+      absolute-point buffers are forbidden. A material anchor-set change creates
+      a new zone version rather than rewriting prior observations.
+    approved_invariants:
+      - Zone construction consumes only anchors available at the observation time.
+      - Zone comparisons use normalized scales or dimensionless ratios.
+      - Zone role conversion preserves the original zone identity and version lineage.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define anchor aggregation, width, touch, cross, penetration, drift, merge, and expiry policies.
+      - Define train-only fitting boundaries for any estimated zone tolerance.
+    blocking_items:
+      - COMMON_ZONE_CONTRACT_NOT_DEFINED
+    evidence_ids: [CHENDAGE_LEVELS]
+
+  - assumption_id: MG1A.COMMON.FILTER_MISSINGNESS.001
+    disposition: REVISE
+    expert_decision: >-
+      Volume and open interest remain optional confirmation context and never
+      topology. Missing or unavailable values map to UNKNOWN with an explicit
+      mask, not zero and not failed confirmation. Relative baselines are causal;
+      selected hyperparameters are trained and frozen without test access.
+    approved_invariants:
+      - Optional filter absence cannot invalidate geometric topology.
+      - Missing, observed zero, and insufficient-history states are distinct.
+      - Relative baselines use prefix-only observations.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define the missingness enum/mask, minimum history, and baseline statistic contract.
+      - Define roll, venue, and unsupported-field behavior.
+    blocking_items:
+      - FILTER_MISSINGNESS_CONTRACT_NOT_DEFINED
+    evidence_ids: [PLAN_MG1A]
+
+  - assumption_id: MG1A.COMMON.LABEL_TIMING.001
+    disposition: REVISE
+    expert_decision: >-
+      Keep online causal phase, retrospective completion, and future outcome in
+      physically and logically separate namespaces. Future-allowed targets never
+      enter runtime features. Target horizons, censoring, corrections, and joins
+      must be versioned and frozen before test evaluation.
+    approved_invariants:
+      - Online phase uses only information available at as_of_eob.
+      - Completion and outcome labels are target-only namespaces.
+      - Future target values cannot be joined into raw runtime inputs.
+    resolved_parameter_refs: []
+    wildcard_expansions: []
+    required_changes:
+      - Define completion events, censoring, horizon registries, correction policy, and causal join keys.
+    blocking_items:
+      - TARGET_TIMING_AND_CENSORING_CONTRACT_NOT_DEFINED
+    evidence_ids: [TECH_LABEL_SEPARATION]
